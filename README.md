@@ -102,6 +102,15 @@ pnpm assets:icon
 pnpm desktop:dist:linux
 ```
 
+GitHub release from the current version tag:
+
+```bash
+git tag v0.1.2
+git push origin v0.1.2
+```
+
+That tag triggers the release workflow and uploads macOS, Windows, and Linux artifacts to GitHub Releases.
+
 Detailed notes:
 - `docs/ELECTRON_DESKTOP_PLAN.md`
 - `CONTRIBUTING.md`

@@ -1,6 +1,6 @@
 # dashboard-LAB Publishing Checklist
 
-This project is structurally ready for GitHub publication and macOS desktop packaging.
+This project is structurally ready for GitHub publication and desktop packaging across macOS, Windows, and Linux.
 
 ## Ready
 
@@ -8,6 +8,7 @@ This project is structurally ready for GitHub publication and macOS desktop pack
 - Electron desktop shell
 - macOS unpacked desktop build
 - CI workflow for lint, type-check, web build, and desktop smoke build
+- release workflow for tagged multi-platform desktop artifacts
 - open-source support docs:
   - `README.md`
   - `CONTRIBUTING.md`
@@ -16,9 +17,7 @@ This project is structurally ready for GitHub publication and macOS desktop pack
 
 ## Remaining Blocker
 
-- Add a `LICENSE` file.
-
-This is intentionally not auto-generated because license choice is a project/legal decision.
+- None for source publication or tagged desktop release.
 
 ## Release Commands
 
@@ -27,7 +26,8 @@ pnpm assets:icon
 pnpm lint
 pnpm type-check
 pnpm desktop:build
-pnpm desktop:dist:mac
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 ## Pre-Publish Notes
@@ -36,3 +36,4 @@ pnpm desktop:dist:mac
 - The packaged desktop baseline disables the embedded terminal server.
 - macOS code signing and notarization are still optional follow-up work.
 - `asar` is currently disabled and can be hardened in a later release pass.
+- GitHub Actions still emits a non-blocking Node 20 deprecation warning for `actions/checkout@v4` and `actions/setup-node@v4`.
