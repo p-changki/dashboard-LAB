@@ -155,7 +155,7 @@ pnpm lint
 
 - The desktop app is macOS-first today.
 - Release artifacts are built locally into `release/`.
-- A license file is still required before publishing as a true open-source repository.
+- This repository uses the MIT license.
 
 The local runner prints a dynamic app URL and terminal WebSocket port:
 
