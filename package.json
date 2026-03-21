@@ -1,0 +1,49 @@
+{
+  "name": "dashboard-lab",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "scripts": {
+    "doctor": "node scripts/doctor.mjs",
+    "setup:mac": "bash scripts/bootstrap-macos.sh",
+    "launch": "node scripts/launch-local.mjs",
+    "dev": "node server/run-local.mjs dev",
+    "build": "next build",
+    "start": "node server/run-local.mjs start",
+    "lint": "eslint . --max-warnings=0",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vitalets/google-translate-api": "^9.2.1",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "gray-matter": "^4.0.3",
+    "lucide-react": "^0.577.0",
+    "mermaid": "^11.13.0",
+    "next": "15.3.8",
+    "node-html-parser": "^7.1.0",
+    "pdf-parse": "^2.4.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-file-icon": "^1.6.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pdf-parse": "^1.1.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.0",
+    "node-pty": "1.2.0-beta.12",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  }
+}
