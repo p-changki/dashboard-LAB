@@ -1,12 +1,14 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
 
-const ROOT = new URL("..", import.meta.url);
-const BUILD_DIR = path.join(ROOT.pathname, "build-resources");
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const BUILD_DIR = path.join(ROOT, "build-resources");
 const ICONSET_DIR = path.join(BUILD_DIR, "icon.iconset");
 const ICNS_PATH = path.join(BUILD_DIR, "icon.icns");
+const ICO_PATH = path.join(BUILD_DIR, "icon.ico");
 const PNG_PATH = path.join(BUILD_DIR, "icon.png");
 
 const ICON_SPECS = [
@@ -31,19 +33,25 @@ for (const spec of ICON_SPECS) {
 }
 
 writeFileSync(PNG_PATH, createPng(1024));
+writeFileSync(ICO_PATH, createIco(createPng(256), 256));
 
-const iconutil = spawnSync("iconutil", ["-c", "icns", ICONSET_DIR, "-o", ICNS_PATH], {
-  stdio: "inherit",
-});
+if (process.platform === "darwin") {
+  const iconutil = spawnSync("iconutil", ["-c", "icns", ICONSET_DIR, "-o", ICNS_PATH], {
+    stdio: "inherit",
+  });
 
-if (iconutil.status !== 0) {
-  process.exit(iconutil.status ?? 1);
+  if (iconutil.status !== 0) {
+    process.exit(iconutil.status ?? 1);
+  }
 }
 
 rmSync(ICONSET_DIR, { recursive: true, force: true });
 
 console.log(`Generated ${PNG_PATH}`);
-console.log(`Generated ${ICNS_PATH}`);
+console.log(`Generated ${ICO_PATH}`);
+if (process.platform === "darwin") {
+  console.log(`Generated ${ICNS_PATH}`);
+}
 
 function createPng(size) {
   const raw = renderIcon(size);
@@ -230,6 +238,25 @@ function pngChunk(type, data) {
   const crc = Buffer.alloc(4);
   crc.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 0);
   return Buffer.concat([length, typeBuffer, data, crc]);
+}
+
+function createIco(pngBuffer, size) {
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(1, 4);
+
+  const directory = Buffer.alloc(16);
+  directory[0] = size >= 256 ? 0 : size;
+  directory[1] = size >= 256 ? 0 : size;
+  directory[2] = 0;
+  directory[3] = 0;
+  directory.writeUInt16LE(1, 4);
+  directory.writeUInt16LE(32, 6);
+  directory.writeUInt32LE(pngBuffer.length, 8);
+  directory.writeUInt32LE(header.length + directory.length, 12);
+
+  return Buffer.concat([header, directory, pngBuffer]);
 }
 
 function crc32(buffer) {

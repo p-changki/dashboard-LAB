@@ -1,6 +1,6 @@
 {
   "name": "dashboard-lab",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "license": "MIT",
   "description": "Local-first AI workspace dashboard boilerplate with Electron desktop packaging.",
@@ -17,7 +17,10 @@
     "assets:icon": "node scripts/generate-app-icon.mjs",
     "desktop:dev": "node electron/dev-runner.mjs",
     "desktop:build": "node scripts/desktop-build.mjs dir",
+    "desktop:dist": "node scripts/desktop-build.mjs dist",
     "desktop:dist:mac": "node scripts/desktop-build.mjs dist:mac",
+    "desktop:dist:win": "node scripts/desktop-build.mjs dist:win",
+    "desktop:dist:linux": "node scripts/desktop-build.mjs dist:linux",
     "lint": "eslint . --max-warnings=0",
     "type-check": "tsc --noEmit"
   },
@@ -91,6 +94,21 @@
         "zip"
       ],
       "category": "public.app-category.productivity"
+    },
+    "win": {
+      "icon": "build-resources/icon.ico",
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "linux": {
+      "icon": "build-resources/icon.png",
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "category": "Utility"
     }
   },
   "pnpm": {

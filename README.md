@@ -48,6 +48,23 @@ pnpm doctor
 pnpm launch
 ```
 
+## CLI Setup For Windows / Linux
+
+Windows and Linux are now supported as experimental desktop targets.
+
+```bash
+pnpm install
+pnpm doctor
+pnpm launch
+```
+
+What you still need to install yourself:
+- Node.js 22+
+- `pnpm`
+- `ffmpeg`
+- `whisper` or `whisper-cli`
+- `models/ggml-base.bin`
+
 ## Desktop App
 
 Electron development mode:
@@ -71,6 +88,20 @@ pnpm assets:icon
 pnpm desktop:dist:mac
 ```
 
+Windows desktop artifacts:
+
+```bash
+pnpm assets:icon
+pnpm desktop:dist:win
+```
+
+Linux desktop artifacts:
+
+```bash
+pnpm assets:icon
+pnpm desktop:dist:linux
+```
+
 Detailed notes:
 - `docs/ELECTRON_DESKTOP_PLAN.md`
 - `CONTRIBUTING.md`
@@ -85,8 +116,6 @@ On first launch, the dashboard inspects your local environment and lets you conf
 ## Requirements
 
 Required:
-- macOS
-- Homebrew
 - Node.js
 - `ffmpeg`
 - `whisper` or `whisper-cli`
@@ -153,7 +182,7 @@ pnpm lint
 
 ## Open Source Notes
 
-- The desktop app is macOS-first today.
+- The desktop app is stable on macOS and experimental on Windows/Linux.
 - Release artifacts are built locally into `release/`.
 - This repository uses the MIT license.
 

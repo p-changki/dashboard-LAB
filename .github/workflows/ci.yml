@@ -11,29 +11,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.17.1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+      - run: corepack enable
+      - run: corepack prepare pnpm@10.17.1 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm type-check
       - run: pnpm build
 
   desktop-smoke:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.17.1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+      - run: corepack enable
+      - run: corepack prepare pnpm@10.17.1 --activate
       - run: pnpm install --frozen-lockfile
       - run: node scripts/generate-app-icon.mjs
       - run: pnpm rebuild electron node-pty

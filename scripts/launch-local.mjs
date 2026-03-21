@@ -50,9 +50,28 @@ function detectAndOpen(text) {
   const appUrl = match[1];
   console.log(`${LOG_PREFIX} opening ${appUrl}`);
 
-  const openProc = spawn("open", [appUrl], {
+  const openProc = spawnBrowser(appUrl);
+  openProc?.unref();
+}
+
+function spawnBrowser(appUrl) {
+  if (process.platform === "darwin") {
+    return spawn("open", [appUrl], {
+      stdio: "ignore",
+      detached: true,
+    });
+  }
+
+  if (process.platform === "win32") {
+    return spawn("cmd", ["/c", "start", "", appUrl], {
+      stdio: "ignore",
+      detached: true,
+      windowsHide: true,
+    });
+  }
+
+  return spawn("xdg-open", [appUrl], {
     stdio: "ignore",
     detached: true,
   });
-  openProc.unref();
 }

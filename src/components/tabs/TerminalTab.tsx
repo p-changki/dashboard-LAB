@@ -308,7 +308,7 @@ function TerminalFallback() {
     <section className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-5">
       <p className="text-sm font-semibold text-white">웹 터미널 fallback</p>
       <p className="mt-2 text-sm text-gray-400">
-        WebSocket 연결이 불안정하면 자주 쓰는 명령을 복사해서 iTerm에서 실행할 수 있습니다.
+        WebSocket 연결이 불안정하면 자주 쓰는 명령을 복사해서 로컬 터미널에서 실행할 수 있습니다.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         {commands.map((command) => (
@@ -323,28 +323,20 @@ function TerminalFallback() {
         ))}
         <button
           type="button"
-          onClick={() => openITerm()}
+          onClick={() => openLocalTerminal()}
           className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-sm text-purple-200 transition hover:bg-purple-500/20"
         >
-          iTerm 열기
+          로컬 터미널 열기
         </button>
       </div>
     </section>
   );
 }
 
-function openITerm() {
+function openLocalTerminal() {
   void fetch("/api/system/apps/launch", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ appPath: "/Applications/iTerm.app" }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        window.open("iterm://new_window", "_blank");
-      }
-    })
-    .catch(() => {
-      window.open("iterm://new_window", "_blank");
-  });
+    body: JSON.stringify({ appPath: "__dashboard_lab_default_terminal__" }),
+  }).catch(() => {});
 }

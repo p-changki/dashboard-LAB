@@ -16,6 +16,12 @@ export function AppLauncher({ apps, onLaunch }: AppLauncherProps) {
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
       <p className="text-lg font-semibold text-gray-100">App Launcher</p>
+      {apps.length === 0 ? (
+        <p className="mt-4 text-sm text-gray-400">
+          이 환경에서는 자동으로 찾은 앱이 아직 없습니다. macOS는 앱 폴더를,
+          Windows와 Linux는 주요 앱 경로 또는 실행 파일을 기준으로 탐지합니다.
+        </p>
+      ) : null}
       <div className="mt-4 space-y-4">
         {Object.entries(grouped).map(([category, categoryApps]) => (
           <div key={category}>

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 
-const mode = process.argv[2] === "dist:mac" ? "dist:mac" : "dir";
+const mode = process.argv[2] ?? "dir";
+const targetArgs = resolveTargetArgs(mode);
 
 await runCommand("pnpm", ["build"]);
 await runCommand(
@@ -8,7 +9,7 @@ await runCommand(
   [
     "exec",
     "electron-builder",
-    ...(mode === "dist:mac" ? ["--mac"] : ["--dir"]),
+    ...targetArgs,
   ],
   {
     env: {
@@ -17,6 +18,32 @@ await runCommand(
     },
   },
 );
+
+function resolveTargetArgs(mode) {
+  if (mode === "dir") {
+    return ["--dir"];
+  }
+
+  if (mode === "dist") {
+    return [];
+  }
+
+  if (mode === "dist:mac") {
+    return ["--mac"];
+  }
+
+  if (mode === "dist:win") {
+    return ["--win"];
+  }
+
+  if (mode === "dist:linux") {
+    return ["--linux"];
+  }
+
+  throw new Error(
+    `Unsupported desktop build mode: ${mode}. Expected one of dir, dist, dist:mac, dist:win, dist:linux.`,
+  );
+}
 
 function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {

@@ -145,12 +145,19 @@ function buildDoctorChecks(
 
 function buildPlatformCheck(): DashboardLabRuntimeCheck {
   const isMac = process.platform === "darwin";
+  const isSupported = ["darwin", "win32", "linux"].includes(process.platform);
 
   return {
     id: "platform",
-    label: "macOS 권장 환경",
-    status: isMac ? "pass" : "warn",
-    detail: `${process.platform} ${process.arch}`,
+    label: "지원 플랫폼",
+    status: isMac ? "pass" : isSupported ? "warn" : "fail",
+    detail: isMac
+      ? `macOS ${process.arch} · 가장 안정적인 기준선`
+      : process.platform === "win32"
+        ? `Windows ${process.arch} · 실험적 지원`
+        : process.platform === "linux"
+          ? `Linux ${process.arch} · 실험적 지원`
+          : `${process.platform} ${process.arch} · 미지원 플랫폼`,
     required: true,
   };
 }
@@ -225,10 +232,7 @@ function detectAnyCommand(commands: string[]): CommandDetectionResult {
 }
 
 function detectCommand(command: string): CommandDetectionResult {
-  const pathResult = spawnSync("bash", ["-lc", `command -v '${command}'`], {
-    encoding: "utf8",
-  });
-  const commandPath = pathResult.status === 0 ? pathResult.stdout.trim() : "";
+  const commandPath = resolveCommandPath(command);
 
   if (!commandPath) {
     return {
@@ -251,4 +255,23 @@ function detectCommand(command: string): CommandDetectionResult {
     path: commandPath,
     version: versionOutput || null,
   };
+}
+
+function resolveCommandPath(command: string) {
+  if (process.platform === "win32") {
+    const result = spawnSync("where", [command], { encoding: "utf8" });
+    if (result.status !== 0) {
+      return "";
+    }
+
+    return result.stdout
+      .split(/\r?\n/)
+      .map((item) => item.trim())
+      .find(Boolean) ?? "";
+  }
+
+  const result = spawnSync("sh", ["-lc", `command -v '${command}'`], {
+    encoding: "utf8",
+  });
+  return result.status === 0 ? result.stdout.trim() : "";
 }
