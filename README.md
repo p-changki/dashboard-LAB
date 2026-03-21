@@ -107,14 +107,15 @@ pnpm desktop:dist:linux
 GitHub release from the current version tag:
 
 ```bash
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 That tag triggers the release workflow and uploads macOS, Windows, and Linux artifacts to GitHub Releases.
 
 Detailed notes:
 - `docs/ELECTRON_DESKTOP_PLAN.md`
+- `docs/V0_1_5_CHECKLIST.md`
 - `CONTRIBUTING.md`
 - `SECURITY.md`
 

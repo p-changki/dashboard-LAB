@@ -26,8 +26,8 @@ pnpm assets:icon
 pnpm lint
 pnpm type-check
 pnpm desktop:build
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 ## Pre-Publish Notes
@@ -37,4 +37,4 @@ git push origin v0.1.4
 - OpenAI API fallback is now supported for `CS Helper` and `Call to PRD` when the key is saved in onboarding.
 - macOS code signing and notarization are still optional follow-up work.
 - `asar` is currently disabled and can be hardened in a later release pass.
-- GitHub Actions still emits a non-blocking Node 20 deprecation warning for `actions/checkout@v4` and `actions/setup-node@v4`.
+- GitHub Actions workflows are pinned to current major versions to avoid the prior Node 20 runtime deprecation warning.

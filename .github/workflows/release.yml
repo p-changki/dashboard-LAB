@@ -35,8 +35,8 @@ jobs:
               release/*.tar.gz
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
       - run: corepack enable
@@ -45,7 +45,7 @@ jobs:
       - run: node scripts/generate-app-icon.mjs
       - run: pnpm rebuild electron node-pty
       - run: pnpm ${{ matrix.build_script }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.artifact_name }}
           path: ${{ matrix.asset_paths }}
@@ -57,7 +57,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: release-bundle
       - name: Generate checksums
