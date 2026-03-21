@@ -7,43 +7,45 @@ import { getRuntimeConfig } from "@/lib/runtime-config";
 import type { CsProject } from "@/lib/types";
 import { getFirstParagraph, pathExists, toPosixPath } from "@/lib/parsers/shared";
 
-const runtimeConfig = getRuntimeConfig();
-const PROJECTS_ROOT = runtimeConfig.paths.projectsRoot;
-const CENTRAL_CONTEXTS_DIR = runtimeConfig.paths.csContextsDir;
 const MAX_CONTEXT_BYTES = 50 * 1024;
-const EXCLUDED_DIRS = new Set([
-  ".Trash",
-  ".localized",
-  APP_META.slug,
-  path.basename(process.cwd()),
-  "node_modules",
-  "$RECYCLE.BIN",
-]);
 
 export async function scanCsProjects() {
-  const projectEntries = await readdir(PROJECTS_ROOT, { withFileTypes: true }).catch(() => []);
-  const desktopProjects = projectEntries
+  const { projectsRoot, centralContextsDir, excludedDirs } = getRuntimePaths();
+  const projectEntries = await readdir(projectsRoot, { withFileTypes: true }).catch(() => []);
+  const projectNames = projectEntries
     .filter((entry) => entry.isDirectory())
     .filter((entry) => !entry.name.startsWith("."))
-    .filter((entry) => !EXCLUDED_DIRS.has(entry.name))
+    .filter((entry) => !excludedDirs.has(entry.name))
     .map((entry) => entry.name);
-  const centralMap = await scanCentralContexts();
+  const centralMap = await scanCentralContexts(centralContextsDir);
   const projects = await Promise.all(
-    desktopProjects.map((projectName) => buildCsProject(projectName, centralMap.get(normalizeKey(projectName)) ?? null)),
+    projectNames.map((projectName) =>
+      buildCsProject(
+        projectName,
+        centralMap.get(normalizeKey(projectName)) ?? null,
+        projectsRoot,
+      ),
+    ),
   );
   const missingDesktopProjects = [...centralMap.values()]
-    .filter((contextPath) => !desktopProjects.some((projectName) => normalizeKey(projectName) === normalizeKey(path.basename(contextPath, ".md"))))
-    .map((contextPath) => buildExternalProject(contextPath));
+    .filter((contextPath) =>
+      !projectNames.some(
+        (projectName) =>
+          normalizeKey(projectName) === normalizeKey(path.basename(contextPath, ".md")),
+      ),
+    )
+    .map((contextPath) => buildExternalProject(contextPath, centralContextsDir));
 
   return [...projects, ...(await Promise.all(missingDesktopProjects))]
     .sort((left, right) => left.name.localeCompare(right.name, "ko-KR"));
 }
 
 export async function loadContext(projectName: string) {
+  const { projectsRoot, centralContextsDir } = getRuntimePaths();
   validateProjectName(projectName);
-  const projectPath = path.join(PROJECTS_ROOT, projectName);
+  const projectPath = path.join(projectsRoot, projectName);
   const projectContextPath = path.join(projectPath, "cs-context.md");
-  const centralContextPath = path.join(CENTRAL_CONTEXTS_DIR, `${normalizeKey(projectName)}.md`);
+  const centralContextPath = path.join(centralContextsDir, `${normalizeKey(projectName)}.md`);
   const contextPath = (await pathExists(projectContextPath)) ? projectContextPath : centralContextPath;
   const baselineSummary = await summarizeLocalProject(projectPath).catch(() => null);
 
@@ -66,11 +68,12 @@ export async function loadContext(projectName: string) {
 }
 
 export async function initProjectContext(projectName: string) {
+  const { projectsRoot, centralContextsDir } = getRuntimePaths();
   validateProjectName(projectName);
-  const projectPath = path.join(PROJECTS_ROOT, projectName);
+  const projectPath = path.join(projectsRoot, projectName);
   const targetPath = (await pathExists(projectPath))
     ? path.join(projectPath, "cs-context.md")
-    : path.join(CENTRAL_CONTEXTS_DIR, `${normalizeKey(projectName)}.md`);
+    : path.join(centralContextsDir, `${normalizeKey(projectName)}.md`);
 
   await mkdir(path.dirname(targetPath), { recursive: true });
 
@@ -85,14 +88,15 @@ export async function initProjectContext(projectName: string) {
 }
 
 function validateProjectName(name: string) {
+  const { projectsRoot } = getRuntimePaths();
   if (!name || !name.trim()) {
     throw new Error("프로젝트 이름이 비어 있습니다.");
   }
   if (name.includes("..") || name.includes("/") || name.includes("\\")) {
     throw new Error("프로젝트 이름에 허용되지 않는 문자가 포함되어 있습니다.");
   }
-  const resolved = path.resolve(PROJECTS_ROOT, name);
-  if (!resolved.startsWith(PROJECTS_ROOT)) {
+  const resolved = path.resolve(projectsRoot, name);
+  if (!(resolved === projectsRoot || resolved.startsWith(`${projectsRoot}${path.sep}`))) {
     throw new Error("허용되지 않는 경로입니다.");
   }
 }
@@ -101,18 +105,21 @@ function normalizeKey(value: string) {
   return value.toLowerCase().replace(/\s+/g, "").replace(/[^a-z0-9-]/g, "");
 }
 
-async function scanCentralContexts() {
-  const files = await readdir(CENTRAL_CONTEXTS_DIR, { withFileTypes: true }).catch(() => []);
+async function scanCentralContexts(centralContextsDir: string) {
+  const files = await readdir(centralContextsDir, { withFileTypes: true }).catch(() => []);
 
   return new Map(
     files
       .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-      .map((entry) => [normalizeKey(path.basename(entry.name, ".md")), path.join(CENTRAL_CONTEXTS_DIR, entry.name)]),
+      .map((entry) => [
+        normalizeKey(path.basename(entry.name, ".md")),
+        path.join(centralContextsDir, entry.name),
+      ]),
   );
 }
 
-async function buildCsProject(projectName: string, fallbackContextPath: string | null) {
-  const projectPath = path.join(PROJECTS_ROOT, projectName);
+async function buildCsProject(projectName: string, fallbackContextPath: string | null, projectsRoot: string) {
+  const projectPath = path.join(projectsRoot, projectName);
   const localContextPath = path.join(projectPath, "cs-context.md");
   const hasLocal = await pathExists(localContextPath);
   const contextPath = hasLocal ? localContextPath : fallbackContextPath;
@@ -129,14 +136,14 @@ async function buildCsProject(projectName: string, fallbackContextPath: string |
   } satisfies CsProject;
 }
 
-async function buildExternalProject(contextPath: string) {
+async function buildExternalProject(contextPath: string, centralContextsDir: string) {
   const name = path.basename(contextPath, ".md");
   const summary = await summarizeContext(contextPath);
 
   return {
     id: name,
     name,
-    path: toPosixPath(CENTRAL_CONTEXTS_DIR),
+    path: toPosixPath(centralContextsDir),
     hasContext: true,
     contextPath: toPosixPath(contextPath),
     contextSummary: summary,
@@ -191,4 +198,22 @@ A: 안내할 답변을 작성하세요.
 `;
 }
 
-export { CENTRAL_CONTEXTS_DIR };
+function getRuntimePaths() {
+  const runtimeConfig = getRuntimeConfig();
+  return {
+    projectsRoot: runtimeConfig.paths.projectsRoot,
+    centralContextsDir: runtimeConfig.paths.csContextsDir,
+    excludedDirs: new Set([
+      ".Trash",
+      ".localized",
+      APP_META.slug,
+      path.basename(runtimeConfig.paths.workspaceRoot),
+      "node_modules",
+      "$RECYCLE.BIN",
+    ]),
+  };
+}
+
+export function getCentralContextsDir() {
+  return getRuntimeConfig().paths.csContextsDir;
+}

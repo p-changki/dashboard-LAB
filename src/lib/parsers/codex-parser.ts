@@ -115,32 +115,10 @@ async function parseSkillDirectory(
 }
 
 async function resolveCodexPromptSkillsDirectory(): Promise<string | null> {
-  const candidates = [
-    path.join(HOME_DIR, "Desktop", "세팅 프롬프트(codex)", "SKILLS"),
-    path.join(HOME_DIR, "Desktop", "세팅 프롬프트(codex)", "SKILLS"),
-  ];
-
-  for (const candidate of candidates) {
-    if (await pathExists(candidate)) {
-      return candidate;
-    }
-  }
-
   return findCodexPromptPath("SKILLS");
 }
 
 async function resolveCodexRoleFile(): Promise<string | null> {
-  const candidates = [
-    path.join(HOME_DIR, "Desktop", "세팅 프롬프트(codex)", "ROLE.md"),
-    path.join(HOME_DIR, "Desktop", "세팅 프롬프트(codex)", "ROLE.md"),
-  ];
-
-  for (const candidate of candidates) {
-    if (await pathExists(candidate)) {
-      return candidate;
-    }
-  }
-
   return findCodexPromptPath("ROLE.md");
 }
 

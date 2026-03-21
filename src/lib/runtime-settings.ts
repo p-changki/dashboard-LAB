@@ -8,13 +8,6 @@ import type {
   DashboardLabRuntimeSettingsPaths,
 } from "@/lib/types";
 
-const SETTINGS_FILE = path.join(
-  process.cwd(),
-  "data",
-  "state",
-  "runtime-settings.json",
-);
-
 const DEFAULT_SETTINGS: DashboardLabRuntimeSettings = {
   version: 1,
   paths: {
@@ -27,12 +20,14 @@ const DEFAULT_SETTINGS: DashboardLabRuntimeSettings = {
 };
 
 export function readRuntimeSettings(): DashboardLabRuntimeSettings {
-  if (!existsSync(SETTINGS_FILE)) {
+  const settingsFile = getSettingsFilePath();
+
+  if (!existsSync(settingsFile)) {
     return DEFAULT_SETTINGS;
   }
 
   try {
-    const raw = readFileSync(SETTINGS_FILE, "utf8");
+    const raw = readFileSync(settingsFile, "utf8");
     const parsed = JSON.parse(raw) as Partial<DashboardLabRuntimeSettings>;
     return normalizeRuntimeSettings(parsed);
   } catch {
@@ -44,8 +39,9 @@ export function saveRuntimeSettings(
   next: Partial<DashboardLabRuntimeSettings>,
 ): DashboardLabRuntimeSettings {
   const normalized = normalizeRuntimeSettings(next);
-  mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
-  writeFileSync(SETTINGS_FILE, JSON.stringify(normalized, null, 2), "utf8");
+  const settingsFile = getSettingsFilePath();
+  mkdirSync(path.dirname(settingsFile), { recursive: true });
+  writeFileSync(settingsFile, JSON.stringify(normalized, null, 2), "utf8");
   return normalized;
 }
 
@@ -94,4 +90,17 @@ function normalizePaths(value: unknown) {
   }
 
   return [...new Set(value.map(normalizePath).filter((item): item is string => Boolean(item)))];
+}
+
+function getSettingsFilePath() {
+  return path.join(getRuntimeDataRoot(), "state", "runtime-settings.json");
+}
+
+function getRuntimeDataRoot() {
+  return readEnvPath("DASHBOARD_LAB_DATA_ROOT") ?? path.join(process.cwd(), "data");
+}
+
+function readEnvPath(name: string) {
+  const value = process.env[name]?.trim();
+  return value ? path.resolve(value) : null;
 }

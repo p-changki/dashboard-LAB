@@ -12,8 +12,12 @@ export interface DashboardLabRuntimeConfig {
   paths: {
     workspaceRoot: string;
     homeDir: string;
+    desktopDir: string;
+    downloadsDir: string;
+    documentsDir: string;
     dataDir: string;
     stateDir: string;
+    modelsDir: string;
     prdSaveDir: string;
     csContextsDir: string;
     projectsRoot: string;
@@ -30,8 +34,16 @@ export function getRuntimeConfig(): DashboardLabRuntimeConfig {
   const settings = readRuntimeSettings();
   const workspaceRoot = process.cwd();
   const homeDir = os.homedir();
-  const dataDir = path.join(workspaceRoot, "data");
+  const desktopDir = path.join(homeDir, "Desktop");
+  const downloadsDir = path.join(homeDir, "Downloads");
+  const documentsDir = path.join(homeDir, "Documents");
+  const dataDir = readEnvPath("DASHBOARD_LAB_DATA_ROOT") ?? path.join(workspaceRoot, "data");
   const stateDir = path.join(dataDir, "state");
+  const modelsDir =
+    readEnvPath("DASHBOARD_LAB_MODELS_DIR") ??
+    (process.env.DASHBOARD_LAB_DATA_ROOT
+      ? path.join(dataDir, "models")
+      : path.join(workspaceRoot, "models"));
   const configuredProjectsRoot =
     readEnvPath("DASHBOARD_LAB_PROJECTS_ROOT") ??
     settings.paths.projectsRoot;
@@ -49,7 +61,7 @@ export function getRuntimeConfig(): DashboardLabRuntimeConfig {
 
   const projectsRootCandidates = uniquePaths([
     configuredProjectsRoot,
-    path.join(homeDir, "Desktop"),
+    desktopDir,
     workspaceRoot,
   ]);
   const projectsRoot =
@@ -67,8 +79,12 @@ export function getRuntimeConfig(): DashboardLabRuntimeConfig {
     paths: {
       workspaceRoot,
       homeDir,
+      desktopDir,
+      downloadsDir,
+      documentsDir,
       dataDir,
       stateDir,
+      modelsDir,
       prdSaveDir,
       csContextsDir,
       projectsRoot,

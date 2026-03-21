@@ -38,7 +38,6 @@ yarn-error.log*
 # local app state
 /data/state/*.json
 /data/prd/
-/.changki-ai-dev-session.json
 /.dashboard-lab-dev-session.json
 /.playwright-cli/
 

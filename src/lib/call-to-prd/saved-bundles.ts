@@ -23,8 +23,6 @@ import type {
 } from "@/lib/types/call-to-prd";
 import { getRuntimeConfig } from "@/lib/runtime-config";
 
-export const PRD_SAVE_DIR = getRuntimeConfig().paths.prdSaveDir;
-
 interface SavedBundleManifest {
   version: 1 | 2 | 3 | 4 | 5;
   id: string;
@@ -106,10 +104,10 @@ export async function saveGeneratedDocsBundle(options: SaveBundleOptions): Promi
     diffReport,
   } = options;
 
-  await mkdir(PRD_SAVE_DIR, { recursive: true });
+  await mkdir(getPrdSaveDir(), { recursive: true });
 
   const bundleName = buildSavedBundleEntryName(id, projectName, customerName, callDate);
-  const bundlePath = path.join(PRD_SAVE_DIR, bundleName);
+  const bundlePath = path.join(getPrdSaveDir(), bundleName);
   await mkdir(bundlePath, { recursive: true });
 
   const manifestDocs: SavedBundleManifest["generatedDocs"] = [];
@@ -179,7 +177,7 @@ export async function saveNextActionDraft(
     return null;
   }
 
-  const bundlePath = path.join(PRD_SAVE_DIR, entryName);
+  const bundlePath = path.join(getPrdSaveDir(), entryName);
   const bundleStat = await stat(bundlePath).catch(() => null);
 
   if (!bundleStat?.isDirectory()) {
@@ -236,7 +234,7 @@ export async function listSavedBundles(options: ListSavedBundlesOptions = {}): P
   const pageSize = clampPageSize(options.pageSize ?? 6);
   const requestedPage = Number.isFinite(options.page) ? Math.max(1, Math.floor(options.page as number)) : 1;
   const query = (options.query ?? "").trim();
-  const entries = await readdir(PRD_SAVE_DIR, { withFileTypes: true }).catch(() => []);
+  const entries = await readdir(getPrdSaveDir(), { withFileTypes: true }).catch(() => []);
   const items = await Promise.all(
     entries.map(async (entry) => {
       if (entry.isDirectory()) {
@@ -279,7 +277,7 @@ export async function loadSavedBundle(entryName: string): Promise<SavedCallBundl
     return null;
   }
 
-  const targetPath = path.join(PRD_SAVE_DIR, entryName);
+  const targetPath = path.join(getPrdSaveDir(), entryName);
   const targetStat = await stat(targetPath).catch(() => null);
   if (!targetStat) {
     return null;
@@ -301,7 +299,7 @@ export async function deleteSavedBundle(entryName: string): Promise<boolean> {
     return false;
   }
 
-  const targetPath = path.join(PRD_SAVE_DIR, entryName);
+  const targetPath = path.join(getPrdSaveDir(), entryName);
   const targetStat = await stat(targetPath).catch(() => null);
 
   if (!targetStat) {
@@ -325,7 +323,7 @@ export async function resolveChangeRequestBaseline(options: {
     return null;
   }
 
-  const entries = await readdir(PRD_SAVE_DIR, { withFileTypes: true }).catch(() => []);
+  const entries = await readdir(getPrdSaveDir(), { withFileTypes: true }).catch(() => []);
   const summaries = await Promise.all(
     entries.map(async (entry) => {
       if (entry.isDirectory()) {
@@ -383,7 +381,7 @@ async function loadBundleSummary(entryName: string): Promise<SavedCallBundleInde
       return null;
     }
 
-    const bundleSize = await getDirectorySize(path.join(PRD_SAVE_DIR, entryName));
+    const bundleSize = await getDirectorySize(path.join(getPrdSaveDir(), entryName));
     const previewDoc = detail.generatedDocs.find((doc) => doc.type === "prd") ?? detail.generatedDocs[0];
 
     return {
@@ -426,7 +424,7 @@ async function loadBundleDetail(entryName: string): Promise<SavedCallBundleDetai
     return null;
   }
 
-  const bundlePath = path.join(PRD_SAVE_DIR, entryName);
+  const bundlePath = path.join(getPrdSaveDir(), entryName);
   const intake = normalizeCallIntakeMetadata(manifest.intake ?? null);
   const generatedDocs = await Promise.all(
     manifest.generatedDocs.map(async (doc) => {
@@ -504,7 +502,7 @@ async function loadLegacySummary(entryName: string): Promise<SavedCallBundleInde
     return null;
   }
 
-  const fileStat = await stat(path.join(PRD_SAVE_DIR, entryName)).catch(() => null);
+  const fileStat = await stat(path.join(getPrdSaveDir(), entryName)).catch(() => null);
 
   return {
     entryName,
@@ -528,7 +526,7 @@ async function loadLegacyDetail(entryName: string): Promise<SavedCallBundleDetai
     return null;
   }
 
-  const filePath = path.join(PRD_SAVE_DIR, entryName);
+  const filePath = path.join(getPrdSaveDir(), entryName);
   const [fileStat, markdown] = await Promise.all([
     stat(filePath).catch(() => null),
     readFile(filePath, "utf-8").catch(() => null),
@@ -583,7 +581,7 @@ async function readBundleManifest(entryName: string): Promise<SavedBundleManifes
     return null;
   }
 
-  const manifestPath = path.join(PRD_SAVE_DIR, entryName, "manifest.json");
+  const manifestPath = path.join(getPrdSaveDir(), entryName, "manifest.json");
   const raw = await readFile(manifestPath, "utf-8").catch(() => null);
 
   if (!raw) {
@@ -666,6 +664,10 @@ function matchesSavedBundleQuery(item: SavedCallBundleIndexItem, query: string):
   ].filter(Boolean).join(" "));
 
   return haystack.includes(needle);
+}
+
+function getPrdSaveDir() {
+  return getRuntimeConfig().paths.prdSaveDir;
 }
 
 function normalizeSearchText(value: string): string {

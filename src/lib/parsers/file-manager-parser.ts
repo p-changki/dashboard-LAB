@@ -11,14 +11,13 @@ import type {
   FileManagerSection,
   ScannedFile,
 } from "@/lib/types";
+import { getRuntimeConfig } from "@/lib/runtime-config";
 
 import { readThroughCache } from "./cache";
 import { resolveSafePath } from "./file-safety";
 import { pathExists, formatBytes, shellQuote, toPosixPath } from "./shared";
 
 const HOME_DIR = os.homedir();
-const DESKTOP_PATH = path.join(HOME_DIR, "Desktop");
-const DOWNLOADS_PATH = path.join(HOME_DIR, "Downloads");
 const TRASH_PATH = path.join(HOME_DIR, ".Trash");
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -68,7 +67,7 @@ const EXTENSION_MAP: Record<string, FileCategory> = {
 };
 
 export async function scanFileManager(): Promise<FileManagerResponse> {
-  return readThroughCache("file-manager", CACHE_TTL_MS, scanAllDirectories);
+  return readThroughCache(buildFileManagerCacheKey(), CACHE_TTL_MS, scanAllDirectories);
 }
 
 export async function getExecutePreview(
@@ -90,9 +89,10 @@ export async function getExecutePreview(
 }
 
 async function scanAllDirectories(): Promise<FileManagerResponse> {
+  const { desktopDir, downloadsDir } = getRuntimeConfig().paths;
   const [desktop, downloads] = await Promise.all([
-    scanDirectory(DESKTOP_PATH, "desktop"),
-    scanDirectory(DOWNLOADS_PATH, "downloads"),
+    scanDirectory(desktopDir, "desktop"),
+    scanDirectory(downloadsDir, "downloads"),
   ]);
   const suggestions = [...desktop.suggestions, ...downloads.suggestions];
 
@@ -199,20 +199,36 @@ function applyDesktopRules(file: ScannedFile) {
     return buildSuggestion(file, "delete", "high", "시스템/쓰레기 파일", null);
   }
 
-  if (file.category === "image" && /^about-/.test(file.name)) {
-    return buildSuggestion(file, "move", "medium", "교안메이커 스크린샷", "~/Pictures/교안메이커/");
+  if (file.category === "image" && isScreenshotName(file.name)) {
+    return buildSuggestion(file, "move", "medium", "스크린샷 보관", buildUserPath("Pictures", "Screenshots"));
   }
 
   if (file.category === "image") {
-    return buildSuggestion(file, "move", "medium", "데스크탑 이미지 파일", "~/Pictures/Desktop정리/");
+    return buildSuggestion(file, "move", "medium", "이미지 파일 정리", buildUserPath("Pictures", "Imported"));
   }
 
   if (file.category === "video") {
-    return buildSuggestion(file, "move", "medium", "시연/녹화 영상", "~/Movies/시연영상/");
+    return buildSuggestion(file, "move", "medium", "동영상 파일 정리", buildUserPath("Movies", "Imported"));
   }
 
-  if (file.extension === "md") {
-    return buildSuggestion(file, "move", "low", "독립 작업 문서", "~/Documents/작업문서/");
+  if (["md", "txt", "rtf"].includes(file.extension)) {
+    return buildSuggestion(
+      file,
+      "move",
+      "low",
+      "노트/텍스트 문서",
+      buildUserPath("Documents", "dashboard-LAB", "Notes"),
+    );
+  }
+
+  if (file.category === "document" || file.category === "hwp") {
+    return buildSuggestion(
+      file,
+      "move",
+      "low",
+      "문서 파일 정리",
+      buildUserPath("Documents", "dashboard-LAB", "Documents"),
+    );
   }
 
   return file.extension === "bak"
@@ -236,23 +252,47 @@ function applyDownloadsRules(file: ScannedFile) {
   }
 
   if (file.extension === "pdf") {
-    return buildSuggestion(file, "move", "medium", "PDF 문서", "~/Documents/PDF/");
+    return buildSuggestion(
+      file,
+      "move",
+      "medium",
+      "PDF 문서",
+      buildUserPath("Documents", "dashboard-LAB", "PDF"),
+    );
   }
 
   if (file.category === "presentation") {
-    return buildSuggestion(file, "move", "medium", "강의/발표 자료", "~/Documents/강의자료/");
+    return buildSuggestion(
+      file,
+      "move",
+      "medium",
+      "프레젠테이션 자료",
+      buildUserPath("Documents", "dashboard-LAB", "Presentations"),
+    );
   }
 
   if (file.category === "hwp") {
-    return buildSuggestion(file, "move", "medium", "한글 문서", "~/Documents/HWP/");
+    return buildSuggestion(
+      file,
+      "move",
+      "medium",
+      "문서 파일",
+      buildUserPath("Documents", "dashboard-LAB", "Documents"),
+    );
   }
 
   if (file.category === "spreadsheet") {
-    return buildSuggestion(file, "move", "medium", "스프레드시트", "~/Documents/엑셀/");
+    return buildSuggestion(
+      file,
+      "move",
+      "medium",
+      "스프레드시트",
+      buildUserPath("Documents", "dashboard-LAB", "Spreadsheets"),
+    );
   }
 
   if (file.category === "image") {
-    return buildSuggestion(file, "move", "low", "이미지 파일", "~/Pictures/Downloads정리/");
+    return buildSuggestion(file, "move", "low", "이미지 파일", buildUserPath("Pictures", "Imported"));
   }
 
   if (file.category === "archive") {
@@ -264,11 +304,17 @@ function applyDownloadsRules(file: ScannedFile) {
   }
 
   if (file.category === "audio") {
-    return buildSuggestion(file, "move", "low", "음악/오디오 파일", "~/Music/");
+    return buildSuggestion(file, "move", "low", "오디오 파일", buildUserPath("Music", "Imported"));
   }
 
   return ["txt", "md"].includes(file.extension)
-    ? buildSuggestion(file, "move", "low", "텍스트 파일", "~/Documents/텍스트/")
+    ? buildSuggestion(
+        file,
+        "move",
+        "low",
+        "텍스트 파일",
+        buildUserPath("Documents", "dashboard-LAB", "Notes"),
+      )
     : null;
 }
 
@@ -337,8 +383,22 @@ function countByCategory(files: ScannedFile[]) {
 }
 
 export function validateManagedPath(relativePath: string) {
-  const roots = [DESKTOP_PATH, DOWNLOADS_PATH];
+  const { desktopDir, downloadsDir } = getRuntimeConfig().paths;
+  const roots = [desktopDir, downloadsDir];
   return roots.some((root) => Boolean(resolveSafePath(root, path.relative(root, relativePath))));
 }
 
 export { FILE_PATTERNS, resolveAutoSubfolder } from "./file-manager-auto-organize";
+
+function buildUserPath(...segments: string[]) {
+  return path.posix.join("~", ...segments);
+}
+
+function buildFileManagerCacheKey() {
+  const { desktopDir, downloadsDir } = getRuntimeConfig().paths;
+  return `file-manager:${desktopDir}:${downloadsDir}`;
+}
+
+function isScreenshotName(fileName: string) {
+  return /^(screenshot|screen shot|스크린샷|simulator screen)/i.test(fileName);
+}

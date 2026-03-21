@@ -25,18 +25,27 @@ export interface FilePattern {
 }
 
 export const FILE_PATTERNS: FilePattern[] = [
-  { name: "gyoan-poketvoca", match: /^about-(poket-voca|voca-test)/i, project: "교안메이커", subfolder: "포켓보카-스크린샷", destination: "~/Documents/프로젝트별/교안메이커/포켓보카-스크린샷/" },
-  { name: "gyoan-steps", match: /^about-step/i, project: "교안메이커", subfolder: "스텝-스크린샷", destination: "~/Documents/프로젝트별/교안메이커/스텝-스크린샷/" },
-  { name: "eduops-docs", match: /eduops|D4-|backend-request/i, project: "eduops", subfolder: "auto", destination: "~/Documents/프로젝트별/eduops/" },
-  { name: "codeit-sprint", match: /\[스프린터용\]|판다마켓|sprint-mission/i, project: "코드잇", subfolder: "스프린트-과제", destination: "~/Documents/프로젝트별/코드잇/스프린트-과제/" },
-  { name: "lecture-slides", match: /강의슬라이드|강의자료/i, project: "강의자료", subfolder: "슬라이드", destination: "~/Documents/강의자료/슬라이드/" },
-  { name: "submission", match: /\[붙임|경력.*증명|학력.*증명|이력서|자기소개/i, project: "제출서류", subfolder: "", destination: "~/Documents/제출서류/" },
-  { name: "exam-papers", match: /고\d|중\d|학기.*중간|학기.*기말|영어.*YBM|시험/i, project: "교안메이커", subfolder: "시험지", destination: "~/Documents/프로젝트별/교안메이커/시험지/" },
-  { name: "dated-docs", match: /^\d{4}-\d{2}-\d{2}[_-]/, project: "auto", subfolder: "auto", destination: "~/Documents/작업일지/" },
-  { name: "screenshots", match: /^Screenshot|^스크린샷|^Screen Shot|^Simulator Screen/i, project: "스크린샷", subfolder: "auto", destination: "~/Pictures/스크린샷/" },
-  { name: "legal", match: /소송|법률|계약서|ssambee-legal/i, project: "법률문서", subfolder: "", destination: "~/Documents/법률문서/" },
-  { name: "solapi", match: /solapi|alimtalk|알림톡/i, project: "solapi", subfolder: "", destination: "~/Documents/프로젝트별/solapi/" },
-  { name: "web-to-markdown", match: /chatgpt|claude|gemini|cursor|codex/i, project: "AI자료", subfolder: "", destination: "~/Documents/AI자료/" },
+  {
+    name: "screenshots",
+    match: /^Screenshot|^스크린샷|^Screen Shot|^Simulator Screen/i,
+    project: "screenshots",
+    subfolder: "auto",
+    destination: "~/Pictures/Screenshots/",
+  },
+  {
+    name: "dated-docs",
+    match: /^\d{4}-\d{2}-\d{2}[_-]/,
+    project: "dated-docs",
+    subfolder: "auto",
+    destination: "~/Documents/dashboard-LAB/Dated Documents/",
+  },
+  {
+    name: "screen-recordings",
+    match: /^화면 기록|^Screen Recording/i,
+    project: "screen-recordings",
+    subfolder: "auto",
+    destination: "~/Movies/Screen Recordings/",
+  },
 ];
 
 export async function autoOrganize(request: AutoOrganizeRequest): Promise<AutoOrganizeResponse> {

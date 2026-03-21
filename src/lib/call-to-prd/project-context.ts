@@ -1,7 +1,8 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
-import { HOME_DIR, normalizeWhitespace, pathExists, readUtf8 } from "@/lib/parsers/shared";
+import { getRuntimeConfig } from "@/lib/runtime-config";
+import { normalizeWhitespace, pathExists, readUtf8 } from "@/lib/parsers/shared";
 
 interface ProjectContextSummary {
   projectName: string;
@@ -14,8 +15,6 @@ interface ProjectDocSummary {
   excerpt: string;
 }
 
-const DESKTOP_PATH = path.join(HOME_DIR, "Desktop");
-const WORKSPACE_PATH = path.resolve(process.cwd());
 const MAX_README_LENGTH = 2_500;
 const MAX_DOC_FILES = 8;
 const MAX_DOC_EXCERPT_LENGTH = 240;
@@ -81,7 +80,24 @@ export async function summarizeLocalProject(projectPath: string): Promise<Projec
 }
 
 function isAllowedProjectPath(projectPath: string): boolean {
-  return projectPath.startsWith(DESKTOP_PATH) || projectPath.startsWith(WORKSPACE_PATH);
+  const normalizedPath = path.resolve(projectPath);
+  return getAllowedRoots().some((rootPath) => isInsidePath(normalizedPath, rootPath));
+}
+
+function getAllowedRoots() {
+  const runtimeConfig = getRuntimeConfig();
+  const roots = [
+    runtimeConfig.paths.projectsRoot,
+    ...runtimeConfig.paths.allowedRoots,
+    process.env.DASHBOARD_LAB_DESKTOP === "1" ? null : runtimeConfig.paths.workspaceRoot,
+  ];
+
+  return [...new Set(roots.filter((value): value is string => Boolean(value)))];
+}
+
+function isInsidePath(targetPath: string, rootPath: string) {
+  const normalizedRoot = path.resolve(rootPath);
+  return targetPath === normalizedRoot || targetPath.startsWith(`${normalizedRoot}${path.sep}`);
 }
 
 async function detectProjectType(projectPath: string): Promise<string> {

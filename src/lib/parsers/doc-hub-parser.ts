@@ -8,18 +8,17 @@ import type {
   DocType,
   ProjectDoc,
 } from "@/lib/types";
+import { getRuntimeConfig } from "@/lib/runtime-config";
 
 import { readThroughCache } from "./cache";
 import { createPreview, removeFrontmatter, resolveSafePath } from "./file-safety";
 import {
-  HOME_DIR,
   formatBytes,
   pathExists,
   readUtf8,
   toPosixPath,
 } from "./shared";
 
-const DESKTOP_PATH = path.join(HOME_DIR, "Desktop");
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const DOC_TYPES: DocType[] = ["claude", "codex", "gemini", "general"];
 
@@ -40,7 +39,7 @@ export function getDocType(fileName: string, relativePath: string): DocType {
 }
 
 export async function collectDocs(): Promise<DocHubResponse> {
-  const docs = await readThroughCache("doc-hub", CACHE_TTL_MS, scanDocs);
+  const docs = await readThroughCache(buildDocHubCacheKey(), CACHE_TTL_MS, scanDocs);
   return buildDocHubResponse(docs);
 }
 
@@ -51,7 +50,7 @@ export async function searchDocs(query: string): Promise<DocSearchResult[]> {
     return [];
   }
 
-  const docs = await readThroughCache("doc-hub", CACHE_TTL_MS, scanDocs);
+  const docs = await readThroughCache(buildDocHubCacheKey(), CACHE_TTL_MS, scanDocs);
   return docs
     .map((doc) => buildSearchResult(doc, normalizedQuery))
     .filter((item): item is DocSearchResult => item !== null)
@@ -59,6 +58,7 @@ export async function searchDocs(query: string): Promise<DocSearchResult[]> {
 }
 
 export async function getDocContent(project: string, file: string): Promise<DocContent> {
+  const projectsRoot = getProjectsRoot();
   const safePath = validateDocPath(project, file);
   const raw = await readUtf8(safePath);
 
@@ -68,7 +68,7 @@ export async function getDocContent(project: string, file: string): Promise<DocC
 
   const fileStat = await stat(safePath);
   return {
-    filePath: toPosixPath(path.relative(path.join(DESKTOP_PATH, project), safePath)),
+    filePath: toPosixPath(path.relative(path.join(projectsRoot, project), safePath)),
     projectName: project,
     fileName: path.basename(safePath),
     type: getDocType(path.basename(safePath), file),
@@ -82,7 +82,7 @@ function validateDocPath(project: string, file: string) {
     throw new Error("INVALID_PATH");
   }
 
-  const rootPath = path.join(DESKTOP_PATH, project);
+  const rootPath = path.join(getProjectsRoot(), project);
   const safePath = resolveSafePath(rootPath, file);
 
   if (!safePath) {
@@ -93,7 +93,8 @@ function validateDocPath(project: string, file: string) {
 }
 
 async function scanDocs(): Promise<ProjectDoc[]> {
-  const entries = await readdir(DESKTOP_PATH, { withFileTypes: true }).catch(() => []);
+  const projectsRoot = getProjectsRoot();
+  const entries = await readdir(projectsRoot, { withFileTypes: true }).catch(() => []);
   const projectDirs = entries
     .filter((entry) => entry.isDirectory())
     .filter((entry) => !entry.name.startsWith("."))
@@ -104,7 +105,7 @@ async function scanDocs(): Promise<ProjectDoc[]> {
 }
 
 async function collectProjectDocs(projectName: string) {
-  const projectPath = path.join(DESKTOP_PATH, projectName);
+  const projectPath = path.join(getProjectsRoot(), projectName);
   const coreDocs = await Promise.all(
     ["CLAUDE.md", "AGENTS.md", "GEMINI.md"].map((name) =>
       buildDoc(projectName, projectPath, name, name),
@@ -230,4 +231,12 @@ function buildSearchResult(doc: ProjectDoc, normalizedQuery: string) {
 
 export function formatDocSize(sizeBytes: number) {
   return formatBytes(sizeBytes);
+}
+
+function getProjectsRoot() {
+  return getRuntimeConfig().paths.projectsRoot;
+}
+
+function buildDocHubCacheKey() {
+  return `doc-hub:${getProjectsRoot()}`;
 }

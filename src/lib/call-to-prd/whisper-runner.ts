@@ -4,6 +4,8 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { getRuntimeConfig } from "@/lib/runtime-config";
+
 const execFileAsync = promisify(execFile);
 
 const TIMEOUT_MS = 10 * 60 * 1000; // 10분
@@ -155,10 +157,11 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 function getCommonModelPaths(): string[] {
   const homeDir = process.env.HOME;
+  const runtimeConfig = getRuntimeConfig();
   const candidates = [
-    path.join(process.cwd(), "models", "ggml-medium.bin"),
-    path.join(process.cwd(), "models", "ggml-small.bin"),
-    path.join(process.cwd(), "models", "ggml-base.bin"),
+    path.join(runtimeConfig.paths.modelsDir, "ggml-medium.bin"),
+    path.join(runtimeConfig.paths.modelsDir, "ggml-small.bin"),
+    path.join(runtimeConfig.paths.modelsDir, "ggml-base.bin"),
   ];
 
   if (homeDir) {

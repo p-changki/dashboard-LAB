@@ -17,23 +17,14 @@ import { readThroughCache } from "./cache";
 import { isRecord, pathExists, toPosixPath } from "./shared";
 
 const execAsync = promisify(exec);
-const PROJECTS_ROOT = getRuntimeConfig().paths.projectsRoot;
 const PROJECTS_CACHE_TTL_MS = 30_000;
-const EXCLUDE_DIRS = new Set([
-  ".Trash",
-  ".localized",
-  APP_META.slug,
-  path.basename(process.cwd()),
-  "node_modules",
-  "$RECYCLE.BIN",
-]);
 
 export async function parseProjects(): Promise<ProjectsResponse> {
-  return readThroughCache("projects-heavy", PROJECTS_CACHE_TTL_MS, loadProjects);
+  return readThroughCache(buildProjectsCacheKey("projects-heavy"), PROJECTS_CACHE_TTL_MS, loadProjects);
 }
 
 export async function parseProjectsLite(): Promise<ProjectsLiteResponse> {
-  return readThroughCache("projects-light", PROJECTS_CACHE_TTL_MS, loadProjectsLite);
+  return readThroughCache(buildProjectsCacheKey("projects-light"), PROJECTS_CACHE_TTL_MS, loadProjectsLite);
 }
 
 export async function inspectProject(projectPath: string): Promise<ProjectInfo | null> {
@@ -57,7 +48,8 @@ export async function inspectProjectSummary(projectPath: string): Promise<Projec
 }
 
 async function loadProjects(): Promise<ProjectsResponse> {
-  const directories = await listDesktopDirectories();
+  const projectsRoot = getProjectsRoot();
+  const directories = await listProjectDirectories(projectsRoot);
   const projects = (
     await Promise.all(directories.map((directoryPath) => inspectProject(directoryPath)))
   )
@@ -79,7 +71,7 @@ async function loadProjects(): Promise<ProjectsResponse> {
   );
 
   return {
-    scanPath: toPosixPath(PROJECTS_ROOT),
+    scanPath: toPosixPath(projectsRoot),
     totalProjects: projects.length,
     totalDiskUsage: formatBytes(totalDiskUsageBytes),
     totalDiskUsageBytes,
@@ -90,7 +82,8 @@ async function loadProjects(): Promise<ProjectsResponse> {
 }
 
 async function loadProjectsLite(): Promise<ProjectsLiteResponse> {
-  const directories = await listDesktopDirectories();
+  const projectsRoot = getProjectsRoot();
+  const directories = await listProjectDirectories(projectsRoot);
   const projects = (
     await Promise.all(directories.map((directoryPath) => inspectProjectSummary(directoryPath)))
   )
@@ -98,7 +91,7 @@ async function loadProjectsLite(): Promise<ProjectsLiteResponse> {
     .sort((left, right) => left.name.localeCompare(right.name));
 
   return {
-    scanPath: toPosixPath(PROJECTS_ROOT),
+    scanPath: toPosixPath(projectsRoot),
     totalProjects: projects.length,
     projects,
   };
@@ -155,18 +148,38 @@ async function scanProject(projectPath: string): Promise<ProjectInfo> {
   };
 }
 
-async function listDesktopDirectories(): Promise<string[]> {
+async function listProjectDirectories(projectsRoot: string): Promise<string[]> {
   try {
-    const entries = await readdir(PROJECTS_ROOT, { withFileTypes: true });
+    const entries = await readdir(projectsRoot, { withFileTypes: true });
+    const excludedDirs = getExcludedDirs();
 
     return entries
       .filter((entry) => entry.isDirectory())
       .filter((entry) => !entry.name.startsWith("."))
-      .filter((entry) => !EXCLUDE_DIRS.has(entry.name))
-      .map((entry) => path.join(PROJECTS_ROOT, entry.name));
+      .filter((entry) => !excludedDirs.has(entry.name))
+      .map((entry) => path.join(projectsRoot, entry.name));
   } catch {
     return [];
   }
+}
+
+function getProjectsRoot() {
+  return getRuntimeConfig().paths.projectsRoot;
+}
+
+function getExcludedDirs() {
+  return new Set([
+    ".Trash",
+    ".localized",
+    APP_META.slug,
+    path.basename(getRuntimeConfig().paths.workspaceRoot),
+    "node_modules",
+    "$RECYCLE.BIN",
+  ]);
+}
+
+function buildProjectsCacheKey(scope: string) {
+  return `${scope}:${getProjectsRoot()}`;
 }
 
 async function detectProjectType(

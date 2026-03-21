@@ -160,6 +160,7 @@ function bootLocalRuntime() {
       ELECTRON_RUN_AS_NODE: "1",
       DASHBOARD_LAB_DESKTOP: "1",
       DASHBOARD_LAB_DISABLE_TERMINAL: "1",
+      DASHBOARD_LAB_DATA_ROOT: app.getPath("userData"),
     };
 
     runtimeChild = spawn(process.execPath, [runtimeScriptPath, "start"], {

@@ -12,30 +12,42 @@ import type {
   PortEntry,
   PortUsageResponse,
 } from "@/lib/types";
+import { getRuntimeConfig } from "@/lib/runtime-config";
 
 import { readThroughCache } from "./cache";
 import { resolveSafePath } from "./file-safety";
 import { pathExists, runShellCommand, shellQuote, toPosixPath } from "./shared";
 
 const HOME_DIR = os.homedir();
-const DESKTOP_PATH = path.join(HOME_DIR, "Desktop");
 const ICLOUD_ROOT = path.join(HOME_DIR, "Library", "Mobile Documents", "com~apple~CloudDocs");
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const PORT_USAGE_CACHE_TTL_MS = 10_000;
 const ENV_FILES = [".env", ".env.local", ".env.development", ".env.production"];
 
 export async function getGitTimeline(): Promise<GitTimelineResponse> {
-  const commits = await readThroughCache("projects-git-timeline", CACHE_TTL_MS, scanGitTimeline);
+  const commits = await readThroughCache(
+    buildProjectsCacheKey("projects-git-timeline"),
+    CACHE_TTL_MS,
+    scanGitTimeline,
+  );
   return { commits, totalCommits: commits.length };
 }
 
 export async function getPortUsage(): Promise<PortUsageResponse> {
-  const ports = await readThroughCache("projects-port-usage", PORT_USAGE_CACHE_TTL_MS, scanPortUsage);
+  const ports = await readThroughCache(
+    buildProjectsCacheKey("projects-port-usage"),
+    PORT_USAGE_CACHE_TTL_MS,
+    scanPortUsage,
+  );
   return { ports, totalPorts: ports.length };
 }
 
 export async function getEnvMap(): Promise<EnvMapResponse> {
-  const files = await readThroughCache("projects-env-map", CACHE_TTL_MS, scanEnvMap);
+  const files = await readThroughCache(
+    buildProjectsCacheKey("projects-env-map"),
+    CACHE_TTL_MS,
+    scanEnvMap,
+  );
   const counts = files.flatMap((file) => file.keys).reduce<Record<string, number>>(
     (acc, key) => ({ ...acc, [key]: (acc[key] ?? 0) + 1 }),
     {},
@@ -63,7 +75,7 @@ export async function browseICloud(relativePath = ""): Promise<ICloudBrowseRespo
 }
 
 async function scanGitTimeline(): Promise<GitCommit[]> {
-  const directories = await listDesktopDirectories();
+  const directories = await listProjectDirectories();
   const commits = await Promise.all(directories.map((directory) => readProjectCommits(directory)));
 
   return commits
@@ -142,13 +154,13 @@ async function parsePortLine(line: string): Promise<PortEntry | null> {
 async function inferProjectFromPid(pid: number) {
   const command = await runShellCommand(`ps -p ${pid} -o command=`);
   const parts = command.split(/\s+/);
-  const project = parts.find((part) => part.startsWith(DESKTOP_PATH));
+  const project = parts.find((part) => part.startsWith(getProjectsRoot()));
 
   return project ? path.basename(project) : null;
 }
 
 async function scanEnvMap(): Promise<EnvFileInfo[]> {
-  const directories = await listDesktopDirectories();
+  const directories = await listProjectDirectories();
   const envFiles = await Promise.all(directories.map((directory) => readProjectEnvFiles(directory)));
   return envFiles.flat();
 }
@@ -187,10 +199,6 @@ function validateICloudPath(relativePath: string) {
   if (relativePath.includes("..")) {
     throw new Error("INVALID_PATH");
   }
-
-  if (relativePath.split("/")[0] === "코딩") {
-    throw new Error("FORBIDDEN_PATH");
-  }
 }
 
 async function readICloudEntries(targetPath: string): Promise<ICloudEntry[]> {
@@ -208,10 +216,6 @@ async function readICloudEntries(targetPath: string): Promise<ICloudEntry[]> {
 }
 
 async function buildICloudEntry(parentPath: string, entryName: string, isDirectory: boolean) {
-  if (entryName === "코딩") {
-    return null;
-  }
-
   const stubMatch = entryName.match(/^\.(.+)\.icloud$/);
   const displayName = stubMatch ? stubMatch[1] : entryName;
   const absPath = path.join(parentPath, entryName);
@@ -241,15 +245,24 @@ function sortICloudEntries(left: ICloudEntry, right: ICloudEntry) {
   return left.name.localeCompare(right.name);
 }
 
-async function listDesktopDirectories() {
-  const entries = await readdir(DESKTOP_PATH, { withFileTypes: true }).catch(() => []);
+async function listProjectDirectories() {
+  const projectsRoot = getProjectsRoot();
+  const entries = await readdir(projectsRoot, { withFileTypes: true }).catch(() => []);
 
   return entries
     .filter((entry) => entry.isDirectory())
     .filter((entry) => !entry.name.startsWith("."))
-    .map((entry) => path.join(DESKTOP_PATH, entry.name));
+    .map((entry) => path.join(projectsRoot, entry.name));
 }
 
 export function buildTrashCommand(targetPath: string) {
   return `mv ${shellQuote(targetPath)} ${shellQuote(path.join(HOME_DIR, ".Trash"))}`;
+}
+
+function getProjectsRoot() {
+  return getRuntimeConfig().paths.projectsRoot;
+}
+
+function buildProjectsCacheKey(scope: string) {
+  return `${scope}:${getProjectsRoot()}`;
 }

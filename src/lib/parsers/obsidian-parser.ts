@@ -24,7 +24,6 @@ import {
   toRelativePosix,
 } from "./file-safety";
 
-export const VAULT_PATH = getRuntimeConfig().paths.obsidianVault;
 export const EXCLUDED_FOLDERS = ["비밀", "소송"];
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -34,22 +33,24 @@ type CachedVaultData = {
 };
 
 export async function buildTree(): Promise<ObsidianTreeResponse> {
-  if (!VAULT_PATH) {
+  const vaultPath = getVaultPath();
+  if (!vaultPath) {
     return buildEmptyTreeResponse();
   }
 
-  const cached = await readThroughCache("obsidian-tree", CACHE_TTL_MS, scanVault);
+  const cached = await readThroughCache(buildObsidianCacheKey(vaultPath), CACHE_TTL_MS, scanVault);
   return cached.response;
 }
 
 export async function searchNotes(query: string): Promise<ObsidianSearchResult[]> {
   const normalizedQuery = query.trim().toLowerCase();
 
-  if (!normalizedQuery || !VAULT_PATH) {
+  const vaultPath = getVaultPath();
+  if (!normalizedQuery || !vaultPath) {
     return [];
   }
 
-  const cached = await readThroughCache("obsidian-tree", CACHE_TTL_MS, scanVault);
+  const cached = await readThroughCache(buildObsidianCacheKey(vaultPath), CACHE_TTL_MS, scanVault);
   return cached.fileNotes
     .map((note) => buildSearchResult(note, normalizedQuery))
     .filter((result): result is ObsidianSearchResult => result !== null)
@@ -84,11 +85,12 @@ export async function getNoteContent(
 }
 
 export async function getTagCloud(): Promise<TagInfo[]> {
-  if (!VAULT_PATH) {
+  const vaultPath = getVaultPath();
+  if (!vaultPath) {
     return [];
   }
 
-  const cached = await readThroughCache("obsidian-tree", CACHE_TTL_MS, scanVault);
+  const cached = await readThroughCache(buildObsidianCacheKey(vaultPath), CACHE_TTL_MS, scanVault);
   return cached.response.tags;
 }
 
@@ -103,11 +105,12 @@ function validateObsidianPath(relativePath: string) {
 }
 
 function resolveObsidianPath(relativePath: string) {
-  if (!VAULT_PATH) {
+  const vaultPath = getVaultPath();
+  if (!vaultPath) {
     throw new Error("OBSIDIAN_NOT_CONFIGURED");
   }
 
-  const resolvedPath = resolveSafePath(VAULT_PATH, relativePath);
+  const resolvedPath = resolveSafePath(vaultPath, relativePath);
 
   if (!resolvedPath) {
     throw new Error("INVALID_PATH");
@@ -122,19 +125,20 @@ function isExcluded(relativePath: string) {
 }
 
 async function scanVault(): Promise<CachedVaultData> {
-  if (!VAULT_PATH) {
+  const vaultPath = getVaultPath();
+  if (!vaultPath) {
     return {
       response: buildEmptyTreeResponse(),
       fileNotes: [],
     };
   }
 
-  const rootNodes = await readDirectoryNodes(VAULT_PATH);
+  const rootNodes = await readDirectoryNodes(vaultPath);
   const fileNotes = collectFileNotes(rootNodes);
 
   return {
-    response: {
-      vaultPath: VAULT_PATH,
+      response: {
+      vaultPath,
       tree: rootNodes,
       totalFiles: fileNotes.length,
       totalFolders: countFolders(rootNodes),
@@ -149,13 +153,14 @@ async function scanVault(): Promise<CachedVaultData> {
 
 async function readDirectoryNodes(
   directoryPath: string,
-  rootPath = VAULT_PATH ?? directoryPath,
+  rootPath?: string,
 ): Promise<ObsidianNote[]> {
+  const effectiveRootPath = rootPath ?? getVaultPath() ?? directoryPath;
   const entries = await readdir(directoryPath, { withFileTypes: true });
   const visibleEntries = entries.filter((entry) => !entry.name.startsWith("."));
   const allowedEntries = visibleEntries.filter((entry) => !isExcluded(entry.name));
   const nodes = await Promise.all(
-    allowedEntries.map((entry) => readEntryNode(entry, directoryPath, rootPath)),
+    allowedEntries.map((entry) => readEntryNode(entry, directoryPath, effectiveRootPath)),
   );
 
   return nodes.filter((node): node is ObsidianNote => node !== null);
@@ -315,11 +320,19 @@ function buildUndownloadedContent(relativePath: string): ObsidianNoteContent {
 
 function buildEmptyTreeResponse(): ObsidianTreeResponse {
   return {
-    vaultPath: VAULT_PATH ?? "",
+    vaultPath: getVaultPath() ?? "",
     tree: [],
     totalFiles: 0,
     totalFolders: 0,
     tags: [],
     recentNotes: [],
   };
+}
+
+function getVaultPath() {
+  return getRuntimeConfig().paths.obsidianVault;
+}
+
+function buildObsidianCacheKey(vaultPath: string) {
+  return `obsidian-tree:${vaultPath}`;
 }

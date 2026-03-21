@@ -2,14 +2,14 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const STATE_DIR = path.join(process.cwd(), "data", "state");
 const writeQueue = new Map<string, Promise<void>>();
 
 export function readPersistentJson<T>(fileName: string, fallback: T): T {
   const filePath = getStateFilePath(fileName);
+  const stateDir = getStateDir();
 
   try {
-    mkdirSync(STATE_DIR, { recursive: true });
+    mkdirSync(stateDir, { recursive: true });
     const raw = readFileSync(filePath, "utf-8");
     return JSON.parse(raw) as T;
   } catch {
@@ -21,7 +21,7 @@ export function persistJson(fileName: string, data: unknown): void {
   const filePath = getStateFilePath(fileName);
   const tempPath = `${filePath}.tmp`;
   const serialized = JSON.stringify(data, null, 2);
-  mkdirSync(STATE_DIR, { recursive: true });
+  mkdirSync(getStateDir(), { recursive: true });
   const previous = writeQueue.get(filePath) ?? Promise.resolve();
 
   const next = previous
@@ -38,5 +38,18 @@ export function persistJson(fileName: string, data: unknown): void {
 }
 
 function getStateFilePath(fileName: string) {
-  return path.join(STATE_DIR, fileName);
+  return path.join(getStateDir(), fileName);
+}
+
+function getStateDir() {
+  return path.join(getRuntimeDataRoot(), "state");
+}
+
+function getRuntimeDataRoot() {
+  return readEnvPath("DASHBOARD_LAB_DATA_ROOT") ?? path.join(process.cwd(), "data");
+}
+
+function readEnvPath(name: string) {
+  const value = process.env[name]?.trim();
+  return value ? path.resolve(value) : null;
 }

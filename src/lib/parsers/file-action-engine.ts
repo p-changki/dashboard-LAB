@@ -7,15 +7,12 @@ import type {
   FileActionResponse,
   FileActionResult,
 } from "@/lib/types";
+import { getRuntimeConfig } from "@/lib/runtime-config";
 
 import { pathExists, shellQuote, toHomePath } from "./shared";
 
 const HOME_DIR = os.homedir();
 const TRASH_DIR = path.join(HOME_DIR, ".Trash");
-const ALLOWED_ROOTS = [
-  path.join(HOME_DIR, "Desktop"),
-  path.join(HOME_DIR, "Downloads"),
-];
 const PROTECTED_PATHS = [
   path.join(HOME_DIR, ".claude"),
   path.join(HOME_DIR, ".codex"),
@@ -52,7 +49,7 @@ export async function validatePath(targetPath: string) {
   }
 
   const resolvedPath = path.resolve(targetPath);
-  const isAllowedRoot = ALLOWED_ROOTS.some((allowedRoot) => isInsidePath(resolvedPath, allowedRoot));
+  const isAllowedRoot = getAllowedRoots().some((allowedRoot) => isInsidePath(resolvedPath, allowedRoot));
 
   if (PROTECTED_PATHS.some((protectedPath) => resolvedPath.startsWith(protectedPath))) {
     return false;
@@ -163,7 +160,7 @@ function withCommand(action: FileAction): FileAction {
 async function isInsideCodeProject(targetPath: string) {
   let current = path.resolve(targetPath);
 
-  while (current.startsWith(path.join(HOME_DIR, "Desktop"))) {
+  while (current.startsWith(HOME_DIR)) {
     if (await pathExists(path.join(current, "package.json"))) {
       return true;
     }
@@ -182,4 +179,13 @@ async function isInsideCodeProject(targetPath: string) {
 
 export function describeActionPath(targetPath: string) {
   return toHomePath(targetPath);
+}
+
+function getAllowedRoots() {
+  const runtimeConfig = getRuntimeConfig();
+  return [
+    runtimeConfig.paths.desktopDir,
+    runtimeConfig.paths.downloadsDir,
+    ...runtimeConfig.paths.allowedRoots,
+  ];
 }

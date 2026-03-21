@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import { getRuntimeConfig } from "@/lib/runtime-config";
 import { getSkillTemplates } from "@/lib/skill-templates";
 import { persistJson, readPersistentJson } from "@/lib/storage/persistent-json";
 import type { SkillRun, SkillRunRequest, SkillRunResponse, SkillTemplate } from "@/lib/types";
@@ -308,12 +309,18 @@ function resolveRunDirectory(template: SkillTemplate, inputs: Record<string, str
   const requested = template.runner === "codex" ? inputs.directory?.trim() ?? HOME_DIR : HOME_DIR;
   const normalized = requested.startsWith("~/") ? path.join(HOME_DIR, requested.slice(2)) : requested || HOME_DIR;
   const resolved = path.resolve(normalized);
+  const runtimeConfig = getRuntimeConfig();
+  const allowedRoots = [
+    HOME_DIR,
+    runtimeConfig.paths.projectsRoot,
+    ...runtimeConfig.paths.allowedRoots,
+  ];
 
-  if (resolved === HOME_DIR || resolved.startsWith(path.join(HOME_DIR, "Desktop"))) {
+  if (allowedRoots.some((allowedRoot) => isInsidePath(resolved, allowedRoot))) {
     return resolved;
   }
 
-  throw new SkillRunnerInputError("허용된 실행 경로는 홈 디렉터리 또는 Desktop 하위만 가능합니다.");
+  throw new SkillRunnerInputError("허용된 실행 경로는 홈 디렉터리 또는 연결된 작업 루트 하위만 가능합니다.");
 }
 
 async function readCodexOutput(outputPath: string | null) {
@@ -340,6 +347,11 @@ function normalizeOutput(output: string) {
   } catch {
     return trimmed;
   }
+}
+
+function isInsidePath(targetPath: string, rootPath: string) {
+  const normalizedRoot = path.resolve(rootPath);
+  return targetPath === normalizedRoot || targetPath.startsWith(`${normalizedRoot}${path.sep}`);
 }
 
 function updateRun(runId: string, patch: Partial<SkillRun>) {
