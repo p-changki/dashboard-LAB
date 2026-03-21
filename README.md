@@ -214,6 +214,8 @@ The current product works best when one of these is true:
 - local `claude` or `codex` CLI is already available
 - or an OpenAI API key is saved during onboarding for fallback generation
 
+If you test the Windows or Linux release on a clean machine, please file the included desktop smoke test issue template so support can be upgraded from experimental to verified.
+
 The local runner prints a dynamic app URL and terminal WebSocket port:
 
 ```bash

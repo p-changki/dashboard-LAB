@@ -1,0 +1,90 @@
+name: Desktop smoke test
+description: Report a clean-machine install and smoke test result for macOS, Windows, or Linux.
+title: "[smoke-test] <platform> <result>"
+labels:
+  - smoke-test
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form after testing a packaged release on a clean or near-clean machine.
+        The goal is to verify real-user install and onboarding behavior, not just CI packaging.
+
+  - type: input
+    id: release_version
+    attributes:
+      label: Release version
+      description: Which GitHub Release did you test?
+      placeholder: v0.1.4
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: os_version
+    attributes:
+      label: OS version
+      description: Include architecture if you know it.
+      placeholder: Windows 11 x64 / Ubuntu 24.04 / macOS 15 arm64
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install_result
+    attributes:
+      label: Installation result
+      options:
+        - Success
+        - Partial
+        - Failed
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: smoke_steps
+    attributes:
+      label: Smoke steps completed
+      options:
+        - label: App installed successfully
+        - label: App launched successfully
+        - label: Onboarding saved project paths successfully
+        - label: Projects tab reflected the selected project root
+        - label: Doc Hub showed documents from the selected project root
+        - label: CS Helper generated one response
+        - label: Call to PRD generated one text-based document
+        - label: App restart preserved settings
+        - label: Audio tooling install or repair worked
+        - label: Audio transcription succeeded
+
+  - type: textarea
+    id: blockers
+    attributes:
+      label: Errors or blockers
+      description: Paste the exact error message, screenshot summary, or the step where the flow broke.
+      placeholder: Install opened, but onboarding save failed with...
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Extra notes
+      description: Include anything that made the install confusing or manual.
+      placeholder: I had to install ffmpeg manually before retrying...
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Tooling available on the machine
+      description: Note whether Claude CLI, Codex CLI, OpenAI API key, ffmpeg, or Whisper were already present.
+      placeholder: OpenAI API key only / ffmpeg preinstalled / no local AI CLI
