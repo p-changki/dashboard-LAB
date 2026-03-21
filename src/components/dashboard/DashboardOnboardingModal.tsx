@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
+  ExternalLink,
   FolderOpen,
   LoaderCircle,
   MessageSquare,
@@ -18,6 +19,7 @@ import type { DashboardTabId } from "@/components/TabNav";
 import { APP_META } from "@/lib/app-meta";
 import type {
   DashboardLabRuntimeCheck,
+  DashboardLabRuntimeInstallResponse,
   DashboardLabRuntimeSummaryResponse,
 } from "@/lib/types";
 
@@ -77,6 +79,8 @@ export function DashboardOnboardingModal({
   const [draft, setDraft] = useState<RuntimeDraft>(EMPTY_DRAFT);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [installingTaskIds, setInstallingTaskIds] = useState<string[]>([]);
+  const [installFeedback, setInstallFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -126,6 +130,62 @@ export function DashboardOnboardingModal({
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleInstallTasks(taskIds: string[]) {
+    const uniqueTaskIds = [...new Set(taskIds.filter(Boolean))];
+    if (uniqueTaskIds.length === 0) {
+      return;
+    }
+
+    setInstallingTaskIds(uniqueTaskIds);
+    setError(null);
+    setInstallFeedback(null);
+
+    try {
+      const response = await fetch("/api/system/runtime/install", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ taskIds: uniqueTaskIds }),
+      });
+
+      const payload = (await response.json()) as
+        | DashboardLabRuntimeInstallResponse
+        | { error?: { message?: string } };
+
+      if (!response.ok) {
+        throw new Error(
+          "error" in payload
+            ? payload.error?.message ?? "설치 작업을 완료하지 못했습니다."
+            : "설치 작업을 완료하지 못했습니다.",
+        );
+      }
+
+      if (!("summary" in payload)) {
+        throw new Error("설치 응답 형식이 올바르지 않습니다.");
+      }
+
+      setSummary(payload.summary);
+      setInstallFeedback(
+        payload.results
+          .map((result: DashboardLabRuntimeInstallResponse["results"][number]) =>
+            result.status === "success"
+              ? `${result.label} 완료`
+              : `${result.label} 실패`,
+          )
+          .join(" · "),
+      );
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "설치 작업을 완료하지 못했습니다.",
+      );
+    } finally {
+      setInstallingTaskIds([]);
     }
   }
 
@@ -179,6 +239,18 @@ export function DashboardOnboardingModal({
   if (!open) {
     return null;
   }
+
+  const requiredInstallableTaskIds =
+    summary?.checks
+      .filter(
+        (check) =>
+          check.required &&
+          check.status !== "pass" &&
+          check.remedy?.action === "run" &&
+          Boolean(check.remedy.taskId),
+      )
+      .map((check) => check.remedy?.taskId ?? "")
+      .filter(Boolean) ?? [];
 
   return (
     <div className="fixed inset-0 z-[120] overflow-y-auto bg-black/65 px-4 py-6 backdrop-blur-sm">
@@ -235,10 +307,58 @@ export function DashboardOnboardingModal({
                 </div>
               ) : null}
 
+              {installFeedback ? (
+                <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 px-4 py-3 text-sm text-emerald-200">
+                  {installFeedback}
+                </div>
+              ) : null}
+
+              {summary && requiredInstallableTaskIds.length > 0 ? (
+                <div className="mt-4 rounded-2xl border border-cyan-400/15 bg-cyan-950/10 px-4 py-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        필수 도구 자동 준비
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--color-text-soft)]">
+                        지금 빠진 필수 도구를 한 번에 설치하거나 다운로드할 수 있습니다.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleInstallTasks(requiredInstallableTaskIds)}
+                      disabled={installingTaskIds.length > 0}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {installingTaskIds.length > 0 ? (
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Wrench className="h-4 w-4" />
+                      )}
+                      필수 도구 자동 설치
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
               {summary ? (
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   {summary.checks.map((check) => (
-                    <RuntimeCheckCard key={check.id} check={check} />
+                    <RuntimeCheckCard
+                      key={check.id}
+                      check={check}
+                      installing={installingTaskIds.includes(check.remedy?.taskId ?? "")}
+                      onRunRemedy={() => {
+                        if (check.remedy?.action === "run" && check.remedy.taskId) {
+                          void handleInstallTasks([check.remedy.taskId]);
+                          return;
+                        }
+
+                        if (check.remedy?.action === "open_url" && check.remedy.url) {
+                          window.open(check.remedy.url, "_blank", "noopener,noreferrer");
+                        }
+                      }}
+                    />
                   ))}
                 </div>
               ) : (
@@ -415,7 +535,15 @@ export function DashboardOnboardingModal({
   );
 }
 
-function RuntimeCheckCard({ check }: { check: DashboardLabRuntimeCheck }) {
+function RuntimeCheckCard({
+  check,
+  installing,
+  onRunRemedy,
+}: {
+  check: DashboardLabRuntimeCheck;
+  installing: boolean;
+  onRunRemedy: () => void;
+}) {
   const tone =
     check.status === "pass"
       ? "border-emerald-500/20 bg-emerald-950/20 text-emerald-100"
@@ -437,6 +565,33 @@ function RuntimeCheckCard({ check }: { check: DashboardLabRuntimeCheck }) {
         <div className="min-w-0">
           <p className="text-sm font-medium">{check.label}</p>
           <p className="mt-1 text-xs leading-5 opacity-80">{check.detail}</p>
+          {check.fixHint ? (
+            <p className="mt-2 text-xs leading-5 opacity-80">{check.fixHint}</p>
+          ) : null}
+          {check.remedy?.action === "manual" ? (
+            <div className="mt-3 rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-[11px] leading-5 text-white/80">
+              {check.remedy.detail}
+            </div>
+          ) : null}
+          {check.status !== "pass" && check.remedy?.action !== "manual" ? (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={onRunRemedy}
+                disabled={installing}
+                className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {installing ? (
+                  <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                ) : check.remedy?.action === "open_url" ? (
+                  <ExternalLink className="h-3.5 w-3.5" />
+                ) : (
+                  <Wrench className="h-3.5 w-3.5" />
+                )}
+                {check.remedy?.label}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </article>

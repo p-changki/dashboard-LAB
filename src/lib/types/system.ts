@@ -105,6 +105,17 @@ export interface InstalledApp {
 }
 
 export type RuntimeCheckStatus = "pass" | "warn" | "fail";
+export type DashboardLabRuntimeRemedyAction = "run" | "open_url" | "manual";
+export type DashboardLabRuntimeInstallStatus = "success" | "failed" | "skipped";
+
+export interface DashboardLabRuntimeCheckRemedy {
+  action: DashboardLabRuntimeRemedyAction;
+  label: string;
+  detail: string;
+  taskId?: string;
+  command?: string;
+  url?: string;
+}
 
 export interface DashboardLabRuntimeSettingsPaths {
   projectsRoot: string | null;
@@ -139,6 +150,8 @@ export interface DashboardLabRuntimeCheck {
   status: RuntimeCheckStatus;
   detail: string;
   required: boolean;
+  fixHint?: string | null;
+  remedy?: DashboardLabRuntimeCheckRemedy | null;
 }
 
 export interface DashboardLabRuntimeSummaryResponse {
@@ -160,4 +173,17 @@ export interface DashboardLabRuntimeSummaryResponse {
     obsidianVaultCandidates: DashboardLabRuntimePathCandidate[];
   };
   checks: DashboardLabRuntimeCheck[];
+}
+
+export interface DashboardLabRuntimeInstallResult {
+  taskId: string;
+  label: string;
+  status: DashboardLabRuntimeInstallStatus;
+  detail: string;
+  output?: string | null;
+}
+
+export interface DashboardLabRuntimeInstallResponse {
+  results: DashboardLabRuntimeInstallResult[];
+  summary: DashboardLabRuntimeSummaryResponse;
 }

@@ -10,6 +10,12 @@ import {
   GEMINI_SETTINGS_FILE,
 } from "@/lib/parsers/shared";
 import { getRuntimeConfig } from "@/lib/runtime-config";
+import {
+  detectWhisperModelSync,
+  getRuntimeCheckFixHint,
+  getRuntimeCheckRemedy,
+  isDesktopRuntime,
+} from "@/lib/runtime-installer";
 import { readRuntimeSettings } from "@/lib/runtime-settings";
 import type {
   DashboardLabRuntimeCheck,
@@ -101,16 +107,43 @@ function buildDoctorChecks(
   projectsRoot: string,
 ): DashboardLabRuntimeCheck[] {
   const whisperResult = detectAnyCommand(["whisper", "whisper-cli"]);
+  const whisperModelResult = detectWhisperModelSync();
+  const desktopRuntime = isDesktopRuntime();
 
   return [
     buildPlatformCheck(),
-    buildCommandCheck("node", "Node.js", true),
-    buildCommandCheck("pnpm", "pnpm", true),
+    desktopRuntime
+      ? buildStaticCheck(
+          "node",
+          "Node.js",
+          "pass",
+          "Electron 런타임 사용 중",
+          false,
+        )
+      : buildCommandCheck("node", "Node.js", true),
+    desktopRuntime
+      ? buildStaticCheck(
+          "pnpm",
+          "pnpm",
+          "pass",
+          "패키지된 데스크톱 앱에서는 설치 불필요",
+          false,
+        )
+      : buildCommandCheck("pnpm", "pnpm", true),
     buildCommandCheck("ffmpeg", "ffmpeg", true),
     buildCommandCheckFromResult(
       "whisper",
       "Whisper backend",
       whisperResult,
+      true,
+    ),
+    buildStaticCheck(
+      "whisper-model",
+      "Whisper 모델",
+      whisperModelResult.exists ? "pass" : "warn",
+      whisperModelResult.exists
+        ? whisperModelResult.path
+        : `${whisperModelResult.path} 없음`,
       true,
     ),
     buildCommandCheck("claude", "Claude CLI", false),
@@ -182,15 +215,15 @@ function buildCommandCheckFromResult(
       ? "warn"
       : "warn";
 
-  return {
+  return buildStaticCheck(
     id,
     label,
     status,
-    detail: result.exists
+    result.exists
       ? [result.path, result.version].filter(Boolean).join(" · ")
       : "설치되지 않음",
     required,
-  };
+  );
 }
 
 function buildPathCheck(
@@ -201,12 +234,30 @@ function buildPathCheck(
 ): DashboardLabRuntimeCheck {
   const exists = existsSync(targetPath);
 
+  return buildStaticCheck(
+    id,
+    label,
+    exists ? "pass" : "warn",
+    exists ? targetPath : `${targetPath} 없음`,
+    required,
+  );
+}
+
+function buildStaticCheck(
+  id: string,
+  label: string,
+  status: RuntimeCheckStatus,
+  detail: string,
+  required: boolean,
+): DashboardLabRuntimeCheck {
   return {
     id,
     label,
-    status: exists ? "pass" : required ? "warn" : "warn",
-    detail: exists ? targetPath : `${targetPath} 없음`,
+    status,
+    detail,
     required,
+    fixHint: getRuntimeCheckFixHint(id),
+    remedy: getRuntimeCheckRemedy(id),
   };
 }
 
