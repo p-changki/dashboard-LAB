@@ -107,7 +107,8 @@ export async function saveGeneratedDocsBundle(options: SaveBundleOptions): Promi
   await mkdir(getPrdSaveDir(), { recursive: true });
 
   const bundleName = buildSavedBundleEntryName(id, projectName, customerName, callDate);
-  const bundlePath = path.join(getPrdSaveDir(), bundleName);
+  const projectFolder = sanitizeFileName(projectName ?? "general");
+  const bundlePath = path.join(getPrdSaveDir(), projectFolder, bundleName);
   await mkdir(bundlePath, { recursive: true });
 
   const manifestDocs: SavedBundleManifest["generatedDocs"] = [];
@@ -161,7 +162,7 @@ export async function saveGeneratedDocsBundle(options: SaveBundleOptions): Promi
 
   await writeFile(path.join(bundlePath, "manifest.json"), JSON.stringify(manifest, null, 2), "utf-8");
 
-  return bundleName;
+  return `${projectFolder}/${bundleName}`;
 }
 
 export async function saveNextActionDraft(
@@ -209,7 +210,7 @@ export async function saveNextActionDraft(
 
   const updatedManifest: SavedBundleManifest = {
     ...manifest,
-    version: 4,
+    version: 5,
     nextActions,
     summary: manifest.summary
       ? {
@@ -235,19 +236,44 @@ export async function listSavedBundles(options: ListSavedBundlesOptions = {}): P
   const requestedPage = Number.isFinite(options.page) ? Math.max(1, Math.floor(options.page as number)) : 1;
   const query = (options.query ?? "").trim();
   const entries = await readdir(getPrdSaveDir(), { withFileTypes: true }).catch(() => []);
-  const items = await Promise.all(
-    entries.map(async (entry) => {
-      if (entry.isDirectory()) {
-        return loadBundleSummary(entry.name);
-      }
 
-      if (entry.isFile() && entry.name.endsWith(".md")) {
-        return loadLegacySummary(entry.name);
-      }
+  // Collect items from root level (old flat structure) and project subfolders (new structure)
+  const itemPromises: Array<Promise<SavedCallBundleIndexItem | null>> = [];
 
-      return null;
-    }),
-  );
+  for (const entry of entries) {
+    if (entry.isFile() && entry.name.endsWith(".md")) {
+      itemPromises.push(loadLegacySummary(entry.name));
+      continue;
+    }
+
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    // Try loading as a bundle directory first (old flat structure)
+    const manifestExists = await stat(
+      path.join(getPrdSaveDir(), entry.name, "manifest.json"),
+    ).catch(() => null);
+
+    if (manifestExists?.isFile()) {
+      itemPromises.push(loadBundleSummary(entry.name));
+      continue;
+    }
+
+    // Otherwise treat as a project subfolder and scan its children
+    const subEntries = await readdir(
+      path.join(getPrdSaveDir(), entry.name),
+      { withFileTypes: true },
+    ).catch(() => []);
+
+    for (const subEntry of subEntries) {
+      if (subEntry.isDirectory()) {
+        itemPromises.push(loadBundleSummary(`${entry.name}/${subEntry.name}`));
+      }
+    }
+  }
+
+  const items = await Promise.all(itemPromises);
 
   const normalizedItems = items
     .filter((item): item is SavedCallBundleIndexItem => Boolean(item))
@@ -324,19 +350,40 @@ export async function resolveChangeRequestBaseline(options: {
   }
 
   const entries = await readdir(getPrdSaveDir(), { withFileTypes: true }).catch(() => []);
-  const summaries = await Promise.all(
-    entries.map(async (entry) => {
-      if (entry.isDirectory()) {
-        return loadBundleSummary(entry.name);
-      }
 
-      if (entry.isFile() && entry.name.endsWith(".md")) {
-        return loadLegacySummary(entry.name);
-      }
+  const summaryPromises: Array<Promise<SavedCallBundleIndexItem | null>> = [];
+  for (const entry of entries) {
+    if (entry.isFile() && entry.name.endsWith(".md")) {
+      summaryPromises.push(loadLegacySummary(entry.name));
+      continue;
+    }
 
-      return null;
-    }),
-  );
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const manifestExists = await stat(
+      path.join(getPrdSaveDir(), entry.name, "manifest.json"),
+    ).catch(() => null);
+
+    if (manifestExists?.isFile()) {
+      summaryPromises.push(loadBundleSummary(entry.name));
+      continue;
+    }
+
+    const subEntries = await readdir(
+      path.join(getPrdSaveDir(), entry.name),
+      { withFileTypes: true },
+    ).catch(() => []);
+
+    for (const subEntry of subEntries) {
+      if (subEntry.isDirectory()) {
+        summaryPromises.push(loadBundleSummary(`${entry.name}/${subEntry.name}`));
+      }
+    }
+  }
+
+  const summaries = await Promise.all(summaryPromises);
 
   const matched = summaries
     .filter((item): item is SavedCallBundleIndexItem => Boolean(item))
@@ -352,14 +399,28 @@ export async function resolveChangeRequestBaseline(options: {
 
 export function buildSavedBundleEntryName(
   id: string,
-  projectName: string | null,
+  _projectName: string | null,
   customerName: string | null,
   callDate: string,
 ): string {
   const date = callDate || new Date().toISOString().slice(0, 10);
-  const project = sanitizeFileName(projectName ?? "general");
   const customer = customerName ? `_${sanitizeFileName(customerName)}` : "";
-  return `${date}_${project}${customer}_${id.slice(0, 8)}`;
+  return `${date}${customer}_${id.slice(0, 8)}`;
+}
+
+/**
+ * Build the full entry path including the project subfolder.
+ * Use this when looking up a bundle by its constituent fields.
+ */
+export function buildSavedBundleEntryPath(
+  id: string,
+  projectName: string | null,
+  customerName: string | null,
+  callDate: string,
+): string {
+  const projectFolder = sanitizeFileName(projectName ?? "general");
+  const bundleName = buildSavedBundleEntryName(id, projectName, customerName, callDate);
+  return `${projectFolder}/${bundleName}`;
 }
 
 function buildBundleTitle(projectName: string | null, customerName: string | null): string {
@@ -617,7 +678,13 @@ async function getDirectorySize(directoryPath: string): Promise<number> {
 }
 
 function isSafeEntryName(entryName: string): boolean {
-  return !entryName.includes("..") && !entryName.includes("/") && !entryName.includes("\\");
+  if (entryName.includes("..") || entryName.includes("\\")) {
+    return false;
+  }
+
+  // Allow at most one "/" for project subfolder paths (e.g., "general/2026-03-22_abc12345")
+  const segments = entryName.split("/");
+  return segments.length <= 2 && segments.every((segment) => segment.length > 0);
 }
 
 function sanitizeFileName(name: string): string {

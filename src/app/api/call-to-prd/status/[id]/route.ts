@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getRecord, updateStatus } from "@/lib/call-to-prd/call-store";
-import { buildSavedBundleEntryName, loadSavedBundle } from "@/lib/call-to-prd/saved-bundles";
+import { buildSavedBundleEntryName, buildSavedBundleEntryPath, loadSavedBundle } from "@/lib/call-to-prd/saved-bundles";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,12 +15,18 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 }
 
 async function recoverRecordFromSavedBundle(record: NonNullable<ReturnType<typeof getRecord>>) {
-  const entryName = buildSavedBundleEntryName(record.id, record.projectName, record.customerName, record.callDate);
-  const savedBundle = await loadSavedBundle(entryName);
+  // Try new project-subfolder path first, then fall back to old flat entry name
+  const entryPath = buildSavedBundleEntryPath(record.id, record.projectName, record.customerName, record.callDate);
+  const flatEntryName = buildSavedBundleEntryName(record.id, record.projectName, record.customerName, record.callDate);
+  const savedBundle =
+    (await loadSavedBundle(entryPath)) ??
+    (await loadSavedBundle(flatEntryName));
 
   if (!savedBundle || savedBundle.kind !== "bundle") {
     return record;
   }
+
+  const entryName = savedBundle.entryName;
 
   const hasAllSelectedDocs = record.selectedDocTypes.every((docType) =>
     savedBundle.generatedDocs.some((doc) => doc.type === docType),
