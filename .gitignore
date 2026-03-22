@@ -38,6 +38,8 @@ yarn-error.log*
 # local app state
 /data/state/*.json
 /data/prd/
+/cs-contexts/*
+!/cs-contexts/example.md
 /.dashboard-lab-*.json
 /.dashboard-lab-build-home/
 /.playwright-cli/

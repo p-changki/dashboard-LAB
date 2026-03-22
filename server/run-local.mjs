@@ -1,4 +1,5 @@
 import net from "node:net";
+import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { readFile, rm, writeFile } from "node:fs/promises";
@@ -27,12 +28,14 @@ const appPort = await findFreePort(BASE_APP_PORT);
 const wsPort = terminalEnabled
   ? await findFreePort(BASE_WS_PORT, new Set([appPort]))
   : BASE_WS_PORT;
+const terminalToken = terminalEnabled ? randomBytes(24).toString("hex") : "";
 const distDir = mode === "dev" ? `.next-dev-${appPort}` : ".next";
 const env = {
   ...process.env,
   NEXT_DIST_DIR: distDir,
   NEXT_PUBLIC_TERMINAL_WS_PORT: String(wsPort),
   TERMINAL_WS_PORT: String(wsPort),
+  TERMINAL_WS_TOKEN: terminalToken,
 };
 
 if (mode === "dev") {

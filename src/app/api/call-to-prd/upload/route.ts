@@ -670,7 +670,6 @@ async function processCallAsync(
       completedAt: new Date().toISOString(),
     });
 
-    console.log(`PRD saved: ${savedEntryName}`);
   } catch (err) {
     updateStatus(id, "failed", {
       savedEntryName,

@@ -27,9 +27,51 @@ export function TerminalTab() {
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const [errorMessage, setErrorMessage] = useState("");
   const [socketVersion, setSocketVersion] = useState(0);
-  const wsUrl = useMemo(() => buildTerminalUrl(), []);
+  const [wsUrl, setWsUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadTerminalUrl() {
+      try {
+        setConnectionState("connecting");
+        setErrorMessage("");
+        const response = await fetch("/api/system/terminal-token", { cache: "no-store" });
+
+        if (!response.ok) {
+          throw new Error("터미널 토큰을 불러오지 못했습니다.");
+        }
+
+        const payload = (await response.json()) as { enabled?: boolean; token?: string | null };
+
+        if (!payload.enabled || !payload.token) {
+          throw new Error("터미널 서버를 사용할 수 없습니다.");
+        }
+
+        if (!cancelled) {
+          setWsUrl(buildTerminalUrl(payload.token));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setWsUrl(null);
+          setConnectionState("error");
+          setErrorMessage(error instanceof Error ? error.message : "터미널 서버에 연결하지 못했습니다.");
+        }
+      }
+    }
+
+    void loadTerminalUrl();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [socketVersion]);
+
+  useEffect(() => {
+    if (!wsUrl) {
+      return;
+    }
+
     setSessions([]);
     setBuffers({});
     setActiveSessionId("");
@@ -73,7 +115,7 @@ export function TerminalTab() {
       socketRef.current = null;
       socket.close();
     };
-  }, [socketVersion, wsUrl]);
+  }, [wsUrl]);
 
   const activeBuffer = useMemo(
     () => (activeSessionId ? buffers[activeSessionId] ?? "" : ""),
@@ -136,13 +178,13 @@ interface TerminalHandlerContext {
   setErrorMessage: (value: string) => void;
 }
 
-function buildTerminalUrl() {
+function buildTerminalUrl(token: string) {
   if (typeof window === "undefined") {
-    return "ws://127.0.0.1:34877";
+    return `ws://127.0.0.1:34877?token=${encodeURIComponent(token)}`;
   }
 
   const port = process.env.NEXT_PUBLIC_TERMINAL_WS_PORT ?? "34877";
-  return `ws://${window.location.hostname}:${port}`;
+  return `ws://${window.location.hostname}:${port}?token=${encodeURIComponent(token)}`;
 }
 
 function handleMessage(

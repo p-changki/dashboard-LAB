@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import path from "node:path";
 
 import { spawn } from "node-pty";
@@ -7,6 +7,7 @@ import { WebSocketServer } from "ws";
 const PORT = Number(process.env.TERMINAL_WS_PORT ?? "34877");
 const HOST = "127.0.0.1";
 const MAX_SESSIONS = 5;
+const TERMINAL_WS_TOKEN = process.env.TERMINAL_WS_TOKEN ?? "";
 
 const sessions = new Map();
 const wss = new WebSocketServer({ host: HOST, port: PORT });
@@ -21,7 +22,12 @@ wss.on("error", (error) => {
   process.exit(1);
 });
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, request) => {
+  if (!isAuthorizedRequest(request)) {
+    ws.close(1008, "unauthorized");
+    return;
+  }
+
   ws.on("message", (raw) => {
     try {
       handleMessage(ws, JSON.parse(raw.toString()));
@@ -117,6 +123,43 @@ function send(ws, payload) {
   if (ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify(payload));
   }
+}
+
+function isAuthorizedRequest(request) {
+  if (!TERMINAL_WS_TOKEN) {
+    return false;
+  }
+
+  const url = new URL(request.url ?? "/", `http://${HOST}:${PORT}`);
+  const token = url.searchParams.get("token") ?? "";
+
+  if (!safeEquals(token, TERMINAL_WS_TOKEN)) {
+    return false;
+  }
+
+  const origin = request.headers.origin;
+
+  if (!origin) {
+    return true;
+  }
+
+  try {
+    const originUrl = new URL(origin);
+    return ["127.0.0.1", "localhost"].includes(originUrl.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function safeEquals(left, right) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 console.log(`Terminal WebSocket server running on ws://${HOST}:${PORT}`);

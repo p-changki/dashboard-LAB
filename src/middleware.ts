@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+const PROTECTED_LOCALHOST_PATHS = [
+  "/api/system/",
+  "/api/projects/env-map",
+];
+
 const PROTECTED_POST_PATHS = [
   "/api/file-manager/execute",
   "/api/file-manager/auto-organize",
@@ -14,7 +19,7 @@ const PROTECTED_POST_PATHS = [
 ];
 
 export function middleware(request: NextRequest) {
-  if (request.method !== "POST" || !requiresOriginCheck(request.nextUrl.pathname)) {
+  if (!requiresOriginCheck(request.method, request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 
@@ -62,6 +67,10 @@ export const config = {
   matcher: "/api/:path*",
 };
 
-function requiresOriginCheck(pathname: string) {
-  return pathname.startsWith("/api/system/") || PROTECTED_POST_PATHS.some((p) => pathname.startsWith(p));
+function requiresOriginCheck(method: string, pathname: string) {
+  if (PROTECTED_LOCALHOST_PATHS.some((p) => pathname.startsWith(p))) {
+    return true;
+  }
+
+  return method === "POST" && PROTECTED_POST_PATHS.some((p) => pathname.startsWith(p));
 }

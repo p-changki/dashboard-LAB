@@ -32,12 +32,12 @@ export function clearCache(key?: string) {
 
 function getCacheStore() {
   const globalStore = globalThis as typeof globalThis & {
-    __changkiAiCacheStore?: Map<string, CacheEntry<unknown>>;
+    __dashboardLabCacheStore?: Map<string, CacheEntry<unknown>>;
   };
 
-  if (!globalStore.__changkiAiCacheStore) {
-    globalStore.__changkiAiCacheStore = new Map<string, CacheEntry<unknown>>();
+  if (!globalStore.__dashboardLabCacheStore) {
+    globalStore.__dashboardLabCacheStore = new Map<string, CacheEntry<unknown>>();
   }
 
-  return globalStore.__changkiAiCacheStore;
+  return globalStore.__dashboardLabCacheStore;
 }

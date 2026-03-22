@@ -5,6 +5,26 @@
   "license": "MIT",
   "description": "Local-first AI workspace dashboard boilerplate with Electron desktop packaging.",
   "author": "dashboard-LAB contributors",
+  "homepage": "https://github.com/p-changki/dashboard-LAB#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/p-changki/dashboard-LAB.git"
+  },
+  "bugs": {
+    "url": "https://github.com/p-changki/dashboard-LAB/issues"
+  },
+  "keywords": [
+    "ai",
+    "claude",
+    "codex",
+    "dashboard",
+    "desktop",
+    "electron",
+    "gemini",
+    "local-ai",
+    "productivity",
+    "workspace"
+  ],
   "main": "electron/main.mjs",
   "packageManager": "pnpm@10.17.1",
   "scripts": {
@@ -78,7 +98,6 @@
       "src/**/*",
       "public/**/*",
       ".next/**/*",
-      "cs-contexts/**/*",
       "data/**/*",
       "models/**/*",
       "package.json",

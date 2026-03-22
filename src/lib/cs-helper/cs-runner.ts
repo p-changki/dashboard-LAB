@@ -229,10 +229,10 @@ function rememberCsResponse(response: CsResponse) {
 
 function getCsStore() {
   const globalStore = globalThis as typeof globalThis & {
-    __changkiAiCsStore?: Map<string, CsResponse>;
+    __dashboardLabCsStore?: Map<string, CsResponse>;
   };
 
-  if (!globalStore.__changkiAiCsStore) {
+  if (!globalStore.__dashboardLabCsStore) {
     const items = readPersistentJson<CsResponse[]>(CS_STORE_FILE, [])
       .map((item) => ({
         ...item,
@@ -240,12 +240,12 @@ function getCsStore() {
       }))
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
       .slice(-MAX_HISTORY);
-    globalStore.__changkiAiCsStore = new Map<string, CsResponse>(
+    globalStore.__dashboardLabCsStore = new Map<string, CsResponse>(
       items.map((item) => [item.id, item]),
     );
   }
 
-  return globalStore.__changkiAiCsStore;
+  return globalStore.__dashboardLabCsStore;
 }
 
 function toHistoryItem(item: CsResponse): CsHistoryItem {

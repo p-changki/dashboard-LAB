@@ -39,10 +39,10 @@ export interface SpawnTaskResult {
 }
 
 interface SkillRunnerGlobalStore {
-  __changkiAiSkillRuns?: Map<string, SkillRun>;
-  __changkiAiSkillProcesses?: Map<string, { child: ChildProcess; outputPath: string | null }>;
-  __changkiAiSkillQueue?: string[];
-  __changkiAiSkillQueueState?: { isProcessing: boolean };
+  __dashboardLabAiSkillRuns?: Map<string, SkillRun>;
+  __dashboardLabAiSkillProcesses?: Map<string, { child: ChildProcess; outputPath: string | null }>;
+  __dashboardLabAiSkillQueue?: string[];
+  __dashboardLabAiSkillQueueState?: { isProcessing: boolean };
 }
 
 export class SkillRunnerInputError extends Error {
@@ -161,31 +161,31 @@ export async function runSpawnTask({
 
 function getRunStore() {
   const globalStore = globalThis as typeof globalThis & SkillRunnerGlobalStore;
-  globalStore.__changkiAiSkillRuns ??= new Map<string, SkillRun>(
+  globalStore.__dashboardLabAiSkillRuns ??= new Map<string, SkillRun>(
     hydrateRunHistory(readPersistentJson<SkillRun[]>(SKILL_RUNS_FILE, [])).map((run) => [run.id, run]),
   );
-  return globalStore.__changkiAiSkillRuns;
+  return globalStore.__dashboardLabAiSkillRuns;
 }
 
 function getProcessStore() {
   const globalStore = globalThis as typeof globalThis & SkillRunnerGlobalStore;
-  globalStore.__changkiAiSkillProcesses ??= new Map<
+  globalStore.__dashboardLabAiSkillProcesses ??= new Map<
     string,
     { child: ChildProcess; outputPath: string | null }
   >();
-  return globalStore.__changkiAiSkillProcesses;
+  return globalStore.__dashboardLabAiSkillProcesses;
 }
 
 function getQueueStore() {
   const globalStore = globalThis as typeof globalThis & SkillRunnerGlobalStore;
-  globalStore.__changkiAiSkillQueue ??= [];
-  return globalStore.__changkiAiSkillQueue;
+  globalStore.__dashboardLabAiSkillQueue ??= [];
+  return globalStore.__dashboardLabAiSkillQueue;
 }
 
 function getQueueState() {
   const globalStore = globalThis as typeof globalThis & SkillRunnerGlobalStore;
-  globalStore.__changkiAiSkillQueueState ??= { isProcessing: false };
-  return globalStore.__changkiAiSkillQueueState;
+  globalStore.__dashboardLabAiSkillQueueState ??= { isProcessing: false };
+  return globalStore.__dashboardLabAiSkillQueueState;
 }
 
 async function processQueue() {
