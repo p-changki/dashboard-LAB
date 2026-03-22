@@ -2,16 +2,18 @@
 
 import { ChevronDown, FolderOpen, Phone } from "lucide-react";
 
-import { CALL_DOC_PRESET_DEFINITIONS } from "@/lib/call-to-prd/document-config";
+import { useLocale } from "@/components/layout/LocaleProvider";
 import type {
   CallRecord,
   SavedCallBundleDetail,
   SavedCallBundleIndexItem,
 } from "@/lib/types/call-to-prd";
 import {
+  buildStatusLabel,
   getGenerationModeLabel,
   hydrateRecordFromSavedBundle,
 } from "@/features/call-to-prd/components/CallToPrdMarkdown";
+import { getCallPresetLabel, getCallToPrdCopy } from "@/features/call-to-prd/copy";
 import type { CallDocType } from "@/lib/call-to-prd/document-config";
 
 // ---------------------------------------------------------------------------
@@ -57,6 +59,8 @@ export interface CallToPrdHistoryProps {
 // ---------------------------------------------------------------------------
 
 export function CallToPrdHistory(props: CallToPrdHistoryProps) {
+  const { locale } = useLocale();
+  const copy = getCallToPrdCopy(locale);
   const {
     history,
     selectedHistory,
@@ -93,8 +97,8 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
             className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-[#1e1e1e] px-4 py-3 text-left transition-all duration-[150ms] hover:bg-[#242424]"
           >
             <div className="flex items-center gap-3">
-              <h3 className="text-lg font-semibold text-[#f0f0f0]">현재 세션</h3>
-              <span className="rounded-full bg-white/8 px-2 py-0.5 text-xs text-gray-400">{history.length}개</span>
+              <h3 className="text-lg font-semibold text-[#f0f0f0]">{copy.history.currentSession}</h3>
+              <span className="rounded-full bg-white/8 px-2 py-0.5 text-xs text-gray-400">{history.length}</span>
             </div>
             <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-[150ms] ${historyOpen ? "rotate-180" : ""}`} />
           </button>
@@ -112,22 +116,22 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex min-w-0 items-center gap-3">
                       <Phone className="h-4 w-4 text-gray-500" />
-                      <span className="truncate text-sm font-medium text-[#f0f0f0]">{record.projectName ?? "프로젝트 미지정"}</span>
+                      <span className="truncate text-sm font-medium text-[#f0f0f0]">{record.projectName ?? copy.history.projectUnset}</span>
                       {record.customerName && <span className="truncate text-sm text-gray-400">· {record.customerName}</span>}
                     </div>
                     <span className={`rounded-full px-2 py-1 text-xs ${record.status === "completed" ? "bg-green-900/30 text-green-300" : record.status === "failed" ? "bg-red-900/30 text-red-300" : "bg-amber-900/30 text-amber-300"}`}>
-                      {record.status}
+                      {buildStatusLabel(record.status, locale)}
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                     <span>{record.callDate} · {record.fileName}</span>
                     <span className="rounded-full bg-cyan-900/20 px-2 py-0.5 text-cyan-200">
-                      {getGenerationModeLabel(record.generationMode)}
+                      {getGenerationModeLabel(record.generationMode, locale)}
                     </span>
                     <span className="rounded-full bg-white/8 px-2 py-0.5 text-gray-400">
-                      {record.generationPreset === "custom" ? "커스텀" : CALL_DOC_PRESET_DEFINITIONS[record.generationPreset].label}
+                      {getCallPresetLabel(record.generationPreset, locale)}
                     </span>
-                    <span>{record.generatedDocs.length || record.selectedDocTypes.length}개 문서</span>
+                    <span>{copy.common.documentCount(record.generatedDocs.length || record.selectedDocTypes.length)}</span>
                   </div>
                 </button>
                 <div className="flex items-center gap-2">
@@ -137,7 +141,7 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
                       onClick={() => handleRetryRecord(record)}
                       className="rounded-full border border-cyan-500/20 bg-cyan-950/20 px-2.5 py-1 text-[11px] text-cyan-200 transition hover:bg-cyan-950/30"
                     >
-                      재시도
+                      {copy.common.retry}
                     </button>
                   ) : null}
                   <button
@@ -145,7 +149,7 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
                     onClick={() => void handleDeleteHistoryRecord(record.id)}
                     className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-gray-400 transition hover:bg-white/[0.08] hover:text-white"
                   >
-                    삭제
+                    {copy.common.delete}
                   </button>
                 </div>
               </div>
@@ -163,8 +167,8 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
             className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-[#1e1e1e] px-4 py-3 text-left transition-all duration-[150ms] hover:bg-[#242424]"
           >
             <div className="flex items-center gap-3">
-              <h3 className="text-lg font-semibold text-[#f0f0f0]">저장된 문서</h3>
-              <span className="rounded-full bg-white/8 px-2 py-0.5 text-xs text-gray-400">{savedTotalCount}개</span>
+              <h3 className="text-lg font-semibold text-[#f0f0f0]">{copy.history.savedDocs}</h3>
+              <span className="rounded-full bg-white/8 px-2 py-0.5 text-xs text-gray-400">{savedTotalCount}</span>
             </div>
             <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-[150ms] ${savedOpen ? "rotate-180" : ""}`} />
           </button>
@@ -173,7 +177,7 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
               <input
                 value={savedQuery}
                 onChange={(event) => handleSavedQueryChange(event.target.value)}
-                placeholder="저장된 문서 검색"
+                placeholder={copy.history.searchSaved}
                 className="w-full max-w-xs rounded-xl border border-white/8 bg-[#1e1e1e] px-4 py-2.5 text-sm text-[#f0f0f0] placeholder:text-gray-600 focus:border-purple-500/40 focus:outline-none"
               />
               {savedBundles.length > 0 ? (
@@ -209,12 +213,12 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                         <span>{bundle.createdAt.slice(0, 10)}</span>
-                        <span>{bundle.docCount}개 문서</span>
+                        <span>{copy.common.documentCount(bundle.docCount)}</span>
                         <span className="rounded-full bg-cyan-900/20 px-2 py-0.5 text-cyan-200">
-                          {getGenerationModeLabel(bundle.generationMode)}
+                          {getGenerationModeLabel(bundle.generationMode, locale)}
                         </span>
-                        {bundle.kind === "legacy" && <span className="rounded-full bg-white/8 px-2 py-0.5 text-gray-400">legacy</span>}
-                        {bundle.baselineTitle ? <span className="rounded-full bg-cyan-900/20 px-2 py-0.5 text-cyan-200">기준선 있음</span> : null}
+                        {bundle.kind === "legacy" && <span className="rounded-full bg-white/8 px-2 py-0.5 text-gray-400">{copy.history.legacy}</span>}
+                        {bundle.baselineTitle ? <span className="rounded-full bg-cyan-900/20 px-2 py-0.5 text-cyan-200">{copy.history.hasBaseline}</span> : null}
                       </div>
                       <p className="mt-1 truncate text-xs text-gray-500">{bundle.preview}</p>
                     </button>
@@ -228,7 +232,7 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
                         }}
                         className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-gray-400 transition hover:bg-white/[0.08] hover:text-white"
                       >
-                        삭제
+                        {copy.common.delete}
                       </button>
                     </div>
                   </div>
@@ -238,7 +242,7 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
               {savedTotalPages > 1 && (
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/8 bg-[#1e1e1e] px-4 py-3">
                   <span className="text-xs text-gray-500">
-                    {savedPage} / {savedTotalPages} 페이지
+                    {copy.history.page(savedPage, savedTotalPages)}
                   </span>
                   <div className="flex items-center gap-2">
                     <button
@@ -247,7 +251,7 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
                       disabled={savedPage <= 1}
                       className="rounded-xl border border-white/8 bg-[#151515] px-3 py-2 text-xs text-gray-300 transition-all duration-[150ms] hover:bg-[#242424] disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      이전
+                      {copy.history.prev}
                     </button>
                     <button
                       type="button"
@@ -255,7 +259,7 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
                       disabled={savedPage >= savedTotalPages}
                       className="rounded-xl border border-white/8 bg-[#151515] px-3 py-2 text-xs text-gray-300 transition-all duration-[150ms] hover:bg-[#242424] disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      다음
+                      {copy.history.next}
                     </button>
                   </div>
                 </div>
@@ -263,7 +267,7 @@ export function CallToPrdHistory(props: CallToPrdHistoryProps) {
             </div>
           ) : (
             <div className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-5 text-sm text-gray-400">
-              검색 결과가 없습니다.
+              {copy.history.noSearchResult}
             </div>
           )}
             </div>

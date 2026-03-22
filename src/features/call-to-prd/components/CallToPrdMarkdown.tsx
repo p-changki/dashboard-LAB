@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import type { Components } from "react-markdown";
 
 import { MermaidBlock } from "@/components/markdown/MermaidBlock";
+import type { AppLocale } from "@/lib/locale";
 import { buildGeneratedDocTitle, CALL_DOC_DEFINITIONS, sortCallDocTypes, type CallDocType } from "@/lib/call-to-prd/document-config";
 import type {
   CallGenerationMode,
@@ -13,6 +14,13 @@ import type {
   GeneratedDoc,
   SavedCallBundleDetail,
 } from "@/lib/types/call-to-prd";
+import {
+  formatCallToPrdFailureMessage as formatFailureMessageByLocale,
+  getCallGenerationModeLabel as getGenerationModeLabelByLocale,
+  getCallGenerationModeOptions as getGenerationModeOptionsByLocale,
+  getCallGenerationStepLabel as getGenerationStepLabelByLocale,
+  getCallStatusLabel,
+} from "@/features/call-to-prd/copy";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,32 +43,9 @@ export interface PromptDialogState {
   onConfirm: (value: string) => void | Promise<void>;
 }
 
-export const GENERATION_MODE_OPTIONS: Array<{
-  value: CallGenerationMode;
-  label: string;
-  description: string;
-}> = [
-  {
-    value: "claude",
-    label: "Claude 단일",
-    description: "기본 추천. 가장 비용이 안정적입니다.",
-  },
-  {
-    value: "codex",
-    label: "Codex 단일",
-    description: "Codex CLI가 준비된 경우에만 사용합니다.",
-  },
-  {
-    value: "dual",
-    label: "Dual AI",
-    description: "Claude + Codex 생성 후 머지합니다. 비용이 가장 큽니다.",
-  },
-  {
-    value: "openai",
-    label: "OpenAI API",
-    description: "CLI 없이 API key만으로 문서를 생성합니다.",
-  },
-];
+export function getGenerationModeOptions(locale: AppLocale) {
+  return getGenerationModeOptionsByLocale(locale);
+}
 
 // ---------------------------------------------------------------------------
 // Markdown Components
@@ -194,79 +179,24 @@ export function Step({ done, active, label }: { done: boolean; active?: boolean;
 // Utility Functions
 // ---------------------------------------------------------------------------
 
-export function buildStatusLabel(status: CallRecord["status"]) {
-  switch (status) {
-    case "uploading":
-      return "업로드 준비 중";
-    case "transcribing":
-      return "음성 텍스트 변환 중";
-    case "extracting-pdf":
-      return "PDF 텍스트 추출 중";
-    case "analyzing-pdf":
-      return "PDF 구조 분석 중";
-    case "analyzing":
-      return "PRD 생성 중";
-    case "merging":
-      return "Dual-AI 머지 중";
-    case "generating-docs":
-      return "실무 문서 생성 중";
-    case "completed":
-      return "완료";
-    case "failed":
-      return "실패";
-    default:
-      return status;
-  }
+export function buildStatusLabel(status: CallRecord["status"], locale: AppLocale = "ko") {
+  return getCallStatusLabel(status, locale);
 }
 
-export function getGenerationModeLabel(mode: CallGenerationMode) {
-  switch (mode) {
-    case "claude":
-      return "Claude 단일";
-    case "codex":
-      return "Codex 단일";
-    case "dual":
-      return "Dual AI";
-    case "openai":
-      return "OpenAI API";
-    default:
-      return "AI 생성";
-  }
+export function buildGenerationModeLabel(mode: CallGenerationMode, locale: AppLocale = "ko") {
+  return getGenerationModeLabelByLocale(mode, locale);
 }
 
-export function buildGenerationStepLabel(mode: CallGenerationMode) {
-  switch (mode) {
-    case "claude":
-      return "PRD 생성 (Claude 단일)";
-    case "codex":
-      return "PRD 생성 (Codex 단일)";
-    case "dual":
-      return "PRD 생성 (Claude + Codex 병렬)";
-    case "openai":
-      return "PRD 생성 (OpenAI API)";
-    default:
-      return "PRD 생성";
-  }
+export function getGenerationModeLabel(mode: CallGenerationMode, locale: AppLocale = "ko") {
+  return getGenerationModeLabelByLocale(mode, locale);
 }
 
-export function formatCallToPrdFailureMessage(error: string | null) {
-  if (!error) {
-    return "입력값이나 로컬 실행 환경을 확인한 뒤 다시 시도해 주세요.";
-  }
+export function buildGenerationStepLabel(mode: CallGenerationMode, locale: AppLocale = "ko") {
+  return getGenerationStepLabelByLocale(mode, locale);
+}
 
-  if (error.includes("whisper CLI") || error.includes("openai-whisper") || error.includes("whisper-cpp")) {
-    return "음성 변환 도구가 준비되지 않았습니다. `python3 -m pip install openai-whisper`를 설치하거나, `whisper-cpp`를 쓰는 경우 `WHISPER_MODEL_PATH`에 실제 ggml 모델 경로를 설정한 뒤 다시 시도해 주세요.";
-  }
-
-  if (error.includes("Claude 실패") || error.includes("Codex 실패") || error.includes("OpenAI API 실패")) {
-    return `AI 생성 단계에서 중단되었습니다. ${error} 입력 내용은 유지되므로 프롬프트나 실행 환경을 확인한 뒤 다시 생성하면 됩니다.`;
-  }
-
-  if (error.includes("재시작")) {
-    return "앱이 재시작되면서 진행 중 작업이 중단되었습니다. 같은 입력값으로 다시 생성하면 저장 구조와 다음 액션까지 다시 이어집니다.";
-  }
-
-  return error;
+export function formatCallToPrdFailureMessage(error: string | null, locale: AppLocale = "ko") {
+  return formatFailureMessageByLocale(error, locale);
 }
 
 export function getDisplayDocs(record: CallRecord | null): GeneratedDoc[] {

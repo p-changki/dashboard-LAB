@@ -4,8 +4,8 @@ import { ChevronDown, Download, FileText, FolderOpen } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
 import { ErrorCard } from "@/components/ui/ErrorCard";
-import { CALL_NEXT_ACTION_DEFINITIONS } from "@/lib/call-to-prd/next-action-config";
 import { CALL_DOC_DEFINITIONS, type CallDocType } from "@/lib/call-to-prd/document-config";
 import type {
   CallNextActionResponse,
@@ -19,6 +19,14 @@ import {
   buildGenerationStepLabel,
   formatCallToPrdFailureMessage,
 } from "@/features/call-to-prd/components/CallToPrdMarkdown";
+import {
+  getCallDocLabel,
+  getCallDocShortLabel,
+  getCallNextActionDescription,
+  getCallNextActionLabel,
+  getCallNextActionShortLabel,
+  getCallToPrdCopy,
+} from "@/features/call-to-prd/copy";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,9 +64,7 @@ export interface CallToPrdViewerProps {
   displaySavedEntryName: string | null;
 
   // Next actions
-  availableNextActions: Array<
-    [CallNextActionType, (typeof CALL_NEXT_ACTION_DEFINITIONS)[CallNextActionType]]
-  >;
+  availableNextActions: Array<[CallNextActionType, { label: string; shortLabel: string; description: string }]>;
   nextActionLoading: CallNextActionType | null;
   nextActionResults: Partial<Record<CallNextActionType, CallNextActionResponse>>;
   activeNextAction: CallNextActionType | null;
@@ -79,6 +85,8 @@ export interface CallToPrdViewerProps {
 // ---------------------------------------------------------------------------
 
 export function CallToPrdViewer(props: CallToPrdViewerProps) {
+  const { locale } = useLocale();
+  const copy = getCallToPrdCopy(locale);
   const {
     current,
     displayRecord,
@@ -121,34 +129,34 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
       {/* 진행 상태 */}
       {current && current.status !== "failed" && (
         <div className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-5 space-y-3">
-          <Step done={true} label="파일 업로드 완료" />
-          <Step done={!["uploading"].includes(current.status)} active={current.status === "transcribing"} label="음성→텍스트 변환" />
-          <Step done={!["uploading", "transcribing"].includes(current.status)} active={current.status === "extracting-pdf"} label="PDF 텍스트 추출" />
-          <Step done={!["uploading", "transcribing", "extracting-pdf"].includes(current.status)} active={current.status === "analyzing-pdf"} label="PDF 구조 분석" />
+          <Step done={true} label={copy.viewer.uploadDone} />
+          <Step done={!["uploading"].includes(current.status)} active={current.status === "transcribing"} label={copy.viewer.audioToText} />
+          <Step done={!["uploading", "transcribing"].includes(current.status)} active={current.status === "extracting-pdf"} label={copy.viewer.pdfExtract} />
+          <Step done={!["uploading", "transcribing", "extracting-pdf"].includes(current.status)} active={current.status === "analyzing-pdf"} label={copy.viewer.pdfAnalyze} />
           <Step
             done={!["uploading", "transcribing", "extracting-pdf", "analyzing-pdf"].includes(current.status)}
             active={current.status === "analyzing"}
-            label={buildGenerationStepLabel(current.generationMode)}
+            label={buildGenerationStepLabel(current.generationMode, locale)}
           />
           {current.generationMode === "dual" ? (
-            <Step done={!["uploading", "transcribing", "extracting-pdf", "analyzing-pdf", "analyzing"].includes(current.status)} active={current.status === "merging"} label="Dual-AI 머지" />
+            <Step done={!["uploading", "transcribing", "extracting-pdf", "analyzing-pdf", "analyzing"].includes(current.status)} active={current.status === "merging"} label={copy.viewer.dualMerge} />
           ) : null}
           {hasSupportDocs && (
             <Step
               done={current.status === "completed"}
               active={current.status === "generating-docs"}
-              label={current.docGenerationProgress ?? "실무 문서 생성"}
+              label={current.docGenerationProgress ?? copy.viewer.workingDocs}
             />
           )}
-          <Step done={current.status === "completed"} label="완료" />
+          <Step done={current.status === "completed"} label={copy.viewer.completed} />
         </div>
       )}
 
       {current?.status === "failed" && (
         <ErrorCard
-          title="문서 생성이 중단되었습니다"
-          message={formatCallToPrdFailureMessage(current.error)}
-          actionLabel="재시도"
+          title={copy.viewer.failedTitle}
+          message={formatCallToPrdFailureMessage(current.error, locale)}
+          actionLabel={copy.common.retry}
           onAction={() => handleRetryRecord(current)}
         />
       )}
@@ -162,9 +170,9 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
             className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-[#1e1e1e] px-4 py-3 text-left transition-all duration-[150ms] hover:bg-[#242424]"
           >
             <div>
-              <h3 className="text-lg font-semibold text-[#f0f0f0]">문서 결과</h3>
+              <h3 className="text-lg font-semibold text-[#f0f0f0]">{copy.viewer.docResultsTitle}</h3>
               <p className="mt-1 text-xs leading-5 text-gray-500">
-                PRD와 생성된 지원 문서를 문서별로 열고, 현재 본문은 필요할 때만 펼쳐서 볼 수 있습니다.
+                {copy.viewer.docResultsDescription}
               </p>
             </div>
             <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-[150ms] ${docResultsOpen ? "rotate-180" : ""}`} />
@@ -185,18 +193,18 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                           : "border border-white/8 bg-[#151515] text-gray-400"
                       }`}
                     >
-                      {CALL_DOC_DEFINITIONS[doc.type].shortLabel}
+                      {getCallDocShortLabel(doc.type, locale)}
                     </button>
                   ))}
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => navigator.clipboard.writeText(selectedDocContent)}
                     className="rounded-xl border border-white/8 bg-[#151515] px-4 py-2 text-sm text-gray-300 transition-all duration-[150ms] hover:bg-[#242424]">
-                    현재 문서 복사
+                    {copy.viewer.copyCurrentDoc}
                   </button>
                   <button type="button" onClick={downloadCurrentMarkdown}
                     className="inline-flex items-center rounded-xl border border-white/8 bg-[#151515] px-4 py-2 text-sm text-gray-300 transition-all duration-[150ms] hover:bg-[#242424]">
-                    <Download className="mr-1 h-4 w-4" />.md 다운로드
+                    <Download className="mr-1 h-4 w-4" />{copy.viewer.downloadMarkdown}
                   </button>
                 </div>
               </div>
@@ -214,7 +222,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                           : "border border-white/8 bg-[#151515] text-gray-400"
                       }`}
                     >
-                      {{ merged: "통합 PRD", claude: "Claude", codex: "Codex", diff: "차이점" }[tab]}
+                      {{ merged: copy.viewer.mergedPrd, claude: "Claude", codex: "Codex", diff: copy.viewer.diffReport }[tab]}
                     </button>
                   ))}
                 </div>
@@ -222,13 +230,13 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
 
               {generationWarnings.length > 0 && (
                 <div className="rounded-2xl border border-amber-500/20 bg-amber-950/20 px-4 py-3 text-sm text-amber-200">
-                  일부 문서는 생성되지 않았습니다: {generationWarnings.join(" / ")}
+                  {copy.viewer.warningPrefix} {generationWarnings.join(" / ")}
                 </div>
               )}
 
               {displayRecord?.baselineTitle ? (
                 <div className="rounded-2xl border border-cyan-500/20 bg-cyan-950/20 px-4 py-3 text-sm text-cyan-100">
-                  변경 비교 기준 문서: {displayRecord.baselineTitle}
+                  {copy.viewer.baselinePrefix} {displayRecord.baselineTitle}
                   {displayRecord.baselineEntryName ? ` (${displayRecord.baselineEntryName})` : ""}
                 </div>
               ) : null}
@@ -241,16 +249,16 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                 >
                   <div>
                     <div className="text-sm font-medium text-[#f0f0f0]">
-                      {CALL_DOC_DEFINITIONS[activeDocType].label}
+                      {getCallDocLabel(activeDocType, locale)}
                       {activeDocType === "prd" ? ` · ${{
-                        merged: "통합 PRD",
+                        merged: copy.viewer.mergedPrd,
                         claude: "Claude",
                         codex: "Codex",
-                        diff: "차이점",
+                        diff: copy.viewer.diffReport,
                       }[prdView]}` : ""}
                     </div>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
-                      {docContentOpen ? "본문을 접습니다." : "본문을 펼쳐서 전체 내용을 확인합니다."}
+                      {docContentOpen ? copy.viewer.collapseBody : copy.viewer.expandBody}
                     </p>
                   </div>
                   <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-[150ms] ${docContentOpen ? "rotate-180" : ""}`} />
@@ -277,9 +285,9 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
             className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-[#1e1e1e] px-4 py-3 text-left transition-all duration-[150ms] hover:bg-[#242424]"
           >
             <div>
-              <h3 className="text-lg font-semibold text-[#f0f0f0]">저장 구조</h3>
+              <h3 className="text-lg font-semibold text-[#f0f0f0]">{copy.viewer.savedTreeTitle}</h3>
               <p className="mt-1 text-xs leading-5 text-gray-500">
-                저장된 PRD 번들 아래 문서와 `next-actions` 파일을 트리처럼 다시 열어볼 수 있습니다.
+                {copy.viewer.savedTreeDescription}
               </p>
             </div>
             <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-[150ms] ${savedTreeOpen ? "rotate-180" : ""}`} />
@@ -290,7 +298,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
               <div className="rounded-2xl border border-white/8 bg-[#151515] p-4 font-mono text-xs text-gray-300">
                 <div className="flex items-center gap-2 text-sm text-white">
                   <FolderOpen className="h-4 w-4 text-purple-400" />
-                  <span>{displaySavedEntryName ?? "현재 PRD 번들"}/</span>
+                  <span>{displaySavedEntryName ?? copy.viewer.currentBundle}/</span>
                 </div>
 
                 <div className="mt-3 space-y-2 pl-4">
@@ -312,7 +320,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
 
                   {(displayRecord?.claudePrd || displayRecord?.codexPrd || displayRecord?.diffReport) ? (
                     <div className="space-y-2 pl-4">
-                      <div className="text-gray-500">artifacts/</div>
+                      <div className="text-gray-500">{copy.viewer.artifacts}</div>
                       {displayRecord?.claudePrd ? (
                         <button
                           type="button"
@@ -362,7 +370,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                   ) : null}
 
                   <div className="space-y-2 pl-4">
-                    <div className="text-gray-500">next-actions/</div>
+                    <div className="text-gray-500">{copy.viewer.nextActions}</div>
                     {nextActionList.length > 0 ? nextActionList.map((nextAction) => (
                       <button
                         key={`tree-next-${nextAction.actionType}`}
@@ -379,7 +387,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                       </button>
                     )) : (
                       <div className="rounded-xl border border-dashed border-white/8 px-3 py-2 text-gray-500">
-                        아직 저장된 다음 액션이 없습니다.
+                        {copy.viewer.noSavedNextActions}
                       </div>
                     )}
                   </div>
@@ -398,9 +406,9 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
             className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-[#1e1e1e] px-4 py-3 text-left transition-all duration-[150ms] hover:bg-[#242424]"
           >
             <div>
-              <h3 className="text-lg font-semibold text-[#f0f0f0]">다음 액션</h3>
+              <h3 className="text-lg font-semibold text-[#f0f0f0]">{copy.viewer.nextActionsTitle}</h3>
               <p className="mt-1 text-xs leading-5 text-gray-500">
-                PRD를 바탕으로 PM / FE / BE / QA / CS / GitHub Issue 초안을 이어서 생성합니다.
+                {copy.viewer.nextActionsDescription}
               </p>
             </div>
             <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-[150ms] ${nextActionsOpen ? "rotate-180" : ""}`} />
@@ -409,7 +417,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
           {nextActionsOpen ? (
             <div className="space-y-4 rounded-2xl border border-white/8 bg-[#1e1e1e] p-5">
               <div className="grid gap-3 xl:grid-cols-3">
-                {availableNextActions.map(([actionType, definition]) => {
+                {availableNextActions.map(([actionType]) => {
                   const generated = Boolean(nextActionResults[actionType]);
                   const loading = nextActionLoading === actionType;
 
@@ -426,7 +434,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                       } disabled:cursor-not-allowed disabled:opacity-60`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-medium text-[#f0f0f0]">{definition.label}</span>
+                        <span className="text-sm font-medium text-[#f0f0f0]">{getCallNextActionLabel(actionType, locale)}</span>
                         <span className={`rounded-full px-2 py-0.5 text-[11px] ${
                           loading
                             ? "bg-amber-900/25 text-amber-200"
@@ -434,10 +442,10 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                               ? "bg-cyan-900/25 text-cyan-200"
                               : "bg-white/8 text-gray-500"
                         }`}>
-                          {loading ? "생성 중" : generated ? "준비됨" : "생성"}
+                          {loading ? copy.common.loading : generated ? copy.common.ready : copy.common.create}
                         </span>
                       </div>
-                      <p className="mt-2 text-xs leading-6 text-gray-500">{definition.description}</p>
+                      <p className="mt-2 text-xs leading-6 text-gray-500">{getCallNextActionDescription(actionType, locale)}</p>
                     </button>
                   );
                 })}
@@ -449,7 +457,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                     <div className="flex flex-wrap gap-2">
                       {availableNextActions
                         .filter(([actionType]) => Boolean(nextActionResults[actionType]))
-                        .map(([actionType, definition]) => (
+                        .map(([actionType]) => (
                           <button
                             key={actionType}
                             type="button"
@@ -460,7 +468,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                                 : "border border-white/8 bg-[#151515] text-gray-400"
                             }`}
                           >
-                            {definition.shortLabel}
+                            {getCallNextActionShortLabel(actionType, locale)}
                           </button>
                         ))}
                     </div>
@@ -470,7 +478,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                         onClick={() => navigator.clipboard.writeText(activeNextActionResult.markdown)}
                         className="rounded-xl border border-white/8 bg-[#151515] px-4 py-2 text-sm text-gray-300 transition-all duration-[150ms] hover:bg-[#242424]"
                       >
-                        초안 복사
+                        {copy.viewer.actionDraftCopy}
                       </button>
                       <button
                         type="button"
@@ -478,7 +486,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                         className="inline-flex items-center rounded-xl border border-white/8 bg-[#151515] px-4 py-2 text-sm text-gray-300 transition-all duration-[150ms] hover:bg-[#242424]"
                       >
                         <Download className="mr-1 h-4 w-4" />
-                        초안 다운로드
+                        {copy.viewer.actionDraftDownload}
                       </button>
                     </div>
                   </div>
@@ -492,7 +500,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                       <div>
                         <div className="text-sm font-medium text-[#f0f0f0]">{activeNextActionResult.title}</div>
                         <p className="mt-1 text-xs leading-5 text-gray-500">
-                          {nextActionContentOpen ? "초안 본문을 접습니다." : "초안 본문을 펼쳐서 전체 내용을 확인합니다."}
+                          {nextActionContentOpen ? copy.viewer.collapseDraft : copy.viewer.expandDraft}
                         </p>
                       </div>
                       <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-[150ms] ${nextActionContentOpen ? "rotate-180" : ""}`} />
@@ -509,7 +517,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-white/8 px-4 py-4 text-sm text-gray-500">
-                  역할별 버튼을 누르면 현재 PRD와 지원 문서를 바탕으로 다음 액션 초안을 생성합니다.
+                  {copy.viewer.noActionDraftYet}
                 </div>
               )}
             </div>
