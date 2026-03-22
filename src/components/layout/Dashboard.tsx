@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CircleHelp } from "lucide-react";
 
 import { DashboardGuideModal } from "@/components/layout/DashboardGuideModal";
@@ -133,6 +133,32 @@ export function Dashboard({ data }: DashboardProps) {
       refresh: "Refresh",
     },
   });
+  const displayOverviewError =
+    overviewError === "__overview_load_failed__"
+      ? copy.loadOverviewFailed
+      : overviewError;
+
+  const loadOverview = useCallback(async () => {
+    setOverviewLoading(true);
+    setOverviewError(null);
+
+    try {
+      const response = await fetch("/api/overview", { cache: "no-store" });
+
+      if (!response.ok) {
+        throw new Error("__overview_load_failed__");
+      }
+
+      const nextOverview = (await response.json()) as OverviewResponse;
+      setOverviewData(nextOverview);
+    } catch (error) {
+      setOverviewError(
+        error instanceof Error ? error.message : "__overview_load_failed__",
+      );
+    } finally {
+      setOverviewLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     syncHashToState(setActiveTab);
@@ -164,43 +190,12 @@ export function Dashboard({ data }: DashboardProps) {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadOverview() {
-      setOverviewLoading(true);
-      setOverviewError(null);
-
-      try {
-        const response = await fetch("/api/overview", { cache: "no-store" });
-
-        if (!response.ok) {
-          throw new Error(copy.loadOverviewFailed);
-        }
-
-        const nextOverview = (await response.json()) as OverviewResponse;
-
-        if (!cancelled) {
-          setOverviewData(nextOverview);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setOverviewError(
-            error instanceof Error ? error.message : copy.loadOverviewFailed,
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setOverviewLoading(false);
-        }
-      }
+    if (data) {
+      return;
     }
 
     void loadOverview();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [copy.loadOverviewFailed]);
+  }, [data, loadOverview]);
 
   useEffect(() => {
     if (isTabVisible(activeTab, navigationMode)) {
@@ -266,7 +261,7 @@ export function Dashboard({ data }: DashboardProps) {
               </button>
               <button
                 type="button"
-                onClick={() => window.location.reload()}
+                onClick={() => void loadOverview()}
                 className="rounded-xl border border-white/8 bg-[#1e1e1e] px-4 py-2 text-sm text-gray-300 transition-all duration-[150ms] hover:bg-[#242424] hover:border-white/[.14]"
               >
                 {copy.refresh}
@@ -280,7 +275,7 @@ export function Dashboard({ data }: DashboardProps) {
                 <HomeTab
                   data={overviewData}
                   loading={overviewLoading}
-                  error={overviewError}
+                  error={displayOverviewError}
                   mode={navigationMode}
                 />
               ) : null}

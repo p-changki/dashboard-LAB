@@ -5,6 +5,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { getRuntimeConfig } from "@/lib/runtime/config";
+import { deriveMeetingHubOverview } from "@/lib/meeting-hub/overview";
 import { persistJson, readPersistentJson } from "@/lib/storage/persistent-json";
 import type {
   CreateMeetingHubMeetingInput,
@@ -14,6 +15,7 @@ import type {
   MeetingHubProcessedMeeting,
   MeetingHubMeeting,
   MeetingHubMeetingType,
+  MeetingHubOverviewResponse,
   MeetingHubSummaryResponse,
   MeetingHubTeam,
   MeetingHubTeamMember,
@@ -49,6 +51,10 @@ export function getMeetingHubSummary(): MeetingHubSummaryResponse {
     decisionLog: buildDecisionEntries(teams, meetings),
     weeklyBriefs: buildWeeklyBriefs(teams, meetings),
   };
+}
+
+export function getMeetingHubOverview(): MeetingHubOverviewResponse {
+  return deriveMeetingHubOverview(getMeetingHubSummary());
 }
 
 export function buildRuleBasedMeetingProcessing(

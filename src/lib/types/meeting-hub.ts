@@ -113,6 +113,16 @@ export interface MeetingHubSummaryResponse {
   weeklyBriefs: MeetingHubWeeklyBrief[];
 }
 
+export interface MeetingHubOverviewResponse {
+  teams: MeetingHubTeam[];
+  stats: MeetingHubStats;
+  recentMeetings: MeetingHubMeeting[];
+  recentActions: MeetingHubActionItem[];
+  decisionLog: MeetingHubDecisionEntry[];
+  weeklyBriefs: MeetingHubWeeklyBrief[];
+  linkedRepositories: string[];
+}
+
 export interface MeetingHubProcessedMeeting {
   summary: string;
   discussion: string[];
