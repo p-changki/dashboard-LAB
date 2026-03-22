@@ -44,6 +44,72 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: node scripts/generate-app-icon.mjs
       - run: pnpm rebuild electron node-pty
+      - name: Configure optional signing
+        shell: bash
+        env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          WINDOWS_CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          WINDOWS_CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+        run: |
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            if [[ -n "$APPLE_CERTIFICATE_P12" && -n "$APPLE_CERTIFICATE_PASSWORD" && -n "$APPLE_ID" && -n "$APPLE_APP_SPECIFIC_PASSWORD" && -n "$APPLE_TEAM_ID" ]]; then
+              {
+                echo "DASHBOARD_LAB_ENABLE_SIGNING=1"
+                echo "APPLE_ID=$APPLE_ID"
+                echo "APPLE_APP_SPECIFIC_PASSWORD=$APPLE_APP_SPECIFIC_PASSWORD"
+                echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+              } >> "$GITHUB_ENV"
+            else
+              echo "DASHBOARD_LAB_ENABLE_SIGNING=0" >> "$GITHUB_ENV"
+            fi
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            if [[ -n "$WINDOWS_CSC_LINK" && -n "$WINDOWS_CSC_KEY_PASSWORD" ]]; then
+              {
+                echo "DASHBOARD_LAB_ENABLE_SIGNING=1"
+                echo "CSC_LINK=$WINDOWS_CSC_LINK"
+                echo "CSC_KEY_PASSWORD=$WINDOWS_CSC_KEY_PASSWORD"
+              } >> "$GITHUB_ENV"
+            else
+              echo "DASHBOARD_LAB_ENABLE_SIGNING=0" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "DASHBOARD_LAB_ENABLE_SIGNING=0" >> "$GITHUB_ENV"
+          fi
+      - name: Import Apple signing certificate
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          if [[ -z "$APPLE_CERTIFICATE_P12" || -z "$APPLE_CERTIFICATE_PASSWORD" ]]; then
+            echo "Skipping Apple certificate import."
+            exit 0
+          fi
+
+          CERT_PATH="$RUNNER_TEMP/dashboard-lab-signing.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/dashboard-lab-signing.keychain-db"
+
+          python - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          encoded = os.environ["APPLE_CERTIFICATE_P12"]
+          destination = Path(os.environ["RUNNER_TEMP"]) / "dashboard-lab-signing.p12"
+          destination.write_bytes(base64.b64decode(encoded))
+          PY
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
       - run: pnpm ${{ matrix.build_script }}
       - uses: actions/upload-artifact@v7
         with:

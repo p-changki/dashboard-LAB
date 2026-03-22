@@ -157,6 +157,13 @@ export interface DashboardLabRuntimeCheck {
   remedy?: DashboardLabRuntimeCheckRemedy | null;
 }
 
+export interface DashboardLabRuntimeWorkflow {
+  id: string;
+  label: string;
+  status: RuntimeCheckStatus;
+  detail: string;
+}
+
 export interface DashboardLabRuntimeSummaryResponse {
   app: {
     slug: string;
@@ -175,6 +182,7 @@ export interface DashboardLabRuntimeSummaryResponse {
   };
   integrations: DashboardLabRuntimeIntegrations;
   checks: DashboardLabRuntimeCheck[];
+  workflows: DashboardLabRuntimeWorkflow[];
 }
 
 export interface DashboardLabRuntimeInstallResult {

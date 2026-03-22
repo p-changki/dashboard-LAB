@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
+  Bot,
   CheckCircle2,
   ExternalLink,
+  FileText,
   FolderOpen,
   LoaderCircle,
   MessageSquare,
+  Newspaper,
   Save,
   Sparkles,
   Wrench,
@@ -19,6 +22,7 @@ import type { DashboardTabId } from "@/components/layout/TabNav";
 import { APP_META } from "@/lib/app-meta";
 import type {
   DashboardLabRuntimeCheck,
+  DashboardLabRuntimeWorkflow,
   DashboardLabRuntimeInstallResponse,
   DashboardLabRuntimeSummaryResponse,
 } from "@/lib/types";
@@ -67,6 +71,15 @@ const EMPTY_DRAFT: RuntimeDraft = {
   prdSaveDir: "",
   csContextsDir: "",
   openaiApiKey: "",
+};
+
+const WORKFLOW_ACTIONS: Partial<Record<string, { tab: DashboardTabId; label: string }>> = {
+  workspace: { tab: "projects", label: "Projects 열기" },
+  "cs-helper": { tab: "cshelper", label: "CS Helper 열기" },
+  "ai-skills": { tab: "aiskills", label: "AI Skills 열기" },
+  "prd-text": { tab: "calltoprd", label: "Call → PRD 열기" },
+  "prd-voice": { tab: "calltoprd", label: "Call → PRD 열기" },
+  "info-hub": { tab: "infohub", label: "Info Hub 열기" },
 };
 
 export function DashboardOnboardingModal({
@@ -410,6 +423,48 @@ export function DashboardOnboardingModal({
 
           <div className="space-y-5">
             <section className="rounded-[26px] border border-white/8 bg-white/[0.03] p-5">
+              <p className="text-sm font-semibold text-white">지금 바로 가능한 작업</p>
+              <p className="mt-1 text-sm leading-6 text-[var(--color-text-soft)]">
+                자동 감지 결과를 기준으로, 현재 이 컴퓨터에서 바로 쓸 수 있는 워크플로와 나중에 준비할 항목을 나눠 보여줍니다.
+              </p>
+
+              {summary ? (
+                <div className="mt-4 grid gap-3">
+                  {summary.workflows
+                    .slice()
+                    .sort((left, right) => {
+                      if (left.status === right.status) {
+                        return left.label.localeCompare(right.label);
+                      }
+
+                      return left.status === "pass" ? -1 : 1;
+                    })
+                    .map((workflow) => (
+                      <WorkflowReadinessCard
+                        key={workflow.id}
+                        workflow={workflow}
+                        onOpen={() => {
+                          const action = WORKFLOW_ACTIONS[workflow.id];
+                          if (!action) {
+                            return;
+                          }
+
+                          onSelectTab(action.tab);
+                          onClose();
+                        }}
+                      />
+                    ))}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-gray-400">
+                  {loading
+                    ? "사용 가능한 워크플로를 계산하는 중입니다."
+                    : "워크플로 상태를 아직 계산하지 못했습니다."}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-[26px] border border-white/8 bg-white/[0.03] p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-950/20 px-3 py-1 text-xs text-emerald-200">
@@ -696,4 +751,70 @@ function RuntimeInput({
       ) : null}
     </div>
   );
+}
+
+function WorkflowReadinessCard({
+  workflow,
+  onOpen,
+}: {
+  workflow: DashboardLabRuntimeWorkflow;
+  onOpen: () => void;
+}) {
+  const Icon = getWorkflowIcon(workflow.id);
+  const tone =
+    workflow.status === "pass"
+      ? "border-emerald-500/20 bg-emerald-950/20 text-emerald-100"
+      : workflow.status === "fail"
+        ? "border-rose-500/20 bg-rose-950/20 text-rose-100"
+        : "border-amber-500/20 bg-amber-950/20 text-amber-100";
+  const action = WORKFLOW_ACTIONS[workflow.id];
+
+  return (
+    <article className={`rounded-2xl border px-4 py-4 ${tone}`}>
+      <div className="flex items-start gap-3">
+        <div className="rounded-2xl border border-white/10 bg-black/15 p-2">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-medium">{workflow.label}</p>
+            <span className="rounded-full border border-white/10 bg-black/15 px-2 py-0.5 text-[11px] uppercase tracking-[0.18em] text-white/70">
+              {workflow.status === "pass" ? "ready" : workflow.status}
+            </span>
+          </div>
+          <p className="mt-2 text-xs leading-5 opacity-80">{workflow.detail}</p>
+          {action ? (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={onOpen}
+                className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/12"
+              >
+                <ArrowRight className="h-3.5 w-3.5" />
+                {action.label}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function getWorkflowIcon(workflowId: string) {
+  switch (workflowId) {
+    case "workspace":
+      return FolderOpen;
+    case "cs-helper":
+      return MessageSquare;
+    case "ai-skills":
+      return Bot;
+    case "prd-text":
+    case "prd-voice":
+      return FileText;
+    case "info-hub":
+      return Newspaper;
+    default:
+      return Sparkles;
+  }
 }

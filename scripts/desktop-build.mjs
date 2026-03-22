@@ -2,6 +2,7 @@ import { runPnpm } from "./pnpm-runner.mjs";
 
 const mode = process.argv[2] ?? "dir";
 const targetArgs = resolveTargetArgs(mode);
+const signingEnabled = process.env.DASHBOARD_LAB_ENABLE_SIGNING === "1";
 
 await runPnpm(["build"]);
 await runPnpm(
@@ -15,7 +16,11 @@ await runPnpm(
   {
     env: {
       ...process.env,
-      CSC_IDENTITY_AUTO_DISCOVERY: "false",
+      ...(signingEnabled
+        ? {}
+        : {
+            CSC_IDENTITY_AUTO_DISCOVERY: "false",
+          }),
     },
   },
 );
