@@ -1,5 +1,8 @@
 "use client";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
+import { pickLocale } from "@/lib/locale";
+
 interface ErrorCardProps {
   title?: string;
   message: string;
@@ -8,14 +11,20 @@ interface ErrorCardProps {
 }
 
 export function ErrorCard({
-  title = "문제가 발생했습니다",
+  title,
   message,
   actionLabel,
   onAction,
 }: ErrorCardProps) {
+  const { locale } = useLocale();
+  const resolvedTitle = title ?? pickLocale(locale, {
+    ko: "문제가 발생했습니다",
+    en: "Something went wrong",
+  });
+
   return (
     <section className="rounded-3xl border border-rose-500/20 bg-rose-500/8 p-5">
-      <p className="text-sm font-semibold text-rose-200">{title}</p>
+      <p className="text-sm font-semibold text-rose-200">{resolvedTitle}</p>
       <p className="mt-3 text-sm leading-6 text-rose-100/85">{message}</p>
       {actionLabel && onAction ? (
         <button

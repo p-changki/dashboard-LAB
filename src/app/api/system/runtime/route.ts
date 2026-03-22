@@ -1,4 +1,5 @@
 import { getErrorMessage, isJsonParseError, jsonError } from "@/lib/api/error-response";
+import { readLocaleFromHeaders } from "@/lib/locale";
 import { getRuntimeSummary } from "@/lib/runtime/summary";
 import { updateRuntimeSecrets, updateRuntimeSettings } from "@/lib/runtime/settings";
 import type { DashboardLabRuntimeSettingsPaths } from "@/lib/types";
@@ -6,11 +7,14 @@ import type { DashboardLabRuntimeSettingsPaths } from "@/lib/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  return Response.json(getRuntimeSummary());
+export async function GET(request: Request) {
+  const locale = readLocaleFromHeaders(request.headers);
+  return Response.json(getRuntimeSummary(locale));
 }
 
 export async function POST(request: Request) {
+  const locale = readLocaleFromHeaders(request.headers);
+
   try {
     const payload = (await request.json()) as {
       paths?: Partial<DashboardLabRuntimeSettingsPaths>;
@@ -26,6 +30,7 @@ export async function POST(request: Request) {
 
     updateRuntimeSettings({
       projectsRoot: readOptionalString(payload.paths?.projectsRoot),
+      dataRoot: readOptionalString(payload.paths?.dataRoot),
       prdSaveDir: readOptionalString(payload.paths?.prdSaveDir),
       csContextsDir: readOptionalString(payload.paths?.csContextsDir),
       allowedRoots: readOptionalStringArray(payload.paths?.allowedRoots),
@@ -40,7 +45,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return Response.json(getRuntimeSummary());
+    return Response.json(getRuntimeSummary(locale));
   } catch (error) {
     if (isJsonParseError(error)) {
       return jsonError("INVALID_JSON", "JSON 형식이 올바르지 않습니다.", 400);

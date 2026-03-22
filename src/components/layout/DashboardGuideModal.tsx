@@ -3,12 +3,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { BookOpenText, Check, CircleHelp, ListChecks, Target, X } from "lucide-react";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
 import type { DashboardTabId } from "@/components/layout/TabNav";
 import {
-  DASHBOARD_GUIDES,
-  DASHBOARD_TAB_META,
   DASHBOARD_TAB_ORDER,
+  getDashboardGuideSectionLabels,
+  getDashboardGuides,
+  getDashboardTabMeta,
 } from "@/lib/dashboard-guides";
+import { pickLocale } from "@/lib/locale";
 
 type GuideSectionId = "overview" | "features" | "steps" | "scenarios";
 
@@ -18,18 +21,12 @@ interface DashboardGuideModalProps {
   open: boolean;
 }
 
-const GUIDE_SECTIONS: Array<{ id: GuideSectionId; label: string }> = [
-  { id: "overview", label: "요약" },
-  { id: "features", label: "핵심 기능" },
-  { id: "steps", label: "사용 순서" },
-  { id: "scenarios", label: "추천 상황" },
-];
-
 export function DashboardGuideModal({
   initialTab,
   onClose,
   open,
 }: DashboardGuideModalProps) {
+  const { locale } = useLocale();
   const [selectedTab, setSelectedTab] = useState<DashboardTabId>(initialTab);
   const [activeSection, setActiveSection] = useState<GuideSectionId>("overview");
 
@@ -51,8 +48,50 @@ export function DashboardGuideModal({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [initialTab, onClose, open]);
 
-  const guide = useMemo(() => DASHBOARD_GUIDES[selectedTab], [selectedTab]);
-  const meta = DASHBOARD_TAB_META[selectedTab];
+  const guide = useMemo(() => getDashboardGuides(locale)[selectedTab], [locale, selectedTab]);
+  const meta = getDashboardTabMeta(locale)[selectedTab];
+  const sectionLabels = getDashboardGuideSectionLabels(locale);
+  const copy = pickLocale(locale, {
+    ko: {
+      close: "사용법 닫기",
+      badge: "페이지 사용법",
+      title: "대시보드 페이지별 기능과 사용 흐름",
+      description:
+        "현재 보고 있는 페이지를 기본 선택한 상태로 열립니다. 다른 페이지도 같은 모달에서 바로 비교해 볼 수 있습니다.",
+      currentPage: "현재 페이지",
+      whatThisPageDoes: "이 페이지에서 하는 일",
+      startHere: "먼저 보면 좋은 것",
+      features: "핵심 기능",
+      featuresDescription: "화면에서 실제로 쓰게 되는 기능을 빠르게 훑을 수 있게 정리했습니다.",
+      steps: "빠른 사용 순서",
+      stepsDescription: "처음 열었을 때 어디부터 보면 되는지 기준으로 정리했습니다.",
+      useWhen: "이럴 때 추천",
+      cautions: "주의할 점",
+    },
+    en: {
+      close: "Close guide",
+      badge: "Page Guide",
+      title: "How each dashboard page fits into the workflow",
+      description:
+        "The current page is selected by default, and you can compare other pages from the same modal.",
+      currentPage: "Current Page",
+      whatThisPageDoes: "What This Page Does",
+      startHere: "Best Place to Start",
+      features: "Key Features",
+      featuresDescription: "A quick summary of the features you are most likely to use on this screen.",
+      steps: "Quick Steps",
+      stepsDescription: "A simple order to follow when using the page for the first time.",
+      useWhen: "Recommended When",
+      cautions: "Things to Watch",
+    },
+  });
+
+  const guideSections: Array<{ id: GuideSectionId; label: string }> = [
+    { id: "overview", label: sectionLabels.overview },
+    { id: "features", label: sectionLabels.features },
+    { id: "steps", label: sectionLabels.steps },
+    { id: "scenarios", label: sectionLabels.scenarios },
+  ];
 
   if (!open) {
     return null;
@@ -62,7 +101,7 @@ export function DashboardGuideModal({
     <div className="fixed inset-0 z-[120] overflow-y-auto bg-black/65 px-4 py-6 backdrop-blur-sm">
       <button
         type="button"
-        aria-label="사용법 닫기"
+        aria-label={copy.close}
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
@@ -71,11 +110,11 @@ export function DashboardGuideModal({
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-950/20 px-3 py-1 text-xs text-cyan-200">
               <BookOpenText className="h-3.5 w-3.5" />
-              페이지 사용법
+              {copy.badge}
             </div>
-            <h2 className="mt-3 text-xl font-semibold text-white">대시보드 페이지별 기능과 사용 흐름</h2>
+            <h2 className="mt-3 text-xl font-semibold text-white">{copy.title}</h2>
             <p className="mt-2 text-sm leading-6 text-gray-400">
-              현재 보고 있는 페이지를 기본 선택한 상태로 열립니다. 다른 페이지도 같은 모달에서 바로 비교해 볼 수 있습니다.
+              {copy.description}
             </p>
           </div>
           <button
@@ -90,7 +129,7 @@ export function DashboardGuideModal({
         <div className="grid min-h-0 flex-1 gap-6 overflow-hidden p-6 lg:grid-cols-[240px_minmax(0,1fr)]">
           <div className="space-y-2 overflow-y-auto pr-1">
             {DASHBOARD_TAB_ORDER.map((tabId) => {
-              const tabMeta = DASHBOARD_TAB_META[tabId];
+              const tabMeta = getDashboardTabMeta(locale)[tabId];
               const isSelected = selectedTab === tabId;
 
               return (
@@ -132,13 +171,13 @@ export function DashboardGuideModal({
                 </div>
                 {selectedTab === initialTab ? (
                   <span className="rounded-full border border-cyan-500/20 bg-cyan-950/20 px-3 py-1 text-xs text-cyan-200">
-                    현재 페이지
+                    {copy.currentPage}
                   </span>
                 ) : null}
               </div>
 
               <div className="mt-5 flex flex-wrap gap-2">
-                {GUIDE_SECTIONS.map((section) => (
+                {guideSections.map((section) => (
                   <button
                     key={section.id}
                     type="button"
@@ -158,12 +197,12 @@ export function DashboardGuideModal({
             {activeSection === "overview" ? (
               <div className="mt-4 grid gap-4 xl:grid-cols-2">
                 <InfoCard
-                  title="이 페이지에서 하는 일"
+                  title={copy.whatThisPageDoes}
                   tone="cyan"
                   items={[guide.summary, ...guide.useWhen.slice(0, 2)]}
                 />
                 <InfoCard
-                  title="먼저 보면 좋은 것"
+                  title={copy.startHere}
                   tone="violet"
                   items={guide.quickSteps.slice(0, 3)}
                 />
@@ -173,8 +212,8 @@ export function DashboardGuideModal({
             {activeSection === "features" ? (
               <SectionList
                 className="mt-4"
-                title="핵심 기능"
-                description="화면에서 실제로 쓰게 되는 기능을 빠르게 훑을 수 있게 정리했습니다."
+                title={copy.features}
+                description={copy.featuresDescription}
                 icon={<ListChecks className="h-4 w-4" />}
                 items={guide.features}
               />
@@ -183,8 +222,8 @@ export function DashboardGuideModal({
             {activeSection === "steps" ? (
               <SectionList
                 className="mt-4"
-                title="빠른 사용 순서"
-                description="처음 열었을 때 어디부터 보면 되는지 기준으로 정리했습니다."
+                title={copy.steps}
+                description={copy.stepsDescription}
                 icon={<BookOpenText className="h-4 w-4" />}
                 items={guide.quickSteps}
                 ordered
@@ -194,13 +233,13 @@ export function DashboardGuideModal({
             {activeSection === "scenarios" ? (
               <div className="mt-4 grid gap-4 xl:grid-cols-2">
                 <InfoCard
-                  title="이럴 때 추천"
+                  title={copy.useWhen}
                   tone="emerald"
                   items={guide.useWhen}
                   icon={<Target className="h-4 w-4" />}
                 />
                 <InfoCard
-                  title="주의할 점"
+                  title={copy.cautions}
                   tone="amber"
                   items={guide.caution}
                   icon={<CircleHelp className="h-4 w-4" />}

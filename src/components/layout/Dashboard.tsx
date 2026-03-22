@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { CircleHelp } from "lucide-react";
 
 import { DashboardGuideModal } from "@/components/layout/DashboardGuideModal";
+import { useLocale } from "@/components/layout/LocaleProvider";
 import { DashboardOnboardingModal } from "@/components/layout/DashboardOnboardingModal";
 import {
   TabNav,
@@ -16,7 +17,8 @@ import {
 import { HomeTab } from "@/features/home/HomeTab";
 import { APP_META } from "@/lib/app-meta";
 import { CLIENT_STORAGE_KEYS } from "@/lib/client-keys";
-import { DASHBOARD_TAB_META } from "@/lib/dashboard-guides";
+import { getDashboardTabMeta } from "@/lib/dashboard-guides";
+import { pickLocale } from "@/lib/locale";
 import type { OverviewResponse } from "@/lib/types";
 
 interface DashboardProps {
@@ -57,6 +59,14 @@ const DocHubTab = dynamic(
   },
 );
 
+const MeetingHubTab = dynamic(
+  () => import("@/features/meeting-hub/MeetingHubTab").then((module) => module.MeetingHubTab),
+  {
+    ssr: false,
+    loading: () => <TabPanelMessage title="Meeting Hub" message="탭을 불러오는 중입니다." />,
+  },
+);
+
 const FileManagerTab = dynamic(
   () => import("@/features/file-manager/FileManagerTab").then((module) => module.FileManagerTab),
   {
@@ -90,6 +100,7 @@ const CallToPrdTab = dynamic(
 );
 
 export function Dashboard({ data }: DashboardProps) {
+  const { locale } = useLocale();
   const [activeTab, setActiveTab] = useState<DashboardTabId>("home");
   const [collapsed, setCollapsed] = useState(false);
   const [navigationMode, setNavigationMode] = useState<DashboardNavigationMode>("core");
@@ -98,7 +109,30 @@ export function Dashboard({ data }: DashboardProps) {
   const [overviewData, setOverviewData] = useState<OverviewResponse | null>(data ?? null);
   const [overviewLoading, setOverviewLoading] = useState(!data);
   const [overviewError, setOverviewError] = useState<string | null>(null);
-  const meta = DASHBOARD_TAB_META[activeTab];
+  const meta = getDashboardTabMeta(locale)[activeTab];
+  const copy = pickLocale(locale, {
+    ko: {
+      loading: "탭을 불러오는 중입니다.",
+      projects: "프로젝트",
+      dochub: "문서 허브",
+      filemanager: "파일 매니저",
+      system: "시스템",
+      loadOverviewFailed: "홈 요약 데이터를 불러오지 못했습니다.",
+      guide: "사용법",
+      refresh: "새로고침",
+    },
+    en: {
+      loading: "Loading tab...",
+      projects: "Projects",
+      dochub: "Doc Hub",
+      meetinghub: "Meeting Hub",
+      filemanager: "File Manager",
+      system: "System",
+      loadOverviewFailed: "Failed to load the home overview.",
+      guide: "Guide",
+      refresh: "Refresh",
+    },
+  });
 
   useEffect(() => {
     syncHashToState(setActiveTab);
@@ -140,7 +174,7 @@ export function Dashboard({ data }: DashboardProps) {
         const response = await fetch("/api/overview", { cache: "no-store" });
 
         if (!response.ok) {
-          throw new Error("홈 요약 데이터를 불러오지 못했습니다.");
+          throw new Error(copy.loadOverviewFailed);
         }
 
         const nextOverview = (await response.json()) as OverviewResponse;
@@ -151,7 +185,7 @@ export function Dashboard({ data }: DashboardProps) {
       } catch (error) {
         if (!cancelled) {
           setOverviewError(
-            error instanceof Error ? error.message : "홈 요약 데이터를 불러오지 못했습니다.",
+            error instanceof Error ? error.message : copy.loadOverviewFailed,
           );
         }
       } finally {
@@ -166,7 +200,7 @@ export function Dashboard({ data }: DashboardProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [copy.loadOverviewFailed]);
 
   useEffect(() => {
     if (isTabVisible(activeTab, navigationMode)) {
@@ -228,14 +262,14 @@ export function Dashboard({ data }: DashboardProps) {
                 className="inline-flex items-center gap-2 rounded-xl border border-white/8 bg-[#1e1e1e] px-4 py-2 text-sm text-gray-300 transition-all duration-[150ms] hover:bg-[#242424] hover:border-white/[.14]"
               >
                 <CircleHelp className="h-4 w-4" />
-                사용법
+                {copy.guide}
               </button>
               <button
                 type="button"
                 onClick={() => window.location.reload()}
                 className="rounded-xl border border-white/8 bg-[#1e1e1e] px-4 py-2 text-sm text-gray-300 transition-all duration-[150ms] hover:bg-[#242424] hover:border-white/[.14]"
               >
-                새로고침
+                {copy.refresh}
               </button>
             </div>
           </header>
@@ -254,6 +288,7 @@ export function Dashboard({ data }: DashboardProps) {
               {activeTab === "cshelper" ? <CsTab mode={navigationMode} /> : null}
               {activeTab === "projects" ? <ProjectsTab mode={navigationMode} /> : null}
               {activeTab === "dochub" ? <DocHubTab /> : null}
+              {activeTab === "meetinghub" ? <MeetingHubTab mode={navigationMode} /> : null}
               {activeTab === "filemanager" ? <FileManagerTab /> : null}
               {activeTab === "system" ? <SystemTab /> : null}
               {activeTab === "infohub" ? <InfoHubTab mode={navigationMode} /> : null}

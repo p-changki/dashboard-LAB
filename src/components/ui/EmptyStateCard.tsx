@@ -2,6 +2,9 @@
 
 import { Sparkles } from "lucide-react";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
+import { pickLocale } from "@/lib/locale";
+
 interface EmptyStateCardProps {
   title: string;
   message: string;
@@ -10,11 +13,13 @@ interface EmptyStateCardProps {
 }
 
 export function EmptyStateCard({ title, message, actionLabel, onAction }: EmptyStateCardProps) {
+  const { locale } = useLocale();
+
   return (
     <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
       <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-950/20 px-3 py-1 text-xs text-cyan-200">
         <Sparkles className="h-3.5 w-3.5" />
-        빠른 시작
+        {pickLocale(locale, { ko: "빠른 시작", en: "Quick Start" })}
       </div>
       <p className="mt-4 text-base font-semibold text-white">{title}</p>
       <p className="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">{message}</p>

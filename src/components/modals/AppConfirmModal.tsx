@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
+import { pickLocale } from "@/lib/locale";
+
 interface AppConfirmModalProps {
   open: boolean;
   title: string;
@@ -18,13 +21,34 @@ export function AppConfirmModal({
   open,
   title,
   message,
-  confirmLabel = "확인",
-  cancelLabel = "취소",
+  confirmLabel,
+  cancelLabel,
   tone = "default",
   onClose,
   onConfirm,
 }: AppConfirmModalProps) {
+  const { locale } = useLocale();
   const [submitting, setSubmitting] = useState(false);
+  const resolvedConfirmLabel = confirmLabel ?? pickLocale(locale, {
+    ko: "확인",
+    en: "Confirm",
+  });
+  const resolvedCancelLabel = cancelLabel ?? pickLocale(locale, {
+    ko: "취소",
+    en: "Cancel",
+  });
+  const copy = pickLocale(locale, {
+    ko: {
+      close: "모달 닫기",
+      needConfirm: "확인 필요",
+      processing: "처리 중...",
+    },
+    en: {
+      close: "Close modal",
+      needConfirm: "Needs Confirmation",
+      processing: "Processing...",
+    },
+  });
 
   useEffect(() => {
     if (!open) {
@@ -64,7 +88,7 @@ export function AppConfirmModal({
     <div className="fixed inset-0 z-[140] bg-black/70 px-4 py-6 backdrop-blur-sm">
       <button
         type="button"
-        aria-label="모달 닫기"
+        aria-label={copy.close}
         className="absolute inset-0 cursor-default"
         onClick={() => {
           if (!submitting) {
@@ -81,7 +105,7 @@ export function AppConfirmModal({
                 : "border-cyan-500/20 bg-cyan-950/20 text-cyan-200"
             }`}>
               <AlertTriangle className="h-3.5 w-3.5" />
-              확인 필요
+              {copy.needConfirm}
             </div>
             <h2 className="mt-3 text-lg font-semibold text-white">{title}</h2>
           </div>
@@ -103,7 +127,7 @@ export function AppConfirmModal({
               disabled={submitting}
               className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-gray-300 transition hover:bg-white/[0.08] hover:text-white disabled:opacity-40"
             >
-              {cancelLabel}
+              {resolvedCancelLabel}
             </button>
             <button
               type="button"
@@ -111,7 +135,7 @@ export function AppConfirmModal({
               disabled={submitting}
               className={`rounded-full border px-4 py-2 text-sm transition disabled:opacity-40 ${confirmClassName}`}
             >
-              {submitting ? "처리 중..." : confirmLabel}
+              {submitting ? copy.processing : resolvedConfirmLabel}
             </button>
           </div>
         </div>

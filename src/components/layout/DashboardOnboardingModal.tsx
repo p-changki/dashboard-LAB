@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import type { DashboardTabId } from "@/components/layout/TabNav";
+import { useLocale } from "@/components/layout/LocaleProvider";
 import { APP_META } from "@/lib/app-meta";
 import type {
   DashboardLabRuntimeCheck,
@@ -61,15 +62,13 @@ const QUICK_STARTS: Array<{
 
 type RuntimeDraft = {
   projectsRoot: string;
-  prdSaveDir: string;
-  csContextsDir: string;
+  dataRoot: string;
   openaiApiKey: string;
 };
 
 const EMPTY_DRAFT: RuntimeDraft = {
   projectsRoot: "",
-  prdSaveDir: "",
-  csContextsDir: "",
+  dataRoot: "",
   openaiApiKey: "",
 };
 
@@ -87,6 +86,7 @@ export function DashboardOnboardingModal({
   onClose,
   onSelectTab,
 }: DashboardOnboardingModalProps) {
+  const { locale } = useLocale();
   const [summary, setSummary] =
     useState<DashboardLabRuntimeSummaryResponse | null>(null);
   const [draft, setDraft] = useState<RuntimeDraft>(EMPTY_DRAFT);
@@ -97,20 +97,17 @@ export function DashboardOnboardingModal({
   const [clearOpenAiKey, setClearOpenAiKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    void loadSummary();
-  }, [open]);
-
-  async function loadSummary() {
+  const loadSummary = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/system/runtime", { cache: "no-store" });
+      const response = await fetch("/api/system/runtime", {
+        cache: "no-store",
+        headers: {
+          "x-dashboard-locale": locale,
+        },
+      });
       if (!response.ok) {
         throw new Error("런타임 설정을 불러오지 못했습니다.");
       }
@@ -123,14 +120,7 @@ export function DashboardOnboardingModal({
           nextSummary.settings.paths.projectsRoot ??
           nextSummary.resolvedPaths.projectsRoot.path ??
           "",
-        prdSaveDir:
-          nextSummary.settings.paths.prdSaveDir ??
-          nextSummary.resolvedPaths.prdSaveDir.path ??
-          "",
-        csContextsDir:
-          nextSummary.settings.paths.csContextsDir ??
-          nextSummary.resolvedPaths.csContextsDir.path ??
-          "",
+        dataRoot: nextSummary.settings.paths.dataRoot ?? "",
         openaiApiKey: "",
       });
       setClearOpenAiKey(false);
@@ -143,7 +133,15 @@ export function DashboardOnboardingModal({
     } finally {
       setLoading(false);
     }
-  }
+  }, [locale]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    void loadSummary();
+  }, [open, loadSummary]);
 
   async function handleInstallTasks(taskIds: string[]) {
     const uniqueTaskIds = [...new Set(taskIds.filter(Boolean))];
@@ -160,6 +158,7 @@ export function DashboardOnboardingModal({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-dashboard-locale": locale,
         },
         body: JSON.stringify({ taskIds: uniqueTaskIds }),
       });
@@ -210,16 +209,17 @@ export function DashboardOnboardingModal({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-dashboard-locale": locale,
         },
         body: JSON.stringify({
           paths: {
             projectsRoot: draft.projectsRoot,
-            prdSaveDir: draft.prdSaveDir,
-            csContextsDir: draft.csContextsDir,
+            dataRoot: draft.dataRoot || null,
+            prdSaveDir: summary?.settings.paths.prdSaveDir ?? null,
+            csContextsDir: summary?.settings.paths.csContextsDir ?? null,
             allowedRoots: [
+              ...(summary?.settings.paths.allowedRoots ?? []),
               draft.projectsRoot,
-              draft.prdSaveDir,
-              draft.csContextsDir,
             ].filter(Boolean),
           },
           secrets: {
@@ -501,24 +501,20 @@ export function DashboardOnboardingModal({
                   candidates={summary?.discovery.projectsRootCandidates ?? []}
                 />
                 <RuntimeInput
-                  label="PRD 저장 경로"
-                  value={draft.prdSaveDir}
+                  label="데이터 저장 위치"
+                  value={draft.dataRoot}
                   onChange={(value) =>
                     setDraft((current) => ({
                       ...current,
-                      prdSaveDir: value,
+                      dataRoot: value,
                     }))
                   }
-                />
-                <RuntimeInput
-                  label="CS 컨텍스트 경로"
-                  value={draft.csContextsDir}
-                  onChange={(value) =>
-                    setDraft((current) => ({
-                      ...current,
-                      csContextsDir: value,
-                    }))
+                  placeholder={
+                    draft.dataRoot
+                      ? `${draft.dataRoot}/dashboard-lab-docs/`
+                      : "비워두면 ~/Documents/dashboard-lab-docs/ 에 저장"
                   }
+                  helperText="비워두면 Documents 폴더에 자동 저장됩니다. 다른 경로를 지정하면 해당 위치에 dashboard-lab-docs 폴더가 만들어집니다."
                 />
                 <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -713,11 +709,15 @@ function RuntimeInput({
   value,
   onChange,
   candidates = [],
+  placeholder,
+  helperText,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   candidates?: DashboardLabRuntimeSummaryResponse["discovery"]["projectsRootCandidates"];
+  placeholder?: string;
+  helperText?: string;
 }) {
   return (
     <div>
@@ -727,9 +727,12 @@ function RuntimeInput({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder={`${label} 입력`}
+        placeholder={placeholder ?? `${label} 입력`}
         className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-gray-100 outline-none transition placeholder:text-gray-500 focus:border-cyan-400/40"
       />
+      {helperText ? (
+        <p className="mt-2 text-xs leading-5 text-gray-500">{helperText}</p>
+      ) : null}
       {candidates.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-2">
           {candidates.map((candidate) => (

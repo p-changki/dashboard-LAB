@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS: DashboardLabRuntimeSettings = {
   version: 1,
   paths: {
     projectsRoot: null,
+    dataRoot: null,
     prdSaveDir: null,
     csContextsDir: null,
     allowedRoots: [],
@@ -123,6 +124,7 @@ function normalizeRuntimeSettings(
     version: 1,
     paths: {
       projectsRoot: normalizePath(paths.projectsRoot),
+      dataRoot: normalizePath(paths.dataRoot),
       prdSaveDir: normalizePath(paths.prdSaveDir),
       csContextsDir: normalizePath(paths.csContextsDir),
       allowedRoots: normalizePaths(paths.allowedRoots),

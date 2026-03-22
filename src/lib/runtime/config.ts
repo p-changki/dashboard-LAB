@@ -35,7 +35,11 @@ export function getRuntimeConfig(): DashboardLabRuntimeConfig {
   const desktopDir = path.join(homeDir, "Desktop");
   const downloadsDir = path.join(homeDir, "Downloads");
   const documentsDir = path.join(homeDir, "Documents");
-  const dataDir = readEnvPath("DASHBOARD_LAB_DATA_ROOT") ?? path.join(workspaceRoot, "data");
+  const settingsDataRoot = settings.paths.dataRoot;
+  const dataDir =
+    readEnvPath("DASHBOARD_LAB_DATA_ROOT") ??
+    (settingsDataRoot ? path.join(settingsDataRoot, "dashboard-lab-docs") : null) ??
+    path.join(documentsDir, "dashboard-lab-docs");
   const stateDir = path.join(dataDir, "state");
   const modelsDir =
     readEnvPath("DASHBOARD_LAB_MODELS_DIR") ??
@@ -52,7 +56,7 @@ export function getRuntimeConfig(): DashboardLabRuntimeConfig {
   const csContextsDir =
     readEnvPath("DASHBOARD_LAB_CS_CONTEXTS_DIR") ??
     settings.paths.csContextsDir ??
-    path.join(workspaceRoot, "cs-contexts");
+    path.join(dataDir, "cs-contexts");
 
   const projectsRootCandidates = uniquePaths([
     configuredProjectsRoot,

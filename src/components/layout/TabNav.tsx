@@ -8,24 +8,29 @@ import {
   Home,
   MessageSquare,
   Monitor,
+  NotebookPen,
   Phone,
   Rss,
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
 import { APP_META } from "@/lib/app-meta";
+import { getDashboardTabMeta } from "@/lib/dashboard-guides";
+import { pickLocale } from "@/lib/locale";
 
 const TABS = [
-  { id: "home", label: "홈", icon: Home, tier: "core" },
-  { id: "aiskills", label: "AI Skills", icon: Sparkles, tier: "core" },
-  { id: "cshelper", label: "CS Helper", icon: MessageSquare, tier: "core" },
-  { id: "projects", label: "프로젝트", icon: FolderKanban, tier: "core" },
-  { id: "dochub", label: "문서 허브", icon: FileSearch, tier: "core" },
-  { id: "filemanager", label: "파일 매니저", icon: FolderCog, tier: "advanced" },
-  { id: "system", label: "시스템", icon: Monitor, tier: "advanced" },
-  { id: "infohub", label: "Info Hub", icon: Rss, tier: "core" },
-  { id: "calltoprd", label: "Call → PRD", icon: Phone, tier: "core" },
+  { id: "home", icon: Home, tier: "core" },
+  { id: "aiskills", icon: Sparkles, tier: "core" },
+  { id: "cshelper", icon: MessageSquare, tier: "core" },
+  { id: "projects", icon: FolderKanban, tier: "core" },
+  { id: "dochub", icon: FileSearch, tier: "core" },
+  { id: "meetinghub", icon: NotebookPen, tier: "core" },
+  { id: "filemanager", icon: FolderCog, tier: "advanced" },
+  { id: "system", icon: Monitor, tier: "advanced" },
+  { id: "infohub", icon: Rss, tier: "core" },
+  { id: "calltoprd", icon: Phone, tier: "core" },
 ] as const;
 
 const TOOL_STATUS = [
@@ -62,6 +67,37 @@ export function TabNav({
   onChangeMode,
   onToggleCollapse,
 }: TabNavProps) {
+  const { locale, setLocale } = useLocale();
+  const tabMeta = getDashboardTabMeta(locale);
+  const copy = pickLocale(locale, {
+    ko: {
+      viewMode: "보기 모드",
+      coreMode: "간단 모드",
+      advancedMode: "전체 모드",
+      modeHint:
+        "간단 모드는 핵심 탭만 보여주고, 전체 모드는 시스템과 파일 정리 기능까지 엽니다.",
+      aiStatus: "AI 상태",
+      online: "온라인",
+      switchToAdvanced: "전체 모드로 전환",
+      switchToCore: "간단 모드로 전환",
+      collapseSidebar: "사이드바 접기",
+      language: "언어",
+    },
+    en: {
+      viewMode: "View Mode",
+      coreMode: "Simple",
+      advancedMode: "Full",
+      modeHint:
+        "Simple mode shows the core tabs first. Full mode opens system and file-management tools as well.",
+      aiStatus: "AI Status",
+      online: "Online",
+      switchToAdvanced: "Switch to full mode",
+      switchToCore: "Switch to simple mode",
+      collapseSidebar: "Collapse sidebar",
+      language: "Language",
+    },
+  });
+
   return (
     <aside
       className={[
@@ -77,7 +113,6 @@ export function TabNav({
           {!collapsed ? (
             <div>
               <p className="text-sm font-semibold text-gray-100">{APP_META.displayName}</p>
-              <p className="text-xs text-gray-500">보일러플레이트 워크스페이스</p>
             </div>
           ) : null}
         </div>
@@ -99,10 +134,10 @@ export function TabNav({
                   : "border-transparent text-gray-400 hover:bg-white/5 hover:text-gray-100",
                 collapsed ? "justify-center rounded-l-2xl" : "",
               ].join(" ")}
-              title={collapsed ? tab.label : undefined}
+              title={collapsed ? tabMeta[tab.id].title : undefined}
             >
               <tab.icon aria-hidden className="h-4 w-4 shrink-0" />
-              {!collapsed ? <span>{tab.label}</span> : null}
+              {!collapsed ? <span>{tabMeta[tab.id].title}</span> : null}
             </button>
           );
         })}
@@ -113,7 +148,7 @@ export function TabNav({
           <div className="space-y-3">
             <div className="rounded-2xl border border-white/8 bg-[#0f0f0f]/60 p-3">
               <p className="text-[10px] uppercase tracking-widest text-gray-600">
-                보기 모드
+                {copy.viewMode}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
@@ -126,7 +161,7 @@ export function TabNav({
                       : "border-white/8 bg-white/[0.03] text-gray-400 hover:bg-white/5 hover:text-gray-200",
                   ].join(" ")}
                 >
-                  간단 모드
+                  {copy.coreMode}
                 </button>
                 <button
                   type="button"
@@ -138,16 +173,38 @@ export function TabNav({
                       : "border-white/8 bg-white/[0.03] text-gray-400 hover:bg-white/5 hover:text-gray-200",
                   ].join(" ")}
                 >
-                  전체 모드
+                  {copy.advancedMode}
                 </button>
               </div>
               <p className="mt-3 text-xs leading-5 text-gray-500">
-                간단 모드는 핵심 탭만 보여주고, 전체 모드는 시스템과 파일 정리 기능까지 엽니다.
+                {copy.modeHint}
               </p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-[#0f0f0f]/60 p-3">
               <p className="text-[10px] uppercase tracking-widest text-gray-600">
-                AI 상태
+                {copy.language}
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {(["ko", "en"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setLocale(value)}
+                    className={[
+                      "rounded-xl border px-3 py-2 text-xs transition",
+                      locale === value
+                        ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-100"
+                        : "border-white/8 bg-white/[0.03] text-gray-400 hover:bg-white/5 hover:text-gray-200",
+                    ].join(" ")}
+                  >
+                    {value.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-[#0f0f0f]/60 p-3">
+              <p className="text-[10px] uppercase tracking-widest text-gray-600">
+                {copy.aiStatus}
               </p>
               <div className="mt-3 space-y-2">
                 {TOOL_STATUS.map((tool) => (
@@ -158,7 +215,7 @@ export function TabNav({
                     <span>{tool.name}</span>
                     <span className={`inline-flex items-center gap-2 ${tool.tone}`}>
                       <span className={`h-2 w-2 rounded-full ${tool.dot}`} />
-                      온라인
+                      {copy.online}
                     </span>
                   </div>
                 ))}
@@ -171,7 +228,7 @@ export function TabNav({
               type="button"
               onClick={() => onChangeMode(mode === "core" ? "advanced" : "core")}
               className="grid h-8 w-8 place-items-center rounded-xl border border-white/8 bg-[#0f0f0f]/60 text-gray-300 transition hover:bg-white/5 hover:text-gray-100"
-              title={mode === "core" ? "전체 모드로 전환" : "간단 모드로 전환"}
+              title={mode === "core" ? copy.switchToAdvanced : copy.switchToCore}
             >
               <SlidersHorizontal className="h-4 w-4" />
             </button>
@@ -179,7 +236,7 @@ export function TabNav({
               <span
                 key={tool.name}
                 className={`h-2.5 w-2.5 rounded-full ${tool.dot}`}
-                title={`${tool.name} 온라인`}
+                title={`${tool.name} ${copy.online}`}
               />
             ))}
           </div>
@@ -190,7 +247,7 @@ export function TabNav({
           onClick={onToggleCollapse}
           className="flex w-full items-center justify-center rounded-2xl border border-white/8 bg-[#0f0f0f]/60 px-3 py-2 text-sm text-gray-400 transition-all duration-[150ms] hover:bg-white/5 hover:text-gray-200"
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : "사이드바 접기"}
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : copy.collapseSidebar}
         </button>
       </div>
     </aside>

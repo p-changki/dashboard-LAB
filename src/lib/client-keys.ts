@@ -2,6 +2,7 @@ import { buildEventName, buildStorageKey } from "@/lib/app-meta";
 
 export const CLIENT_STORAGE_KEYS = {
   homeSections: buildStorageKey("home-sections"),
+  locale: buildStorageKey("locale-v1"),
   navigationTarget: buildStorageKey("nav-target"),
   navigationMode: buildStorageKey("nav-mode-v1"),
   onboardingDismissed: buildStorageKey("onboarding-dismissed-v1"),

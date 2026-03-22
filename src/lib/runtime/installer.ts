@@ -4,6 +4,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { DEFAULT_LOCALE, pickLocale, type AppLocale } from "@/lib/locale";
 import { getRuntimeConfig } from "@/lib/runtime/config";
 import type {
   DashboardLabRuntimeCheckRemedy,
@@ -13,14 +14,6 @@ import type {
 const MODEL_URL =
   "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin";
 const PNPM_VERSION = "10.17.1";
-
-const TASK_LABELS: Record<string, string> = {
-  "install-node": "Node.js 설치",
-  "install-pnpm": "pnpm 준비",
-  "install-ffmpeg": "ffmpeg 설치",
-  "install-whisper-backend": "Whisper backend 설치",
-  "download-whisper-model": "Whisper 모델 다운로드",
-};
 
 export function isDesktopRuntime() {
   return process.env.DASHBOARD_LAB_DESKTOP === "1";
@@ -48,64 +41,143 @@ export function detectWhisperModelSync() {
   };
 }
 
-export function getRuntimeCheckFixHint(checkId: string) {
+export function getRuntimeCheckFixHint(
+  checkId: string,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
   switch (checkId) {
     case "node":
       if (isDesktopRuntime()) {
-        return "패키지된 데스크톱 앱에서는 별도 Node.js 설치가 필요하지 않습니다.";
+        return t(
+          locale,
+          "패키지된 데스크톱 앱에서는 별도 Node.js 설치가 필요하지 않습니다.",
+          "The packaged desktop app does not need a separate Node.js install.",
+        );
       }
 
-      return "Node.js 22+가 필요합니다.";
+      return t(locale, "Node.js 22+가 필요합니다.", "Node.js 22+ is required.");
     case "pnpm":
       if (isDesktopRuntime()) {
-        return "패키지된 데스크톱 앱에서는 별도 pnpm 설치가 필요하지 않습니다.";
+        return t(
+          locale,
+          "패키지된 데스크톱 앱에서는 별도 pnpm 설치가 필요하지 않습니다.",
+          "The packaged desktop app does not need a separate pnpm install.",
+        );
       }
 
       return hasCommandSync("corepack")
         ? `corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate`
-        : "pnpm이 필요합니다.";
+        : t(locale, "pnpm이 필요합니다.", "pnpm is required.");
     case "ffmpeg":
       if (process.platform === "darwin") {
         return hasCommandSync("brew")
-          ? "오디오 변환을 위해 ffmpeg가 필요합니다. 앱에서 바로 설치할 수 있습니다."
-          : "ffmpeg 설치 전 Homebrew가 필요합니다.";
+          ? t(
+              locale,
+              "오디오 변환을 위해 ffmpeg가 필요합니다. 앱에서 바로 설치할 수 있습니다.",
+              "ffmpeg is required for audio conversion. You can install it from the app.",
+            )
+          : t(
+              locale,
+              "ffmpeg 설치 전 Homebrew가 필요합니다.",
+              "Homebrew is required before ffmpeg can be installed automatically.",
+            );
       }
 
       if (process.platform === "win32") {
         return hasCommandSync("winget")
-          ? "오디오 변환을 위해 ffmpeg가 필요합니다. 앱에서 바로 설치할 수 있습니다."
-          : "winget 또는 choco로 ffmpeg를 설치해야 합니다.";
+          ? t(
+              locale,
+              "오디오 변환을 위해 ffmpeg가 필요합니다. 앱에서 바로 설치할 수 있습니다.",
+              "ffmpeg is required for audio conversion. You can install it from the app.",
+            )
+          : t(
+              locale,
+              "winget 또는 choco로 ffmpeg를 설치해야 합니다.",
+              "Install ffmpeg with winget or choco.",
+            );
       }
 
-      return "ffmpeg가 있어야 m4a/webm 파일을 전사할 수 있습니다.";
+      return t(
+        locale,
+        "ffmpeg가 있어야 m4a/webm 파일을 전사할 수 있습니다.",
+        "ffmpeg is required to transcribe m4a/webm files.",
+      );
     case "whisper":
       if (process.platform === "darwin") {
         return hasCommandSync("brew")
-          ? "Whisper backend가 있어야 오디오 전사를 실행할 수 있습니다. 앱에서 바로 설치할 수 있습니다."
-          : "Whisper backend 설치 전 Homebrew가 필요합니다.";
+          ? t(
+              locale,
+              "Whisper backend가 있어야 오디오 전사를 실행할 수 있습니다. 앱에서 바로 설치할 수 있습니다.",
+              "A Whisper backend is required for audio transcription. You can install it from the app.",
+            )
+          : t(
+              locale,
+              "Whisper backend 설치 전 Homebrew가 필요합니다.",
+              "Homebrew is required before the Whisper backend can be installed automatically.",
+            );
       }
 
       if (process.platform === "win32") {
         return hasCommandSync("python") || hasCommandSync("py")
-          ? "Python 환경이 있으면 앱에서 Whisper backend 설치를 시도할 수 있습니다."
-          : "Python이 있어야 openai-whisper 자동 설치를 도울 수 있습니다.";
+          ? t(
+              locale,
+              "Python 환경이 있으면 앱에서 Whisper backend 설치를 시도할 수 있습니다.",
+              "If Python is available, the app can try to install a Whisper backend.",
+            )
+          : t(
+              locale,
+              "Python이 있어야 openai-whisper 자동 설치를 도울 수 있습니다.",
+              "Python is required to help install openai-whisper automatically.",
+            );
       }
 
       return hasCommandSync("python3")
-        ? "Python3가 있으면 앱에서 Whisper backend 설치를 시도할 수 있습니다."
-        : "Python3 또는 whisper-cpp 패키지가 필요합니다.";
+        ? t(
+            locale,
+            "Python3가 있으면 앱에서 Whisper backend 설치를 시도할 수 있습니다.",
+            "If Python3 is available, the app can try to install a Whisper backend.",
+          )
+        : t(
+            locale,
+            "Python3 또는 whisper-cpp 패키지가 필요합니다.",
+            "Python3 or a whisper-cpp package is required.",
+          );
     case "whisper-model":
-      return "Whisper 모델이 있어야 whisper-cpp 전사를 실행할 수 있습니다. 앱에서 바로 내려받을 수 있습니다.";
+      return t(
+        locale,
+        "Whisper 모델이 있어야 whisper-cpp 전사를 실행할 수 있습니다. 앱에서 바로 내려받을 수 있습니다.",
+        "A Whisper model is required for whisper-cpp transcription. You can download it from the app.",
+      );
     case "claude":
-      return "문서 생성에는 로그인된 Claude CLI가 필요합니다.";
+      return t(
+        locale,
+        "문서 생성에는 로그인된 Claude CLI가 필요합니다.",
+        "Document generation needs a logged-in Claude CLI.",
+      );
     case "codex":
-      return "문서 생성 또는 스킬 실행에는 로그인된 Codex CLI가 필요합니다.";
+      return t(
+        locale,
+        "문서 생성 또는 스킬 실행에는 로그인된 Codex CLI가 필요합니다.",
+        "Document generation or skill execution needs a logged-in Codex CLI.",
+      );
     case "gemini":
-      return "Gemini 기반 응답을 쓰려면 Gemini CLI가 필요합니다.";
+      return t(
+        locale,
+        "Gemini 기반 응답을 쓰려면 Gemini CLI가 필요합니다.",
+        "Gemini-based responses need the Gemini CLI.",
+      );
     case "openai-api":
-      return "OpenAI API key를 저장하면 CLI 없이도 CS Helper와 PRD 생성 fallback을 사용할 수 있습니다.";
+      return t(
+        locale,
+        "OpenAI API key를 저장하면 CLI 없이도 CS Helper와 PRD 생성 fallback을 사용할 수 있습니다.",
+        "Saving an OpenAI API key enables CS Helper and PRD fallback without a CLI.",
+      );
     case "projects-root":
-      return "프로젝트 루트를 저장하면 Projects, Doc Hub, CS Helper가 같은 기준으로 동작합니다.";
+      return t(
+        locale,
+        "프로젝트 루트를 저장하면 Projects, Doc Hub, CS Helper가 같은 기준으로 동작합니다.",
+        "Save a projects root so Projects, Doc Hub, and CS Helper can use the same baseline.",
+      );
     default:
       return null;
   }
@@ -113,6 +185,7 @@ export function getRuntimeCheckFixHint(checkId: string) {
 
 export function getRuntimeCheckRemedy(
   checkId: string,
+  locale: AppLocale = DEFAULT_LOCALE,
 ): DashboardLabRuntimeCheckRemedy | null {
   switch (checkId) {
     case "node":
@@ -120,22 +193,26 @@ export function getRuntimeCheckRemedy(
         return null;
       }
 
-      return getNodeRemedy();
+      return getNodeRemedy(locale);
     case "pnpm":
       if (isDesktopRuntime()) {
         return null;
       }
 
-      return getPnpmRemedy();
+      return getPnpmRemedy(locale);
     case "ffmpeg":
-      return getFfmpegRemedy();
+      return getFfmpegRemedy(locale);
     case "whisper":
-      return getWhisperRemedy();
+      return getWhisperRemedy(locale);
     case "whisper-model":
       return {
         action: "run",
-        label: "모델 다운로드",
-        detail: "Whisper 기본 모델을 내려받습니다.",
+        label: t(locale, "모델 다운로드", "Download Model"),
+        detail: t(
+          locale,
+          "Whisper 기본 모델을 내려받습니다.",
+          "Download the default Whisper model.",
+        ),
         taskId: "download-whisper-model",
       };
     default:
@@ -143,15 +220,18 @@ export function getRuntimeCheckRemedy(
   }
 }
 
-export async function executeRuntimeInstallTasks(taskIds: string[]) {
+export async function executeRuntimeInstallTasks(
+  taskIds: string[],
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
   const uniqueTaskIds = [...new Set(taskIds.filter(Boolean))];
   const results: DashboardLabRuntimeInstallResult[] = [];
 
   for (const taskId of uniqueTaskIds) {
-    const label = TASK_LABELS[taskId] ?? taskId;
+    const label = getTaskLabel(taskId, locale);
 
     try {
-      const detail = await executeRuntimeInstallTask(taskId);
+      const detail = await executeRuntimeInstallTask(taskId, locale);
       results.push({
         taskId,
         label,
@@ -167,7 +247,7 @@ export async function executeRuntimeInstallTasks(taskIds: string[]) {
         detail:
           error instanceof Error
             ? error.message
-            : "설치를 완료하지 못했습니다.",
+            : t(locale, "설치를 완료하지 못했습니다.", "The install task did not complete."),
         output: null,
       });
     }
@@ -176,64 +256,101 @@ export async function executeRuntimeInstallTasks(taskIds: string[]) {
   return results;
 }
 
-async function executeRuntimeInstallTask(taskId: string) {
+async function executeRuntimeInstallTask(
+  taskId: string,
+  locale: AppLocale,
+) {
   switch (taskId) {
     case "install-node": {
       const command = getNodeInstallCommand();
       if (!command) {
-        throw new Error("현재 환경에서는 Node.js 자동 설치를 지원하지 않습니다.");
+        throw new Error(
+          t(
+            locale,
+            "현재 환경에서는 Node.js 자동 설치를 지원하지 않습니다.",
+            "Automatic Node.js install is not supported in this environment.",
+          ),
+        );
       }
 
       const output = await runShellCommand(command);
-      return { summary: "Node.js 설치를 완료했습니다.", output };
+      return { summary: t(locale, "Node.js 설치를 완료했습니다.", "Node.js installation completed."), output };
     }
     case "install-pnpm": {
       const command = getPnpmInstallCommand();
       if (!command) {
-        throw new Error("현재 환경에서는 pnpm 자동 준비를 지원하지 않습니다.");
+        throw new Error(
+          t(
+            locale,
+            "현재 환경에서는 pnpm 자동 준비를 지원하지 않습니다.",
+            "Automatic pnpm setup is not supported in this environment.",
+          ),
+        );
       }
 
       const output = await runShellCommand(command);
-      return { summary: "pnpm 준비를 완료했습니다.", output };
+      return { summary: t(locale, "pnpm 준비를 완료했습니다.", "pnpm setup completed."), output };
     }
     case "install-ffmpeg": {
       const command = getFfmpegInstallCommand();
       if (!command) {
-        throw new Error("현재 환경에서는 ffmpeg 자동 설치를 지원하지 않습니다.");
+        throw new Error(
+          t(
+            locale,
+            "현재 환경에서는 ffmpeg 자동 설치를 지원하지 않습니다.",
+            "Automatic ffmpeg install is not supported in this environment.",
+          ),
+        );
       }
 
       const output = await runShellCommand(command);
-      return { summary: "ffmpeg 설치를 완료했습니다.", output };
+      return { summary: t(locale, "ffmpeg 설치를 완료했습니다.", "ffmpeg installation completed."), output };
     }
     case "install-whisper-backend": {
       const command = getWhisperInstallCommand();
       if (!command) {
-        throw new Error("현재 환경에서는 Whisper backend 자동 설치를 지원하지 않습니다.");
+        throw new Error(
+          t(
+            locale,
+            "현재 환경에서는 Whisper backend 자동 설치를 지원하지 않습니다.",
+            "Automatic Whisper backend install is not supported in this environment.",
+          ),
+        );
       }
 
       const output = await runShellCommand(command);
-      return { summary: "Whisper backend 설치를 완료했습니다.", output };
+      return { summary: t(locale, "Whisper backend 설치를 완료했습니다.", "Whisper backend installation completed."), output };
     }
     case "download-whisper-model": {
       const destination = await downloadWhisperModel();
       return {
-        summary: `Whisper 모델을 내려받았습니다: ${destination}`,
+        summary: t(
+          locale,
+          `Whisper 모델을 내려받았습니다: ${destination}`,
+          `Downloaded the Whisper model: ${destination}`,
+        ),
         output: destination,
       };
     }
     default:
-      throw new Error(`알 수 없는 설치 작업입니다: ${taskId}`);
+      throw new Error(
+        t(
+          locale,
+          `알 수 없는 설치 작업입니다: ${taskId}`,
+          `Unknown install task: ${taskId}`,
+        ),
+      );
   }
 }
 
-function getNodeRemedy(): DashboardLabRuntimeCheckRemedy | null {
+function getNodeRemedy(locale: AppLocale): DashboardLabRuntimeCheckRemedy | null {
   const command = getNodeInstallCommand();
 
   if (command) {
     return {
       action: "run",
-      label: "Node.js 설치",
-      detail: "앱에서 Node.js 설치를 실행합니다.",
+      label: t(locale, "Node.js 설치", "Install Node.js"),
+      detail: t(locale, "앱에서 Node.js 설치를 실행합니다.", "Run Node.js installation from the app."),
       taskId: "install-node",
       command,
     };
@@ -241,20 +358,20 @@ function getNodeRemedy(): DashboardLabRuntimeCheckRemedy | null {
 
   return {
     action: "open_url",
-    label: "설치 페이지 열기",
-    detail: "Node.js 22+ 설치 페이지를 엽니다.",
+    label: t(locale, "설치 페이지 열기", "Open Install Page"),
+    detail: t(locale, "Node.js 22+ 설치 페이지를 엽니다.", "Open the Node.js 22+ install page."),
     url: "https://nodejs.org",
   };
 }
 
-function getPnpmRemedy(): DashboardLabRuntimeCheckRemedy | null {
+function getPnpmRemedy(locale: AppLocale): DashboardLabRuntimeCheckRemedy | null {
   const command = getPnpmInstallCommand();
 
   if (command) {
     return {
       action: "run",
-      label: "pnpm 준비",
-      detail: "앱에서 pnpm 준비를 실행합니다.",
+      label: t(locale, "pnpm 준비", "Setup pnpm"),
+      detail: t(locale, "앱에서 pnpm 준비를 실행합니다.", "Run pnpm setup from the app."),
       taskId: "install-pnpm",
       command,
     };
@@ -262,20 +379,20 @@ function getPnpmRemedy(): DashboardLabRuntimeCheckRemedy | null {
 
   return {
     action: "manual",
-    label: "수동 준비 필요",
+    label: t(locale, "수동 준비 필요", "Manual Setup Needed"),
     detail: `corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate`,
     command: `corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate`,
   };
 }
 
-function getFfmpegRemedy(): DashboardLabRuntimeCheckRemedy | null {
+function getFfmpegRemedy(locale: AppLocale): DashboardLabRuntimeCheckRemedy | null {
   const command = getFfmpegInstallCommand();
 
   if (command) {
     return {
       action: "run",
-      label: "ffmpeg 설치",
-      detail: "앱에서 ffmpeg 설치를 실행합니다.",
+      label: t(locale, "ffmpeg 설치", "Install ffmpeg"),
+      detail: t(locale, "앱에서 ffmpeg 설치를 실행합니다.", "Run ffmpeg installation from the app."),
       taskId: "install-ffmpeg",
       command,
     };
@@ -284,28 +401,28 @@ function getFfmpegRemedy(): DashboardLabRuntimeCheckRemedy | null {
   if (process.platform === "darwin") {
     return {
       action: "open_url",
-      label: "Homebrew 설치 안내",
-      detail: "ffmpeg 자동 설치 전에 Homebrew가 필요합니다.",
+      label: t(locale, "Homebrew 설치 안내", "Homebrew Setup Guide"),
+      detail: t(locale, "ffmpeg 자동 설치 전에 Homebrew가 필요합니다.", "Homebrew is required before ffmpeg can be installed automatically."),
       url: "https://brew.sh",
     };
   }
 
   return {
     action: "manual",
-    label: "수동 설치 안내",
-    detail: getFfmpegManualHelp(),
-    command: getFfmpegManualHelp(),
+    label: t(locale, "수동 설치 안내", "Manual Install Help"),
+    detail: getFfmpegManualHelp(locale),
+    command: getFfmpegManualHelp(locale),
   };
 }
 
-function getWhisperRemedy(): DashboardLabRuntimeCheckRemedy | null {
+function getWhisperRemedy(locale: AppLocale): DashboardLabRuntimeCheckRemedy | null {
   const command = getWhisperInstallCommand();
 
   if (command) {
     return {
       action: "run",
-      label: "Whisper 설치",
-      detail: "앱에서 Whisper backend 설치를 실행합니다.",
+      label: t(locale, "Whisper 설치", "Install Whisper"),
+      detail: t(locale, "앱에서 Whisper backend 설치를 실행합니다.", "Run Whisper backend installation from the app."),
       taskId: "install-whisper-backend",
       command,
     };
@@ -314,17 +431,17 @@ function getWhisperRemedy(): DashboardLabRuntimeCheckRemedy | null {
   if (process.platform === "darwin") {
     return {
       action: "open_url",
-      label: "Homebrew 설치 안내",
-      detail: "whisper-cpp 자동 설치 전에 Homebrew가 필요합니다.",
+      label: t(locale, "Homebrew 설치 안내", "Homebrew Setup Guide"),
+      detail: t(locale, "whisper-cpp 자동 설치 전에 Homebrew가 필요합니다.", "Homebrew is required before whisper-cpp can be installed automatically."),
       url: "https://brew.sh",
     };
   }
 
   return {
     action: "manual",
-    label: "수동 설치 안내",
-    detail: getWhisperManualHelp(),
-    command: getWhisperManualHelp(),
+    label: t(locale, "수동 설치 안내", "Manual Install Help"),
+    detail: getWhisperManualHelp(locale),
+    command: getWhisperManualHelp(locale),
   };
 }
 
@@ -390,24 +507,40 @@ function getWhisperInstallCommand() {
   return "";
 }
 
-function getFfmpegManualHelp() {
+function getFfmpegManualHelp(locale: AppLocale) {
   if (process.platform === "win32") {
     return "winget install Gyan.FFmpeg 또는 choco install ffmpeg";
   }
 
-  return "sudo apt install ffmpeg 또는 사용하는 패키지 매니저로 ffmpeg를 설치하세요.";
+  return t(
+    locale,
+    "sudo apt install ffmpeg 또는 사용하는 패키지 매니저로 ffmpeg를 설치하세요.",
+    "Install ffmpeg with sudo apt install ffmpeg or your package manager.",
+  );
 }
 
-function getWhisperManualHelp() {
+function getWhisperManualHelp(locale: AppLocale) {
   if (process.platform === "win32") {
-    return "python -m pip install openai-whisper 또는 whisper-cpp 바이너리를 PATH에 추가하세요.";
+    return t(
+      locale,
+      "python -m pip install openai-whisper 또는 whisper-cpp 바이너리를 PATH에 추가하세요.",
+      "Run python -m pip install openai-whisper or add a whisper-cpp binary to PATH.",
+    );
   }
 
   if (process.platform === "linux") {
-    return "python3 -m pip install openai-whisper 또는 whisper-cpp 패키지를 설치하세요.";
+    return t(
+      locale,
+      "python3 -m pip install openai-whisper 또는 whisper-cpp 패키지를 설치하세요.",
+      "Run python3 -m pip install openai-whisper or install a whisper-cpp package.",
+    );
   }
 
-  return "brew install whisper-cpp 또는 python3 -m pip install openai-whisper";
+  return t(
+    locale,
+    "brew install whisper-cpp 또는 python3 -m pip install openai-whisper",
+    "Run brew install whisper-cpp or python3 -m pip install openai-whisper.",
+  );
 }
 
 async function downloadWhisperModel() {
@@ -422,7 +555,13 @@ async function downloadWhisperModel() {
   const response = await fetch(MODEL_URL);
 
   if (!response.ok || !response.body) {
-    throw new Error("Whisper 모델을 내려받지 못했습니다.");
+    throw new Error(
+      t(
+        DEFAULT_LOCALE,
+        "Whisper 모델을 내려받지 못했습니다.",
+        "Failed to download the Whisper model.",
+      ),
+    );
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
@@ -462,7 +601,16 @@ async function runShellCommand(command: string) {
         return;
       }
 
-      reject(new Error(trimCommandOutput(output) || `명령 실행에 실패했습니다. code=${code}`));
+      reject(
+        new Error(
+          trimCommandOutput(output) ||
+            t(
+              DEFAULT_LOCALE,
+              `명령 실행에 실패했습니다. code=${code}`,
+              `Command execution failed. code=${code}`,
+            ),
+        ),
+      );
     });
   });
 }
@@ -495,4 +643,20 @@ function spawnSyncCompat(command: string, args: string[]) {
     encoding: "utf8",
     timeout: 5000,
   });
+}
+
+function getTaskLabel(taskId: string, locale: AppLocale) {
+  const labels: Record<string, string> = {
+    "install-node": t(locale, "Node.js 설치", "Install Node.js"),
+    "install-pnpm": t(locale, "pnpm 준비", "Setup pnpm"),
+    "install-ffmpeg": t(locale, "ffmpeg 설치", "Install ffmpeg"),
+    "install-whisper-backend": t(locale, "Whisper backend 설치", "Install Whisper Backend"),
+    "download-whisper-model": t(locale, "Whisper 모델 다운로드", "Download Whisper Model"),
+  };
+
+  return labels[taskId] ?? taskId;
+}
+
+function t(locale: AppLocale, ko: string, en: string) {
+  return pickLocale(locale, { ko, en });
 }

@@ -1,6 +1,8 @@
 "use client";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
 import { SearchResultItem } from "@/components/global-search/SearchResultItem";
+import { pickLocale } from "@/lib/locale";
 import type { GlobalSearchResult } from "@/lib/types";
 
 interface SearchResultsProps {
@@ -10,12 +12,16 @@ interface SearchResultsProps {
 }
 
 export function SearchResults({ results, activeIndex, onSelect }: SearchResultsProps) {
-  const groups = groupResults(results);
+  const { locale } = useLocale();
+  const groups = groupResults(results, locale);
 
   if (results.length === 0) {
     return (
       <div className="rounded-2xl border border-white/8 bg-[#1e1e1e] px-4 py-6 text-sm text-white/55">
-        검색 결과가 없습니다.
+        {pickLocale(locale, {
+          ko: "검색 결과가 없습니다.",
+          en: "No results found.",
+        })}
       </div>
     );
   }
@@ -41,17 +47,29 @@ export function SearchResults({ results, activeIndex, onSelect }: SearchResultsP
   );
 }
 
-function groupResults(results: GlobalSearchResult[]) {
-  const labels: Record<GlobalSearchResult["type"], string> = {
-    skill: "스킬",
-    agent: "에이전트",
-    team: "팀",
-    command: "커맨드",
-    mcp: "MCP",
-    project: "프로젝트",
-    "ai-doc": "문서",
-    app: "앱",
-  };
+function groupResults(results: GlobalSearchResult[], locale: "ko" | "en") {
+  const labels = pickLocale(locale, {
+    ko: {
+      skill: "스킬",
+      agent: "에이전트",
+      team: "팀",
+      command: "커맨드",
+      mcp: "MCP",
+      project: "프로젝트",
+      "ai-doc": "문서",
+      app: "앱",
+    },
+    en: {
+      skill: "Skills",
+      agent: "Agents",
+      team: "Teams",
+      command: "Commands",
+      mcp: "MCP",
+      project: "Projects",
+      "ai-doc": "Docs",
+      app: "Apps",
+    },
+  });
 
   const grouped = new Map<string, Array<{ result: GlobalSearchResult; index: number }>>();
   results.forEach((result, index) => {

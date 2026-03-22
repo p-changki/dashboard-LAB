@@ -4,6 +4,7 @@ export * from "./types/core";
 export * from "./types/doc-hub";
 export * from "./types/file-manager";
 export * from "./types/info-hub";
+export * from "./types/meeting-hub";
 export * from "./types/projects-extended";
 export * from "./types/system";
 export * from "./types/terminal";

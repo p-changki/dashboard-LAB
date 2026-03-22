@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { GlobalSearchModal } from "@/components/global-search/GlobalSearchModal";
+import { LocaleProvider } from "@/components/layout/LocaleProvider";
 import { APP_META } from "@/lib/app-meta";
 
 import "./globals.css";
@@ -31,8 +32,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <GlobalSearchModal />
+        <LocaleProvider>
+          {children}
+          <GlobalSearchModal />
+        </LocaleProvider>
       </body>
     </html>
   );

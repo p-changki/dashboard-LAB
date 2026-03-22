@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { PencilLine, X } from "lucide-react";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
+import { pickLocale } from "@/lib/locale";
+
 interface AppPromptModalProps {
   open: boolean;
   title: string;
@@ -21,13 +24,34 @@ export function AppPromptModal({
   message,
   placeholder,
   initialValue = "",
-  confirmLabel = "저장",
-  cancelLabel = "취소",
+  confirmLabel,
+  cancelLabel,
   onClose,
   onConfirm,
 }: AppPromptModalProps) {
+  const { locale } = useLocale();
   const [value, setValue] = useState(initialValue);
   const [submitting, setSubmitting] = useState(false);
+  const resolvedConfirmLabel = confirmLabel ?? pickLocale(locale, {
+    ko: "저장",
+    en: "Save",
+  });
+  const resolvedCancelLabel = cancelLabel ?? pickLocale(locale, {
+    ko: "취소",
+    en: "Cancel",
+  });
+  const copy = pickLocale(locale, {
+    ko: {
+      close: "모달 닫기",
+      prompt: "입력 필요",
+      processing: "처리 중...",
+    },
+    en: {
+      close: "Close modal",
+      prompt: "Input Required",
+      processing: "Processing...",
+    },
+  });
 
   useEffect(() => {
     if (!open) {
@@ -70,7 +94,7 @@ export function AppPromptModal({
     <div className="fixed inset-0 z-[140] bg-black/70 px-4 py-6 backdrop-blur-sm">
       <button
         type="button"
-        aria-label="모달 닫기"
+        aria-label={copy.close}
         className="absolute inset-0 cursor-default"
         onClick={() => {
           if (!submitting) {
@@ -83,7 +107,7 @@ export function AppPromptModal({
           <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-950/20 px-3 py-1 text-xs text-violet-200">
               <PencilLine className="h-3.5 w-3.5" />
-              입력 필요
+              {copy.prompt}
             </div>
             <h2 className="mt-3 text-lg font-semibold text-white">{title}</h2>
           </div>
@@ -111,7 +135,7 @@ export function AppPromptModal({
               disabled={submitting}
               className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-gray-300 transition hover:bg-white/[0.08] hover:text-white disabled:opacity-40"
             >
-              {cancelLabel}
+              {resolvedCancelLabel}
             </button>
             <button
               type="button"
@@ -119,7 +143,7 @@ export function AppPromptModal({
               disabled={submitting || !value.trim()}
               className="rounded-full border border-violet-500/20 bg-violet-950/30 px-4 py-2 text-sm text-violet-100 transition hover:bg-violet-950/40 disabled:opacity-40"
             >
-              {submitting ? "처리 중..." : confirmLabel}
+              {submitting ? copy.processing : resolvedConfirmLabel}
             </button>
           </div>
         </div>

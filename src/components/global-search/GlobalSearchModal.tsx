@@ -5,17 +5,32 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RecentItems } from "@/components/global-search/RecentItems";
 import { SearchInput } from "@/components/global-search/SearchInput";
 import { SearchResults } from "@/components/global-search/SearchResults";
+import { useLocale } from "@/components/layout/LocaleProvider";
 import { pushRecentItem } from "@/hooks/useRecent";
+import { pickLocale } from "@/lib/locale";
 import { navigateDashboard } from "@/lib/navigation";
 import type { GlobalSearchResponse, GlobalSearchResult, RecentItem } from "@/lib/types";
 
 export function GlobalSearchModal() {
+  const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GlobalSearchResult[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const activeResult = useMemo(() => results[activeIndex] ?? null, [activeIndex, results]);
+  const copy = pickLocale(locale, {
+    ko: {
+      close: "검색 닫기",
+      esc: "ESC 닫기",
+      loading: "검색 중입니다.",
+    },
+    en: {
+      close: "Close search",
+      esc: "ESC to close",
+      loading: "Searching...",
+    },
+  });
 
   const close = useCallback(() => {
     setOpen(false);
@@ -97,14 +112,14 @@ export function GlobalSearchModal() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 px-4 py-16 backdrop-blur-sm">
-      <button type="button" aria-label="검색 닫기" className="absolute inset-0 cursor-default" onClick={close} />
+      <button type="button" aria-label={copy.close} className="absolute inset-0 cursor-default" onClick={close} />
       <div className="relative w-full max-w-3xl rounded-[28px] border border-white/8 bg-[#161616] shadow-2xl">
         <div className="border-b border-white/10 p-4">
           <SearchInput open={open} onQueryChange={setQuery} />
-          <p className="mt-2 text-right text-xs text-white/35">ESC 닫기</p>
+          <p className="mt-2 text-right text-xs text-white/35">{copy.esc}</p>
         </div>
         <div className="max-h-[70vh] overflow-y-auto p-4">
-          {loading ? <div className="text-sm text-white/55">검색 중입니다.</div> : null}
+          {loading ? <div className="text-sm text-white/55">{copy.loading}</div> : null}
           {!loading && query.trim() ? (
             <SearchResults results={results} activeIndex={activeIndex} onSelect={(result) => void handleSelect(result, close)} />
           ) : null}

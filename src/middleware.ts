@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const PROTECTED_LOCALHOST_PATHS = [
   "/api/system/",
   "/api/projects/env-map",
+  "/api/meeting-hub/",
 ];
 
 const PROTECTED_POST_PATHS = [

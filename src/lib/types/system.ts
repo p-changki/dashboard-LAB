@@ -123,6 +123,7 @@ export interface DashboardLabRuntimeIntegrations {
 
 export interface DashboardLabRuntimeSettingsPaths {
   projectsRoot: string | null;
+  dataRoot: string | null;
   prdSaveDir: string | null;
   csContextsDir: string | null;
   allowedRoots: string[];

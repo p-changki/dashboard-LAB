@@ -3,6 +3,7 @@ import {
   isJsonParseError,
   jsonError,
 } from "@/lib/api/error-response";
+import { readLocaleFromHeaders } from "@/lib/locale";
 import { executeRuntimeInstallTasks } from "@/lib/runtime/installer";
 import { getRuntimeSummary } from "@/lib/runtime/summary";
 import type { DashboardLabRuntimeInstallResponse } from "@/lib/types";
@@ -11,6 +12,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const locale = readLocaleFromHeaders(request.headers);
+
   try {
     const payload = (await request.json()) as {
       taskIds?: string[];
@@ -24,10 +27,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const results = await executeRuntimeInstallTasks(payload.taskIds);
+    const results = await executeRuntimeInstallTasks(payload.taskIds, locale);
     const response: DashboardLabRuntimeInstallResponse = {
       results,
-      summary: getRuntimeSummary(),
+      summary: getRuntimeSummary(locale),
     };
 
     return Response.json(response);
