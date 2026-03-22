@@ -1,10 +1,39 @@
 # dashboard-LAB
 
+[![CI](https://github.com/p-changki/dashboard-LAB/actions/workflows/ci.yml/badge.svg)](https://github.com/p-changki/dashboard-LAB/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/p-changki/dashboard-LAB)](https://github.com/p-changki/dashboard-LAB/releases)
+[![License](https://img.shields.io/github/license/p-changki/dashboard-LAB)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-111827)
+
 [English](README.md) | 한국어
 
-`dashboard-LAB`은 내가 가진 AI CLI 도구를 활용해 프로젝트, 문서, 컴퓨터 작업 흐름을 하나의 대시보드에서 다루게 해주는 로컬 퍼스트 AI 워크스페이스입니다.
+> 터미널에 계속 머물지 않고 Claude, Codex, Gemini를 다루기 위한 로컬 AI 워크스페이스
 
-`claude`, `codex` 같은 로컬 도구를 터미널 중심이 아니라 더 다루기 쉬운 워크스페이스 형태로 쓰게 해주는 도구라고 보면 됩니다.
+`dashboard-LAB`은 내가 가진 AI CLI 도구를 중심으로 프로젝트, 문서, 고객 응대, 일일 업데이트, PRD 워크플로를 하나의 데스크톱 워크스페이스에서 다루게 해주는 로컬 퍼스트 앱입니다.
+
+`claude`, `codex` 같은 로컬 도구를 계속 터미널에서만 다루지 않고, 더 이해하기 쉬운 GUI 워크스페이스 안에서 운영하려는 사람을 위한 포지션으로 보면 됩니다.
+
+## 10초 요약
+
+- 로컬 AI CLI를 시각적인 워크스페이스로 운영할 수 있습니다
+- 회의 메모, 전사본, 이슈 요약을 PRD와 실무 문서로 바꿀 수 있습니다
+- 프로젝트 문맥이 반영된 고객 응답 초안을 빠르게 만들 수 있습니다
+- 프로젝트, 문서, 시스템 상태, 일일 업데이트를 한 대시보드에서 확인할 수 있습니다
+
+## 대표 워크플로
+
+- `Projects + Doc Hub`: AI 작업 전에 로컬 프로젝트와 문서를 먼저 파악
+- `CS Helper`: 고객 메시지를 프로젝트 문맥이 반영된 답변 초안과 내부 메모로 변환
+- `Call → PRD`: 통화, 메모, 이슈 내용을 PRD와 역할별 후속 문서로 전환
+- `Info Hub`: 뉴스, 트렌드, 패키지 업데이트, 보안 신호를 매일 확인
+
+## 포지셔닝
+
+`dashboard-LAB`의 중심은 로컬 AI 워크스페이스와 운영 대시보드입니다.
+
+녹음 기능이 메인이 아니고, CLI 자체를 대체하려는 제품도 아닙니다.
+
+핵심 가치는 로컬 AI 도구 위에 프로젝트 문맥, 문서 열람, 시스템 가시성, 고객 대응, PRD 생성 흐름을 얹어서 하나의 실무 워크스페이스로 묶는 데 있습니다.
 
 ## 왜 이 프로젝트를 쓰는가
 
@@ -64,16 +93,6 @@
 - 로컬 `whisper` 또는 `whisper-cli`
 - 로컬 `claude` 및/또는 `codex` CLI
 - `CS Helper`, `Call to PRD`용 OpenAI API fallback 선택 가능
-
-## 포지셔닝
-
-`dashboard-LAB`의 중심은 로컬 AI 워크스페이스와 운영 대시보드입니다.
-
-녹음 앱이 메인이 아닙니다.
-
-핵심 가치는 로컬 AI, 프로젝트 문맥, 시스템 가시성, 일일 정보 흐름을 한 환경에서 함께 쓰게 해주는 데 있습니다.
-
-오디오 전사와 `Call to PRD`는 여러 기능 중 하나이며, 프로젝트 스캔, 문서 열람, AI 스킬, 파일 정리, 시스템 도구, 일일 업데이트와 함께 들어 있는 부가 워크플로입니다.
 
 ## 빠른 시작
 

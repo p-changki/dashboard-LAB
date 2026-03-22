@@ -1,10 +1,39 @@
 # dashboard-LAB
 
+[![CI](https://github.com/p-changki/dashboard-LAB/actions/workflows/ci.yml/badge.svg)](https://github.com/p-changki/dashboard-LAB/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/p-changki/dashboard-LAB)](https://github.com/p-changki/dashboard-LAB/releases)
+[![License](https://img.shields.io/github/license/p-changki/dashboard-LAB)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-111827)
+
 English | [한국어](README.ko.md)
 
-`dashboard-LAB` is a local-first AI workspace for people who want to use their own AI CLI tools to manage projects, documents, and everyday computer workflows from one dashboard.
+> The local AI workspace for Claude, Codex, and Gemini without living in the terminal.
 
-Use it to bring `claude`, `codex`, and similar local tools into a guided workspace that is easier to operate than a terminal-first setup.
+`dashboard-LAB` is a local-first desktop workspace for people who want to manage projects, docs, customer replies, daily updates, and PRD workflows around their own AI CLI tools from one place.
+
+It is positioned as the missing GUI layer around tools like `claude`, `codex`, and similar local AI workflows, especially for people who want developer-style leverage without staying terminal-first all day.
+
+## In 10 Seconds
+
+- Manage your local AI CLI tools through a visual workspace instead of juggling shell commands
+- Turn meeting notes, call transcripts, and issue summaries into PRDs and working docs
+- Draft customer replies with project context already attached
+- Scan repositories, docs, system state, and daily updates from one dashboard
+
+## Signature Workflows
+
+- `Projects + Doc Hub`: understand the current state of a local repo before doing any AI-assisted work
+- `CS Helper`: turn customer messages into project-aware reply drafts and internal notes
+- `Call → PRD`: turn calls, notes, and issue context into PRDs plus role-specific follow-up docs
+- `Info Hub`: check daily refreshed news, trends, package updates, and security signals
+
+## Positioning
+
+`dashboard-LAB` is a local AI workspace and operational dashboard first.
+
+It is not a recording-first product, and it does not try to replace the CLI tools themselves.
+
+The main value is giving local AI tooling a practical desktop workspace where projects, documents, system visibility, customer support flows, and PRD generation live together.
 
 ## Why It Exists
 
@@ -64,16 +93,6 @@ It is useful when you need fast, context-aware support writing without manually 
 - local `whisper` or `whisper-cli`
 - local `claude` and/or `codex` CLI
 - optional OpenAI API fallback for `CS Helper` and `Call to PRD`
-
-## Positioning
-
-`dashboard-LAB` is a local AI workspace and operational dashboard first.
-
-It is not a recording-first product.
-
-The main value is combining local AI, project context, system visibility, and daily information flows in one environment.
-
-Audio capture, transcription, and `Call to PRD` are secondary workflows alongside project scanning, document browsing, AI skills, file cleanup, system tooling, and daily updates.
 
 ## Quick Start
 
