@@ -15,7 +15,7 @@ body:
     attributes:
       label: Release version
       description: Which GitHub Release did you test?
-      placeholder: v0.1.5
+      placeholder: v0.1.6
     validations:
       required: true
 
