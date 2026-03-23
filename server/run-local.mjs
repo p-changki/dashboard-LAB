@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 
 const LOG_PREFIX = "[dashboard-lab]";
 
@@ -65,7 +66,8 @@ if (terminalEnabled) {
 }
 console.log(`${LOG_PREFIX} dist ${distDir}`);
 
-const appChild = spawn(resolveBin("next"), appArgs, { stdio: "inherit", env });
+const nextRuntime = resolveNextRuntime();
+const appChild = spawn(nextRuntime.command, [...nextRuntime.args, ...appArgs], { stdio: "inherit", env });
 const wsChild = terminalEnabled
   ? spawn(process.execPath, wsArgs, { stdio: "inherit", env })
   : null;
@@ -73,6 +75,10 @@ const wsChild = terminalEnabled
 forwardSignals([appChild, wsChild].filter(Boolean));
 
 appChild.on("exit", (code) => closeChildren(wsChild, code ?? 0));
+appChild.on("error", (error) => {
+  console.error(`${LOG_PREFIX} next runtime failed: ${error.message}`);
+  closeChildren(wsChild, 1);
+});
 wsChild?.on("exit", (code) => closeChildren(appChild, code ?? 0));
 
 async function findFreePort(startPort, blockedPorts = new Set()) {
@@ -121,6 +127,36 @@ function closeChildren(otherChild, code) {
 
 function resolveBin(name) {
   return path.join(process.cwd(), "node_modules", ".bin", name);
+}
+
+function resolveNextRuntime() {
+  const binPath = resolveBin("next");
+  if (existsSync(binPath)) {
+    return {
+      command: binPath,
+      args: [],
+    };
+  }
+
+  const cliScriptPath = path.join(
+    process.cwd(),
+    "node_modules",
+    "next",
+    "dist",
+    "bin",
+    "next",
+  );
+
+  if (existsSync(cliScriptPath)) {
+    return {
+      command: process.execPath,
+      args: [cliScriptPath],
+    };
+  }
+
+  throw new Error(
+    `Could not find the Next.js runtime. Looked for ${binPath} and ${cliScriptPath}.`,
+  );
 }
 
 async function clearDevArtifacts(distDir) {
