@@ -6,6 +6,14 @@ export type SignalWriterVisualMode =
   | "trend-brief"
   | "opinion-angle";
 
+export type SignalWriterDraftMode =
+  | "news-brief"
+  | "insight"
+  | "opinion"
+  | "viral";
+
+export type SignalWriterQualityLevel = "rough" | "solid" | "strong";
+
 export type SignalWriterVisualAccent =
   | "amber"
   | "cyan"
@@ -43,16 +51,45 @@ export interface SignalWriterSignalsResponse {
   nextRefreshAt: string;
 }
 
+export interface SignalWriterAngle {
+  label: string;
+  summary: string;
+  audience: string;
+}
+
+export interface SignalWriterHookVariant {
+  id: string;
+  text: string;
+  intent: string;
+}
+
+export interface SignalWriterQualityDimension {
+  id: "hook" | "specificity" | "pointOfView" | "shareability";
+  label: string;
+  score: number;
+  reason: string;
+}
+
+export interface SignalWriterQualityScore {
+  total: number;
+  level: SignalWriterQualityLevel;
+  dimensions: SignalWriterQualityDimension[];
+}
+
 export interface SignalWriterDraft {
   id: string;
   signalId: string;
   title: string;
+  mode: SignalWriterDraftMode;
+  angle: SignalWriterAngle;
   hook: string;
+  hookVariants: SignalWriterHookVariant[];
   shortPost: string;
   threadPosts: string[];
   hashtags: string[];
   whyNow: string;
   postingTips: string[];
+  quality: SignalWriterQualityScore;
   generatedAt: string;
   sourceModel: "openai" | "template";
   visualStrategy: SignalWriterVisualStrategy;
@@ -63,6 +100,7 @@ export interface SignalWriterDraft {
 
 export interface SignalWriterGenerateRequest {
   signal: SignalWriterSignal;
+  mode?: SignalWriterDraftMode;
 }
 
 export interface SignalWriterGenerateResponse {

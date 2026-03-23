@@ -25,6 +25,26 @@ export function getSignalWriterCopy(locale: AppLocale) {
         published: "발행 시각",
         selected: "선택됨",
       },
+      modes: {
+        title: "생성 모드",
+        description: "요약형보다 관점형과 바이럴형이 계정 성장에는 더 잘 맞습니다.",
+        "news-brief": {
+          label: "뉴스 요약형",
+          description: "핵심 변화와 의미를 빠르게 정리합니다.",
+        },
+        insight: {
+          label: "인사이트형",
+          description: "이 변화가 실무에 미치는 영향을 강조합니다.",
+        },
+        opinion: {
+          label: "의견형",
+          description: "내 해석과 판단을 앞세운 글로 만듭니다.",
+        },
+        viral: {
+          label: "바이럴형",
+          description: "저장/공유를 부르는 훅과 관점을 우선합니다.",
+        },
+      },
       cta: {
         choose: "이 카드 선택",
         generate: "선택한 기사로 초안 생성",
@@ -47,12 +67,23 @@ export function getSignalWriterCopy(locale: AppLocale) {
       },
       result: {
         title: "생성된 초안",
+        mode: "생성 모드",
+        angle: "글 각도",
+        targetAudience: "이 글이 맞는 독자",
         hook: "훅",
+        hookVariants: "훅 3개",
         shortPost: "짧은 버전",
         thread: "쓰레드 버전",
         hashtags: "해시태그",
         whyNow: "왜 지금 올리기 좋은가",
         postingTips: "올릴 때 팁",
+        quality: "바이럴 품질 점수",
+        qualityTotal: "총점",
+        qualityLevels: {
+          rough: "초안 수준",
+          solid: "게시 가능",
+          strong: "강한 초안",
+        },
         visuals: "업로드용 이미지",
         sourceImage: "원문 참고 이미지",
         generatedCover: "자동 생성 커버",
@@ -67,6 +98,7 @@ export function getSignalWriterCopy(locale: AppLocale) {
         sourceModelTemplate: "템플릿 생성",
         copyShort: "짧은 글 복사",
         copyThread: "쓰레드 복사",
+        copyHook: "훅 복사",
       },
     },
     en: {
@@ -91,6 +123,26 @@ export function getSignalWriterCopy(locale: AppLocale) {
         published: "Published",
         selected: "Selected",
       },
+      modes: {
+        title: "Draft mode",
+        description: "Insight, opinion, and viral modes usually perform better than a plain summary.",
+        "news-brief": {
+          label: "News brief",
+          description: "Fast summary of what changed and why it matters.",
+        },
+        insight: {
+          label: "Insight",
+          description: "Translate the signal into workflow impact.",
+        },
+        opinion: {
+          label: "Opinion",
+          description: "Lead with your take instead of the headline.",
+        },
+        viral: {
+          label: "Viral",
+          description: "Optimize for hook strength and shareability.",
+        },
+      },
       cta: {
         choose: "Choose this card",
         generate: "Generate draft from selected signal",
@@ -113,12 +165,23 @@ export function getSignalWriterCopy(locale: AppLocale) {
       },
       result: {
         title: "Generated draft",
+        mode: "Draft mode",
+        angle: "Post angle",
+        targetAudience: "Best audience",
         hook: "Hook",
+        hookVariants: "Three hook options",
         shortPost: "Short post",
         thread: "Thread version",
         hashtags: "Hashtags",
         whyNow: "Why this is timely",
         postingTips: "Posting tips",
+        quality: "Virality score",
+        qualityTotal: "Total",
+        qualityLevels: {
+          rough: "Needs work",
+          solid: "Postable",
+          strong: "Strong draft",
+        },
         visuals: "Upload-ready visuals",
         sourceImage: "Source reference image",
         generatedCover: "Generated cover card",
@@ -133,6 +196,7 @@ export function getSignalWriterCopy(locale: AppLocale) {
         sourceModelTemplate: "Generated with template fallback",
         copyShort: "Copy short post",
         copyThread: "Copy thread",
+        copyHook: "Copy hook",
       },
     },
   });

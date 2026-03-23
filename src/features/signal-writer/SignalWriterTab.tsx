@@ -19,6 +19,7 @@ import { ErrorCard } from "@/components/ui/ErrorCard";
 import { getSignalWriterCopy } from "@/features/signal-writer/copy";
 import type {
   SignalWriterDraft,
+  SignalWriterDraftMode,
   SignalWriterGenerateResponse,
   SignalWriterSignal,
   SignalWriterSignalsResponse,
@@ -33,6 +34,7 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
   const copy = getSignalWriterCopy(locale);
   const [signals, setSignals] = useState<SignalWriterSignal[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedMode, setSelectedMode] = useState<SignalWriterDraftMode>("viral");
   const [draft, setDraft] = useState<SignalWriterDraft | null>(null);
   const [step, setStep] = useState<SignalWriterStep>("select");
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,7 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
           "Content-Type": "application/json",
           "x-dashboard-locale": locale,
         },
-        body: JSON.stringify({ signal: selectedSignal }),
+        body: JSON.stringify({ signal: selectedSignal, mode: selectedMode }),
       });
 
       const payload = (await response.json()) as Partial<SignalWriterGenerateResponse> & {
@@ -257,6 +259,44 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
             </div>
           )}
 
+          <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+            <p className="text-sm font-medium text-white">{copy.modes.title}</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">
+              {copy.modes.description}
+            </p>
+            <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
+              {(
+                ["news-brief", "insight", "opinion", "viral"] as SignalWriterDraftMode[]
+              ).map((modeKey) => {
+                const active = selectedMode === modeKey;
+                const modeCopy = copy.modes[modeKey];
+
+                return (
+                  <button
+                    key={modeKey}
+                    type="button"
+                    onClick={() => setSelectedMode(modeKey)}
+                    className={[
+                      "rounded-2xl border p-4 text-left transition",
+                      active
+                        ? "border-amber-400/30 bg-amber-400/10"
+                        : "border-white/10 bg-black/15 hover:bg-white/[0.04]",
+                    ].join(" ")}
+                  >
+                    <p
+                      className={
+                        active ? "text-sm font-medium text-amber-100" : "text-sm font-medium text-white"
+                      }
+                    >
+                      {modeCopy.label}
+                    </p>
+                    <p className="mt-2 text-xs leading-5 text-gray-400">{modeCopy.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           <div className="flex justify-end">
             <button
               type="button"
@@ -340,8 +380,69 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
             </div>
           </div>
 
+          <div className="grid gap-5 lg:grid-cols-3">
+            <ResultBlock title={copy.result.mode}>
+              <p className="text-sm font-medium text-white/90">{copy.modes[draft.mode].label}</p>
+              <p className="mt-2 text-xs leading-5 text-gray-400">
+                {copy.modes[draft.mode].description}
+              </p>
+            </ResultBlock>
+
+            <ResultBlock title={copy.result.angle}>
+              <p className="text-sm font-medium text-white/90">{draft.angle.label}</p>
+              <p className="mt-2 text-sm leading-6 text-gray-300">{draft.angle.summary}</p>
+            </ResultBlock>
+
+            <ResultBlock title={copy.result.targetAudience}>
+              <p className="text-sm leading-6 text-white/90">{draft.angle.audience}</p>
+            </ResultBlock>
+          </div>
+
+          <ResultBlock title={copy.result.quality}>
+            <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/[0.06] p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-400">
+                  {copy.result.qualityTotal}
+                </p>
+                <p className="mt-3 text-4xl font-semibold text-amber-100">{draft.quality.total}</p>
+                <p className="mt-2 text-sm text-gray-300">
+                  {copy.result.qualityLevels[draft.quality.level]}
+                </p>
+              </div>
+              <div className="grid gap-3 lg:grid-cols-2">
+                {draft.quality.dimensions.map((item) => (
+                  <article key={item.id} className="rounded-2xl border border-white/8 bg-black/15 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-white">{item.label}</p>
+                      <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-gray-300">
+                        {item.score}/10
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-gray-300">{item.reason}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </ResultBlock>
+
           <ResultBlock title={copy.result.hook}>
             <p className="text-sm leading-6 text-white/90">{draft.hook}</p>
+          </ResultBlock>
+
+          <ResultBlock title={copy.result.hookVariants}>
+            <div className="grid gap-3 lg:grid-cols-3">
+              {draft.hookVariants.map((item) => (
+                <article key={item.id} className="rounded-2xl border border-white/8 bg-black/15 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-gray-500">{item.intent}</p>
+                      <p className="mt-2 text-sm leading-6 text-white/90">{item.text}</p>
+                    </div>
+                    <CopyButton value={item.text} label={copy.result.copyHook} />
+                  </div>
+                </article>
+              ))}
+            </div>
           </ResultBlock>
 
           <ResultBlock

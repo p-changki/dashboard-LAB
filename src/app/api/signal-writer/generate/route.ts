@@ -12,6 +12,7 @@ export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as Partial<SignalWriterGenerateRequest>;
     const signal = payload.signal;
+    const mode = normalizeMode(payload.mode);
 
     if (
       !signal ||
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const draft = await generateSignalWriterDraft(signal, locale);
+    const draft = await generateSignalWriterDraft(signal, locale, mode);
     const artifacts = persistSignalWriterDraft(signal, draft);
 
     const response: SignalWriterGenerateResponse = {
@@ -56,5 +57,16 @@ export async function POST(request: Request) {
       },
       { status: 500 },
     );
+  }
+}
+
+function normalizeMode(value: SignalWriterGenerateRequest["mode"]) {
+  switch (value) {
+    case "news-brief":
+    case "insight":
+    case "opinion":
+      return value;
+    default:
+      return "viral";
   }
 }
