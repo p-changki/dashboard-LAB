@@ -2,9 +2,10 @@ export const APP_META = {
   slug: "dashboard-lab",
   displayName: "dashboard-LAB",
   shortName: "DL",
-  tagline: "Local Workspace Dashboard Lab",
+  tagline: "Local-first AI workspace for Claude, Codex, and Gemini",
   description:
-    "Configurable local-first AI workspace dashboard boilerplate.",
+    "Local-first AI workspace for Claude, Codex, and Gemini with meeting notes, PRDs, customer replies, and daily signals in one desktop-ready app.",
+  repositoryUrl: "https://github.com/p-changki/dashboard-LAB",
   sessionFileName: ".dashboard-lab-dev-session.json",
   launcherFileName: "Run-Dashboard-LAB.command",
 } as const;
