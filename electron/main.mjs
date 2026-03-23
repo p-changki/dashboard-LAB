@@ -1,10 +1,19 @@
-import { app, BrowserWindow, dialog, shell } from "electron";
+import { app, BrowserWindow, dialog, shell, session } from "electron";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 
 const APP_TITLE = "dashboard-LAB";
 const RUNTIME_URL_ENV = "DASHBOARD_LAB_APP_URL";
 const RUNTIME_TIMEOUT_MS = 45_000;
+const CACHE_VERSION_FILE = "desktop-cache-version.json";
+const CACHE_DIRS_TO_CLEAR = [
+  "Cache",
+  "Code Cache",
+  "GPUCache",
+  "DawnGraphiteCache",
+  "DawnWebGPUCache",
+];
 
 let mainWindow = null;
 let runtimeChild = null;
@@ -29,6 +38,7 @@ if (!gotSingleInstanceLock) {
 }
 
 app.whenReady().then(async () => {
+  await ensureFreshRendererCache();
   mainWindow = createWindow();
 
   try {
@@ -249,4 +259,34 @@ async function waitForServer(targetUrl) {
   }
 
   throw new Error(`앱 URL에 연결할 수 없습니다: ${targetUrl}`);
+}
+
+async function ensureFreshRendererCache() {
+  const userDataPath = app.getPath("userData");
+  const versionFilePath = path.join(userDataPath, "state", CACHE_VERSION_FILE);
+  const currentVersion = app.getVersion();
+  const previousVersion = await readPreviousCacheVersion(versionFilePath);
+
+  if (previousVersion === currentVersion) {
+    return;
+  }
+
+  await Promise.all(
+    CACHE_DIRS_TO_CLEAR.map((dirName) =>
+      rm(path.join(userDataPath, dirName), { recursive: true, force: true }),
+    ),
+  );
+  await session.defaultSession.clearCache();
+  await mkdir(path.dirname(versionFilePath), { recursive: true });
+  await writeFile(versionFilePath, JSON.stringify({ version: currentVersion }, null, 2), "utf8");
+}
+
+async function readPreviousCacheVersion(versionFilePath) {
+  try {
+    const raw = await readFile(versionFilePath, "utf8");
+    const parsed = JSON.parse(raw);
+    return typeof parsed?.version === "string" ? parsed.version : null;
+  } catch {
+    return null;
+  }
 }
