@@ -2,17 +2,29 @@
 
 import { useEffect, useState } from "react";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
+import { getCsChannelLabel, getCsToneLabel } from "@/lib/cs-helper/messages";
 import type { CsAiRunner, CsResponse, CsTone } from "@/lib/types";
 
 interface CsResponseViewProps {
   response: CsResponse | null;
   loading: boolean;
+  copy: {
+    emptyTitle: string;
+    emptyMessage: string;
+    title: string;
+    copy: string;
+    loading: string;
+    regenerateTone: string;
+    regenerateRunner: string;
+  };
   onRegenerate: (options: { tone?: CsTone; runner?: CsAiRunner }) => void;
 }
 
-export function CsResponseView({ response, loading, onRegenerate }: CsResponseViewProps) {
+export function CsResponseView({ response, loading, copy, onRegenerate }: CsResponseViewProps) {
+  const { locale } = useLocale();
   const [tone, setTone] = useState<CsTone>("friendly");
   const [runner, setRunner] = useState<CsAiRunner>("claude");
 
@@ -28,8 +40,8 @@ export function CsResponseView({ response, loading, onRegenerate }: CsResponseVi
   if (!response && !loading) {
     return (
       <EmptyStateCard
-        title="아직 생성된 CS 응답이 없습니다."
-        message="프로젝트를 고른 뒤 고객 메시지를 입력하고 응답을 생성하면, 여기서 고객 응답과 내부 분석을 바로 확인할 수 있습니다."
+        title={copy.emptyTitle}
+        message={copy.emptyMessage}
       />
     );
   }
@@ -38,17 +50,17 @@ export function CsResponseView({ response, loading, onRegenerate }: CsResponseVi
     <section className="panel p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-lg font-semibold text-white">AI 응답</p>
+          <p className="text-lg font-semibold text-white">{copy.title}</p>
           {response ? (
             <p className="mt-1 text-xs text-[var(--color-muted)]">
-              {response.runner} · {response.channel} · {response.tone} · {new Date(response.createdAt).toLocaleString("ko-KR")}
+              {response.runner} · {getCsChannelLabel(response.channel, locale)} · {getCsToneLabel(response.tone, locale)} · {new Date(response.createdAt).toLocaleString(locale === "en" ? "en-US" : "ko-KR")}
             </p>
           ) : null}
         </div>
-        {response ? <CopyButton value={response.reply} label="응답 복사" /> : null}
+        {response ? <CopyButton value={response.reply} label={copy.copy} /> : null}
       </div>
       <div className="mt-4 min-h-40 rounded-3xl border border-white/10 bg-black/15 p-5 text-sm leading-7 text-white/85">
-        {loading ? "응답을 생성하는 중입니다..." : response?.reply}
+        {loading ? copy.loading : response?.reply}
       </div>
       {response ? (
         <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -57,9 +69,9 @@ export function CsResponseView({ response, loading, onRegenerate }: CsResponseVi
             onChange={(event) => setTone(event.target.value as CsTone)}
             className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white"
           >
-            <option value="friendly">친절 톤</option>
-            <option value="formal">공식 톤</option>
-            <option value="casual">캐주얼 톤</option>
+            <option value="friendly">{locale === "en" ? "Friendly tone" : "친절 톤"}</option>
+            <option value="formal">{locale === "en" ? "Formal tone" : "공식 톤"}</option>
+            <option value="casual">{locale === "en" ? "Casual tone" : "캐주얼 톤"}</option>
           </select>
           <select
             value={runner}
@@ -76,14 +88,14 @@ export function CsResponseView({ response, loading, onRegenerate }: CsResponseVi
             onClick={() => onRegenerate({ tone })}
             className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-sm text-white transition hover:bg-white/10"
           >
-            톤만 바꿔 재생성
+            {copy.regenerateTone}
           </button>
           <button
             type="button"
             onClick={() => onRegenerate({ runner })}
             className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-sm text-white transition hover:bg-white/10"
           >
-            AI 바꿔 재생성
+            {copy.regenerateRunner}
           </button>
         </div>
       ) : null}

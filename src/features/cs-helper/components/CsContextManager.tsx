@@ -10,10 +10,18 @@ const PAGE_SIZE = 5;
 
 interface CsContextManagerProps {
   projects: CsProject[];
+  copy: {
+    title: string;
+    count: (count: number) => string;
+    hasContext: string;
+    noContext: string;
+    path: string;
+    create: string;
+  };
   onInit: (projectName: string) => void;
 }
 
-export function CsContextManager({ projects, onInit }: CsContextManagerProps) {
+export function CsContextManager({ projects, copy, onInit }: CsContextManagerProps) {
   const [page, setPage] = useState(0);
   const [collapsed, setCollapsed] = useState(true);
 
@@ -28,9 +36,9 @@ export function CsContextManager({ projects, onInit }: CsContextManagerProps) {
         className="flex w-full items-center justify-between text-left"
       >
         <div className="flex items-center gap-3">
-          <p className="text-lg font-semibold text-[#f0f0f0]">컨텍스트 관리</p>
+          <p className="text-lg font-semibold text-[#f0f0f0]">{copy.title}</p>
           <span className="rounded-full bg-white/8 px-2 py-0.5 text-xs text-gray-400">
-            {projects.length}개
+            {copy.count(projects.length)}
           </span>
         </div>
         <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform duration-[150ms] ${collapsed ? "" : "rotate-180"}`} />
@@ -56,17 +64,17 @@ export function CsContextManager({ projects, onInit }: CsContextManagerProps) {
                         : "border border-amber-500/20 bg-amber-900/30 text-amber-300"
                     }`}
                   >
-                    {project.hasContext ? "있음" : "없음"}
+                    {project.hasContext ? copy.hasContext : copy.noContext}
                   </span>
                   {project.contextPath ? (
-                    <CopyButton value={project.contextPath} label="경로" />
+                    <CopyButton value={project.contextPath} label={copy.path} />
                   ) : (
                     <button
                       type="button"
                       onClick={() => onInit(project.name)}
                       className="rounded-lg border border-white/8 bg-[#1e1e1e] px-3 py-1.5 text-xs text-gray-300 transition-all duration-[150ms] hover:bg-[#242424]"
                     >
-                      생성
+                      {copy.create}
                     </button>
                   )}
                 </div>

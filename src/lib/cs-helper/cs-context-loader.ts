@@ -3,13 +3,23 @@ import path from "node:path";
 
 import { APP_META } from "@/lib/app-meta";
 import { summarizeLocalProject } from "@/lib/call-to-prd/project-context";
+import { DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 import { getRuntimeConfig } from "@/lib/runtime/config";
 import type { CsProject } from "@/lib/types";
 import { getFirstParagraph, pathExists, toPosixPath } from "@/lib/parsers/shared";
 
+import {
+  createCsContextTemplate,
+  getCsContextBaselineHeading,
+  getCsContextMissing,
+  getCsContextSummaryFallback,
+  getCsContextWarning,
+  getCsValidationMessage,
+} from "./messages";
+
 const MAX_CONTEXT_BYTES = 50 * 1024;
 
-export async function scanCsProjects() {
+export async function scanCsProjects(locale: AppLocale = DEFAULT_LOCALE) {
   const { projectsRoot, centralContextsDir, excludedDirs } = getRuntimePaths();
   const projectEntries = await readdir(projectsRoot, { withFileTypes: true }).catch(() => []);
   const projectNames = projectEntries
@@ -24,6 +34,7 @@ export async function scanCsProjects() {
         projectName,
         centralMap.get(normalizeKey(projectName)) ?? null,
         projectsRoot,
+        locale,
       ),
     ),
   );
@@ -34,15 +45,15 @@ export async function scanCsProjects() {
           normalizeKey(projectName) === normalizeKey(path.basename(contextPath, ".md")),
       ),
     )
-    .map((contextPath) => buildExternalProject(contextPath, centralContextsDir));
+    .map((contextPath) => buildExternalProject(contextPath, centralContextsDir, locale));
 
   return [...projects, ...(await Promise.all(missingDesktopProjects))]
-    .sort((left, right) => left.name.localeCompare(right.name, "ko-KR"));
+    .sort((left, right) => left.name.localeCompare(right.name, locale === "en" ? "en-US" : "ko-KR"));
 }
 
-export async function loadContext(projectName: string) {
+export async function loadContext(projectName: string, locale: AppLocale = DEFAULT_LOCALE) {
   const { projectsRoot, centralContextsDir } = getRuntimePaths();
-  validateProjectName(projectName);
+  validateProjectName(projectName, locale);
   const projectPath = path.join(projectsRoot, projectName);
   const projectContextPath = path.join(projectPath, "cs-context.md");
   const centralContextPath = path.join(centralContextsDir, `${normalizeKey(projectName)}.md`);
@@ -51,25 +62,25 @@ export async function loadContext(projectName: string) {
 
   if (!(await pathExists(contextPath))) {
     return {
-      content: baselineSummary ? `## 프로젝트 기준 정보\n${baselineSummary.summary}` : "",
+      content: baselineSummary ? `${getCsContextBaselineHeading(locale)}\n${baselineSummary.summary}` : "",
       contextPath: null,
       hasContext: false,
     };
   }
 
-  const content = await readContextFile(contextPath);
+  const content = await readContextFile(contextPath, locale);
   return {
     content: baselineSummary
-      ? `${content}\n\n## 프로젝트 기준 정보\n${baselineSummary.summary}`
+      ? `${content}\n\n${getCsContextBaselineHeading(locale)}\n${baselineSummary.summary}`
       : content,
     contextPath: toPosixPath(contextPath),
     hasContext: true,
   };
 }
 
-export async function initProjectContext(projectName: string) {
+export async function initProjectContext(projectName: string, locale: AppLocale = DEFAULT_LOCALE) {
   const { projectsRoot, centralContextsDir } = getRuntimePaths();
-  validateProjectName(projectName);
+  validateProjectName(projectName, locale);
   const projectPath = path.join(projectsRoot, projectName);
   const targetPath = (await pathExists(projectPath))
     ? path.join(projectPath, "cs-context.md")
@@ -78,7 +89,7 @@ export async function initProjectContext(projectName: string) {
   await mkdir(path.dirname(targetPath), { recursive: true });
 
   if (!(await pathExists(targetPath))) {
-    await writeFile(targetPath, createContextTemplate(projectName), "utf8");
+    await writeFile(targetPath, createCsContextTemplate(projectName, locale), "utf8");
   }
 
   return {
@@ -87,17 +98,17 @@ export async function initProjectContext(projectName: string) {
   };
 }
 
-function validateProjectName(name: string) {
+function validateProjectName(name: string, locale: AppLocale) {
   const { projectsRoot } = getRuntimePaths();
   if (!name || !name.trim()) {
-    throw new Error("프로젝트 이름이 비어 있습니다.");
+    throw new Error(getCsValidationMessage(locale, "contextNameRequired"));
   }
   if (name.includes("..") || name.includes("/") || name.includes("\\")) {
-    throw new Error("프로젝트 이름에 허용되지 않는 문자가 포함되어 있습니다.");
+    throw new Error(getCsValidationMessage(locale, "contextNameInvalid"));
   }
   const resolved = path.resolve(projectsRoot, name);
   if (!(resolved === projectsRoot || resolved.startsWith(`${projectsRoot}${path.sep}`))) {
-    throw new Error("허용되지 않는 경로입니다.");
+    throw new Error(getCsValidationMessage(locale, "pathNotAllowed"));
   }
 }
 
@@ -118,12 +129,19 @@ async function scanCentralContexts(centralContextsDir: string) {
   );
 }
 
-async function buildCsProject(projectName: string, fallbackContextPath: string | null, projectsRoot: string) {
+async function buildCsProject(
+  projectName: string,
+  fallbackContextPath: string | null,
+  projectsRoot: string,
+  locale: AppLocale,
+) {
   const projectPath = path.join(projectsRoot, projectName);
   const localContextPath = path.join(projectPath, "cs-context.md");
   const hasLocal = await pathExists(localContextPath);
   const contextPath = hasLocal ? localContextPath : fallbackContextPath;
-  const summary = contextPath ? await summarizeContext(contextPath) : await summarizeProjectBaseline(projectPath);
+  const summary = contextPath
+    ? await summarizeContext(contextPath, locale)
+    : await summarizeProjectBaseline(projectPath, locale);
 
   return {
     id: projectName,
@@ -132,13 +150,13 @@ async function buildCsProject(projectName: string, fallbackContextPath: string |
     hasContext: Boolean(contextPath),
     contextPath: contextPath ? toPosixPath(contextPath) : null,
     contextSummary: summary,
-    warning: contextPath ? null : "컨텍스트 파일이 없어 기본 프롬프트로 동작합니다.",
+    warning: contextPath ? null : getCsContextWarning(locale),
   } satisfies CsProject;
 }
 
-async function buildExternalProject(contextPath: string, centralContextsDir: string) {
+async function buildExternalProject(contextPath: string, centralContextsDir: string, locale: AppLocale) {
   const name = path.basename(contextPath, ".md");
-  const summary = await summarizeContext(contextPath);
+  const summary = await summarizeContext(contextPath, locale);
 
   return {
     id: name,
@@ -151,51 +169,28 @@ async function buildExternalProject(contextPath: string, centralContextsDir: str
   } satisfies CsProject;
 }
 
-async function summarizeContext(contextPath: string) {
-  const content = await readContextFile(contextPath);
-  return getFirstParagraph(content).slice(0, 140) || "컨텍스트 요약 없음";
+async function summarizeContext(contextPath: string, locale: AppLocale) {
+  const content = await readContextFile(contextPath, locale);
+  return getFirstParagraph(content).slice(0, 140) || getCsContextSummaryFallback(locale);
 }
 
-async function summarizeProjectBaseline(projectPath: string) {
+async function summarizeProjectBaseline(projectPath: string, locale: AppLocale) {
   const baseline = await summarizeLocalProject(projectPath).catch(() => null);
   if (!baseline?.summary) {
-    return "컨텍스트 없음";
+    return getCsContextMissing(locale);
   }
 
-  return getFirstParagraph(baseline.summary).slice(0, 140) || "컨텍스트 없음";
+  return getFirstParagraph(baseline.summary).slice(0, 140) || getCsContextMissing(locale);
 }
 
-async function readContextFile(contextPath: string) {
+async function readContextFile(contextPath: string, locale: AppLocale) {
   const file = await readFile(contextPath, "utf8");
 
   if (Buffer.byteLength(file, "utf8") > MAX_CONTEXT_BYTES) {
-    throw new Error("컨텍스트 파일은 50KB 이하여야 합니다.");
+    throw new Error(getCsValidationMessage(locale, "contextTooLarge"));
   }
 
   return file;
-}
-
-function createContextTemplate(projectName: string) {
-  return `# ${projectName} CS 컨텍스트
-
-## 서비스 개요
-- 서비스 설명을 여기에 작성하세요.
-- 주요 기능을 2~3개 정리하세요.
-- 대상 고객을 적어 주세요.
-
-## FAQ
-### Q: 자주 받는 질문
-A: 안내할 답변을 작성하세요.
-
-## 응답 정책
-- 톤앤매너:
-- 환불 정책:
-- 버그 대응:
-- 에스컬레이션:
-
-## 알려진 이슈
-- 현재 알려진 이슈가 없으면 "없음"으로 기록하세요.
-`;
 }
 
 function getRuntimePaths() {

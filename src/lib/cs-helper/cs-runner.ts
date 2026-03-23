@@ -3,6 +3,7 @@ import { generateOpenAiText, hasOpenAiApiFallback } from "@/lib/ai/openai-respon
 import { pathExists } from "@/lib/parsers/shared";
 import { persistJson, readPersistentJson } from "@/lib/storage/persistent-json";
 import { runSpawnTask } from "@/lib/ai-skills/runner";
+import { DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
 import type {
   CsAiRunner,
   CsHistoryResponse,
@@ -14,6 +15,7 @@ import type {
 
 import { buildAnalysisPrompt, buildCsPrompt } from "./cs-prompt-builder";
 import { loadContext } from "./cs-context-loader";
+import { getCsValidationMessage } from "./messages";
 
 const MAX_HISTORY = 100;
 const CS_TIMEOUT_MS = 30_000;
@@ -29,17 +31,17 @@ export class CsRequestError extends Error {
   }
 }
 
-export async function generateCsReply(request: CsRequest) {
-  validateCsRequest(request);
-  const context = await loadContext(request.projectId);
-  const resolvedRunner = await resolveCsRunner(request.runner);
-  const promptUsed = buildCsPrompt(request, context.content);
-  const replyResult = await runCsModel(resolvedRunner, promptUsed);
+export async function generateCsReply(request: CsRequest, locale: AppLocale = DEFAULT_LOCALE) {
+  validateCsRequest(request, locale);
+  const context = await loadContext(request.projectId, locale);
+  const resolvedRunner = await resolveCsRunner(request.runner, locale);
+  const promptUsed = buildCsPrompt(request, context.content, locale);
+  const replyResult = await runCsModel(resolvedRunner, promptUsed, locale);
   let analysis: string | null = null;
 
   if (request.includeAnalysis) {
-    const analysisPrompt = buildAnalysisPrompt(request, context.content);
-    analysis = await runCsModel(resolvedRunner, analysisPrompt);
+    const analysisPrompt = buildAnalysisPrompt(request, context.content, locale);
+    analysis = await runCsModel(resolvedRunner, analysisPrompt, locale);
   }
 
   const response: CsResponse = {
@@ -61,12 +63,12 @@ export async function generateCsReply(request: CsRequest) {
   return response;
 }
 
-export async function generateCsAnalysis(request: CsRequest) {
-  validateCsRequest(request);
-  const context = await loadContext(request.projectId);
-  const resolvedRunner = await resolveCsRunner(request.runner);
-  const promptUsed = buildAnalysisPrompt(request, context.content);
-  const analysis = await runCsModel(resolvedRunner, promptUsed);
+export async function generateCsAnalysis(request: CsRequest, locale: AppLocale = DEFAULT_LOCALE) {
+  validateCsRequest(request, locale);
+  const context = await loadContext(request.projectId, locale);
+  const resolvedRunner = await resolveCsRunner(request.runner, locale);
+  const promptUsed = buildAnalysisPrompt(request, context.content, locale);
+  const analysis = await runCsModel(resolvedRunner, promptUsed, locale);
   return {
     id: crypto.randomUUID(),
     analysis,
@@ -77,11 +79,11 @@ export async function generateCsAnalysis(request: CsRequest) {
   };
 }
 
-export async function regenerateCsReply(request: CsRegenerateRequest) {
+export async function regenerateCsReply(request: CsRegenerateRequest, locale: AppLocale = DEFAULT_LOCALE) {
   const original = csStore.get(request.originalId);
 
   if (!original) {
-    throw new CsRequestError("원본 히스토리를 찾을 수 없습니다.");
+    throw new CsRequestError(getCsValidationMessage(locale, "originalNotFound"));
   }
 
   return generateCsReply({
@@ -92,7 +94,7 @@ export async function regenerateCsReply(request: CsRegenerateRequest) {
     customerMessage: original.customerMessage,
     additionalContext: original.additionalContext,
     includeAnalysis: request.includeAnalysis ?? original.includeAnalysis,
-  });
+  }, locale);
 }
 
 export function getCsHistory(): CsHistoryResponse {
@@ -111,7 +113,7 @@ export function getCsResponse(id: string) {
   return csStore.get(id) ?? null;
 }
 
-async function runCsModel(runner: CsAiRunner, prompt: string) {
+async function runCsModel(runner: CsAiRunner, prompt: string, locale: AppLocale) {
   if (runner === "openai") {
     return generateOpenAiText(prompt);
   }
@@ -124,7 +126,7 @@ async function runCsModel(runner: CsAiRunner, prompt: string) {
       input: prompt,
       timeoutMs: CS_TIMEOUT_MS,
     });
-    return unwrapOutput(result.output, result.error);
+    return unwrapOutput(result.output, result.error, locale);
   }
 
   if (runner === "codex") {
@@ -136,7 +138,7 @@ async function runCsModel(runner: CsAiRunner, prompt: string) {
       outputPath,
       timeoutMs: CS_TIMEOUT_MS,
     });
-    return unwrapOutput(result.output, result.error);
+    return unwrapOutput(result.output, result.error, locale);
   }
 
   const geminiCommand = (await pathExists("/opt/homebrew/bin/gemini")) ? "/opt/homebrew/bin/gemini" : "gemini";
@@ -146,13 +148,13 @@ async function runCsModel(runner: CsAiRunner, prompt: string) {
     cwd: process.env.HOME || "/",
     timeoutMs: CS_TIMEOUT_MS,
   });
-  return unwrapOutput(result.output, result.error);
+  return unwrapOutput(result.output, result.error, locale);
 }
 
-async function resolveCsRunner(requestedRunner: CsAiRunner): Promise<CsAiRunner> {
+async function resolveCsRunner(requestedRunner: CsAiRunner, locale: AppLocale): Promise<CsAiRunner> {
   if (requestedRunner === "openai") {
     if (!hasOpenAiApiFallback()) {
-      throw new Error("OpenAI API 키가 설정되어 있지 않습니다. 온보딩에서 API 키를 저장해 주세요.");
+      throw new Error(getCsValidationMessage(locale, "openAiKeyMissing"));
     }
 
     return "openai";
@@ -163,7 +165,7 @@ async function resolveCsRunner(requestedRunner: CsAiRunner): Promise<CsAiRunner>
       return "claude";
     }
 
-    return fallbackToOpenAiOrThrow("Claude CLI");
+    return fallbackToOpenAiOrThrow("Claude CLI", locale);
   }
 
   if (requestedRunner === "codex") {
@@ -171,49 +173,49 @@ async function resolveCsRunner(requestedRunner: CsAiRunner): Promise<CsAiRunner>
       return "codex";
     }
 
-    return fallbackToOpenAiOrThrow("Codex CLI");
+    return fallbackToOpenAiOrThrow("Codex CLI", locale);
   }
 
   if (await pathExists("/opt/homebrew/bin/gemini") || await checkCommandAvailable("gemini")) {
     return "gemini";
   }
 
-  return fallbackToOpenAiOrThrow("Gemini CLI");
+  return fallbackToOpenAiOrThrow("Gemini CLI", locale);
 }
 
-function fallbackToOpenAiOrThrow(label: string): CsAiRunner {
+function fallbackToOpenAiOrThrow(label: string, locale: AppLocale): CsAiRunner {
   if (hasOpenAiApiFallback()) {
     return "openai";
   }
 
-  throw new Error(`${label}가 설치되어 있지 않습니다. CLI를 설치하거나 온보딩에서 OpenAI API 키를 저장해 주세요.`);
+  throw new Error(getCsValidationMessage(locale, "runnerMissing", { label }));
 }
 
-function validateCsRequest(request: CsRequest) {
+function validateCsRequest(request: CsRequest, locale: AppLocale) {
   if (!request.projectId.trim()) {
-    throw new CsRequestError("프로젝트를 선택해 주세요.");
+    throw new CsRequestError(getCsValidationMessage(locale, "projectRequired"));
   }
 
   if (!request.customerMessage.trim()) {
-    throw new CsRequestError("고객 메시지를 입력해 주세요.");
+    throw new CsRequestError(getCsValidationMessage(locale, "customerRequired"));
   }
 
   if (request.customerMessage.trim().length > MAX_CUSTOMER_MESSAGE) {
-    throw new CsRequestError("고객 메시지는 2000자 이하로 입력해 주세요.");
+    throw new CsRequestError(getCsValidationMessage(locale, "customerTooLong"));
   }
 
   if (request.additionalContext.trim().length > MAX_ADDITIONAL_CONTEXT) {
-    throw new CsRequestError("추가 맥락은 1000자 이하로 입력해 주세요.");
+    throw new CsRequestError(getCsValidationMessage(locale, "additionalTooLong"));
   }
 }
 
-function unwrapOutput(output: string | null, error: string | null) {
+function unwrapOutput(output: string | null, error: string | null, locale: AppLocale) {
   if (error) {
     throw new Error(error);
   }
 
   if (!output) {
-    throw new Error("AI 응답이 비어 있습니다.");
+    throw new Error(getCsValidationMessage(locale, "emptyResponse"));
   }
 
   return output;

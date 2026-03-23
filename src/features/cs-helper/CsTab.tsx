@@ -1,65 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ClipboardList, MessageSquare, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { ErrorCard } from "@/components/ui/ErrorCard";
 import { NoticeBanner } from "@/components/ui/NoticeBanner";
+import { useLocale } from "@/components/layout/LocaleProvider";
 import type { DashboardNavigationMode } from "@/components/layout/TabNav";
+import { getCsHelperCopy } from "@/features/cs-helper/copy";
 import { CsContextManager } from "@/features/cs-helper/components/CsContextManager";
 import { CsHistory } from "@/features/cs-helper/components/CsHistory";
 import { CsMessageInput } from "@/features/cs-helper/components/CsMessageInput";
 import { CsResponseView } from "@/features/cs-helper/components/CsResponseView";
 import { CsSettingsBar } from "@/features/cs-helper/components/CsSettingsBar";
-import type {
-  CsAiRunner,
-  CsChannel,
-  CsHistoryItem,
-  CsHistoryResponse,
-  CsProject,
-  CsResponse,
-  CsTone,
-} from "@/lib/types";
-
-const CS_QUICK_PRESETS: Array<{
-  id: string;
-  label: string;
-  customerMessage: string;
-  additionalContext: string;
-}> = [
-  {
-    id: "delay",
-    label: "일정 지연 안내",
-    customerMessage: "언제 처리되는지 확인 부탁드립니다. 일정이 계속 밀리고 있어 불편합니다.",
-    additionalContext: "지연 사유를 투명하게 설명하고 다음 조치 시점을 분명히 안내",
-  },
-  {
-    id: "refund",
-    label: "환불/취소 문의",
-    customerMessage: "서비스를 더 이상 이용하지 않으려 합니다. 환불이나 취소 절차를 안내해 주세요.",
-    additionalContext: "정책을 넘어서 단정하지 말고 확인 가능한 절차 중심으로 답변",
-  },
-  {
-    id: "bug",
-    label: "오류 신고 대응",
-    customerMessage: "방금 기능을 사용했는데 오류가 발생했습니다. 어떻게 해결하면 될까요?",
-    additionalContext: "사과, 재현 정보 요청, 임시 우회책, 후속 안내를 포함",
-  },
-  {
-    id: "feature",
-    label: "추가기능 요청",
-    customerMessage: "현재 기능으로는 부족해서 추가 기능이 필요합니다. 검토 가능한지 궁금합니다.",
-    additionalContext: "확답 대신 검토 프로세스와 필요한 추가 정보를 정리",
-  },
-];
+import type { CsAiRunner, CsChannel, CsHistoryItem, CsHistoryResponse, CsProject, CsResponse, CsTone } from "@/lib/types";
 
 interface CsTabProps {
   mode?: DashboardNavigationMode;
 }
 
 export function CsTab({ mode = "advanced" }: CsTabProps) {
+  const { locale } = useLocale();
+  const copy = getCsHelperCopy(locale);
   const [projects, setProjects] = useState<CsProject[]>([]);
   const [projectId, setProjectId] = useState("");
   const [runner, setRunner] = useState<CsAiRunner>("claude");
@@ -76,11 +40,16 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
   const [analyzingLoading, setAnalyzingLoading] = useState(false);
   const [error, setError] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const latestProjectIdRef = useRef("");
 
   useEffect(() => {
-    void loadProjects(setProjects, setProjectId);
-    void loadHistory(setHistory);
-  }, []);
+    latestProjectIdRef.current = projectId;
+  }, [projectId]);
+
+  useEffect(() => {
+    void loadProjects(setProjects, setProjectId, locale, latestProjectIdRef.current);
+    void loadHistory(setHistory, locale);
+  }, [locale]);
 
   useEffect(() => {
     if (!feedbackMessage) {
@@ -109,29 +78,12 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
     <div className="space-y-5">
       <section className="rounded-3xl border border-white/8 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.16),_transparent_42%),linear-gradient(180deg,_rgba(20,20,20,0.94),_rgba(14,14,14,0.98))] p-6">
         <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">CS Helper</p>
-        <h2 className="mt-3 text-xl font-semibold tracking-tight text-white">고객 메시지를 프로젝트 문맥에 맞는 답변 초안으로 정리하는 탭</h2>
+        <h2 className="mt-3 text-xl font-semibold tracking-tight text-white">{copy.heroTitle}</h2>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-text-soft)]">
-          프로젝트별 맥락을 읽은 뒤 고객 응답 초안과 내부 분석 메모를 함께 만듭니다. 단순한 답변 복붙이 아니라, 현재 프로젝트 상황을
-          반영한 응답 옵션을 빠르게 준비하는 용도입니다.
+          {copy.heroDescription}
         </p>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
-          {[
-            {
-              label: "고객 응답",
-              title: "문의 답변 초안을 먼저 만들기",
-              description: "지연 안내, 오류 대응, 환불 문의처럼 반복되는 케이스를 빠르게 초안화합니다.",
-            },
-            {
-              label: "내부 분석",
-              title: "공유용 메모와 판단 근거 정리",
-              description: "고객에게 바로 보내지 않을 분석 메모를 분리해서 팀 내부 커뮤니케이션에 활용할 수 있습니다.",
-            },
-            {
-              label: "문맥 반영",
-              title: "프로젝트별 컨텍스트와 톤 유지",
-              description: "선택한 프로젝트의 배경을 반영해 톤, 채널, 응답 수준을 맞춘 초안을 준비합니다.",
-            },
-          ].map((item) => (
+          {copy.cards.map((item) => (
             <article key={item.label} className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
               <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-200/70">{item.label}</p>
               <p className="mt-2 text-sm font-medium text-white">{item.title}</p>
@@ -143,13 +95,13 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
       {isCoreMode ? (
         <NoticeBanner
           tone="info"
-          title="간단 모드 안내"
-          message="처음에는 프로젝트 하나를 고르고 고객 메시지만 입력한 뒤 고객 응답 초안을 먼저 확인하면 됩니다. 내부 분석은 필요할 때만 같이 생성하면 충분합니다."
+          title={copy.coreModeTitle}
+          message={copy.coreModeMessage}
         />
       ) : null}
       {feedbackMessage ? (
         <NoticeBanner
-          title="반영되었습니다"
+          title={copy.appliedTitle}
           message={feedbackMessage}
         />
       ) : null}
@@ -168,29 +120,29 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
       <section className="panel p-5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-100">
-            {selectedProject?.name ?? "프로젝트 선택 필요"}
+            {selectedProject?.name ?? copy.projectRequired}
           </span>
           <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/70">
-            {channel}
+            {copy.getChannelLabel(channel)}
           </span>
           <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/70">
-            {tone}
+            {copy.getToneLabel(tone)}
           </span>
           <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/70">
             {runner}
           </span>
           {selectedProject?.hasContext ? (
             <span className="rounded-full border border-emerald-500/20 bg-emerald-900/30 px-3 py-1 text-xs text-emerald-300">
-              컨텍스트 준비됨
+              {copy.contextReady}
             </span>
           ) : null}
         </div>
         <p className="mt-3 text-sm text-[var(--color-text-soft)]">
-          고객 메시지를 입력하면 응답을 생성하고, 내부 분석은 필요할 때만 함께 생성할 수 있습니다. 히스토리를 선택하면 당시 설정과 메시지가 같이 복원됩니다.
+          {copy.workspaceDescription}
         </p>
         {selectedProject ? (
           <div className="mt-4 rounded-2xl border border-white/10 bg-black/15 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">현재 프로젝트 기준 정보</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">{copy.contextInfoTitle}</p>
             <p className="mt-2 text-sm text-white/75">{selectedProject.contextSummary}</p>
           </div>
         ) : null}
@@ -200,14 +152,14 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
           <section className="panel p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-white">빠른 응답 프리셋</p>
+                <p className="text-sm font-semibold text-white">{copy.quickPresetTitle}</p>
                 <p className="mt-1 text-xs text-[var(--color-muted)]">
-                  자주 오는 문의는 프리셋으로 초안을 넣고 바로 수정할 수 있습니다.
+                  {copy.quickPresetDescription}
                 </p>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              {CS_QUICK_PRESETS.map((preset) => (
+              {copy.presets.map((preset) => (
                 <button
                   key={preset.id}
                   type="button"
@@ -226,14 +178,15 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
 
           <CsMessageInput
             projectName={selectedProject?.name ?? null}
-            channelLabel={channel}
-            toneLabel={tone}
+            channelLabel={copy.getChannelLabel(channel)}
+            toneLabel={copy.getToneLabel(tone)}
             customerMessage={customerMessage}
             additionalContext={additionalContext}
             includeAnalysis={includeAnalysis}
             warning={selectedProject?.warning ?? null}
             loading={loading}
             canSubmit={canSubmit}
+            copy={copy.input}
             onCustomerMessageChange={setCustomerMessage}
             onAdditionalContextChange={setAdditionalContext}
             onIncludeAnalysisChange={setIncludeAnalysis}
@@ -253,7 +206,7 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-3 py-1 text-white/75">
                   <MessageSquare className="h-4 w-4" />
-                  고객 응답 준비됨
+                  {copy.replyReady}
                 </span>
                 <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 ${
                   analysis
@@ -263,7 +216,7 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
                       : "border-white/10 bg-white/6 text-white/60"
                 }`}>
                   <Sparkles className="h-4 w-4" />
-                  {analysis ? "내부 분석 준비됨" : analyzingLoading ? "내부 분석 생성 중" : "내부 분석 없음"}
+                  {analysis ? copy.analysisReady : analyzingLoading ? copy.analysisLoading : copy.analysisEmpty}
                 </span>
               </div>
             </section>
@@ -271,11 +224,11 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
           <div className="flex gap-2">
             <button type="button" onClick={() => setActiveResultTab("reply")}
               className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-all duration-[150ms] ${activeResultTab === "reply" ? "bg-purple-900/30 text-purple-300 border border-purple-500/20" : "bg-[#1e1e1e] text-gray-400 border border-white/8"}`}>
-              <MessageSquare className="h-4 w-4" />고객 응답
+              <MessageSquare className="h-4 w-4" />{copy.replyTab}
             </button>
             <button type="button" onClick={() => setActiveResultTab("analysis")}
               className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-all duration-[150ms] ${activeResultTab === "analysis" ? "bg-purple-900/30 text-purple-300 border border-purple-500/20" : "bg-[#1e1e1e] text-gray-400 border border-white/8"}`}>
-              <ClipboardList className="h-4 w-4" />내부 분석
+              <ClipboardList className="h-4 w-4" />{copy.analysisTab}
             </button>
           </div>
 
@@ -283,22 +236,23 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
             <CsResponseView
               response={response}
               loading={loading}
+              copy={copy.response}
               onRegenerate={(options) => void regenerateResponse(options)}
             />
           ) : (
             <div className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-6">
               {analyzingLoading ? (
-                <p className="text-sm text-gray-400 animate-pulse">내부 분석 생성 중...</p>
+                <p className="text-sm text-gray-400 animate-pulse">{copy.analysisPanelLoading}</p>
               ) : analysis ? (
                 <>
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-white">내부 분석</p>
+                    <p className="text-sm font-medium text-white">{copy.analysisPanelTitle}</p>
                     <button
                       type="button"
                       onClick={() => void generateAnalysis()}
                       className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-xs text-white/75 transition hover:bg-white/10"
                     >
-                      분석 다시 생성
+                      {copy.analysisRegenerate}
                     </button>
                   </div>
                   <div className="prose prose-invert mt-4 max-w-none text-sm">
@@ -307,14 +261,14 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
                 </>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-500">답변 생성 시 내부 분석을 함께 켜지 않았다면, 필요할 때 여기서 별도로 생성할 수 있습니다.</p>
+                  <p className="text-sm text-gray-500">{copy.analysisHint}</p>
                   {response ? (
                     <button
                       type="button"
                       onClick={() => void generateAnalysis()}
                       className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-xs text-white/75 transition hover:bg-white/10"
                     >
-                      내부 분석 생성
+                      {copy.analysisGenerate}
                     </button>
                   ) : null}
                 </div>
@@ -326,11 +280,13 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
           <CsHistory
             items={history}
             projectNameMap={projectNameMap}
+            copy={copy.history}
             onSelect={restoreFromHistory}
           />
           <CsContextManager
             projects={projects}
-            onInit={(projectName) => void initContext(projectName, setProjects, setProjectId)}
+            copy={copy.context}
+            onInit={(projectName) => void initContext(projectName, setProjects, setProjectId, locale)}
           />
         </div>
       </div>
@@ -352,13 +308,13 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
         customerMessage,
         additionalContext,
         includeAnalysis,
-      });
+      }, locale, copy.errors.requestFailed);
       setResponse(generated);
       setAnalysis(generated.analysis ?? null);
-      await loadHistory(setHistory);
-      setFeedbackMessage(includeAnalysis ? "고객 응답과 내부 분석을 생성했습니다." : "고객 응답을 생성했습니다.");
+      await loadHistory(setHistory, locale);
+      setFeedbackMessage(includeAnalysis ? copy.feedback.responseCreatedWithAnalysis : copy.feedback.responseCreated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "응답 생성에 실패했습니다.");
+      setError(err instanceof Error ? err.message : copy.errors.responseFailed);
     } finally {
       setLoading(false);
       setAnalyzingLoading(false);
@@ -372,14 +328,17 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
       setError("");
       const res = await fetch("/api/cs-helper/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-dashboard-locale": locale },
         body: JSON.stringify({ projectId, runner, channel, tone, customerMessage, additionalContext, includeAnalysis: true }),
       });
-      const data = await res.json();
+      const data = await res.json() as { analysis?: string; error?: { message?: string } };
+      if (!res.ok) {
+        throw new Error(data.error?.message ?? copy.errors.analysisFailed);
+      }
       if (data.analysis) setAnalysis(data.analysis);
-      setFeedbackMessage("내부 분석을 다시 생성했습니다.");
-    } catch {
-      setAnalysis("분석 생성에 실패했습니다.");
+      setFeedbackMessage(copy.feedback.analysisRegenerated);
+    } catch (err) {
+      setAnalysis(err instanceof Error ? err.message : copy.errors.analysisFailed);
     } finally {
       setAnalyzingLoading(false);
     }
@@ -398,13 +357,13 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
         originalId: response.id,
         includeAnalysis,
         ...options,
-      });
+      }, locale, copy.errors.requestFailed);
       setResponse(regenerated);
       setAnalysis(regenerated.analysis ?? null);
-      await loadHistory(setHistory);
-      setFeedbackMessage(includeAnalysis ? "설정을 반영해 CS 응답과 내부 분석을 다시 생성했습니다." : "설정을 반영해 CS 응답을 다시 생성했습니다.");
+      await loadHistory(setHistory, locale);
+      setFeedbackMessage(includeAnalysis ? copy.feedback.responseRegeneratedWithAnalysis : copy.feedback.responseRegenerated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "재생성에 실패했습니다.");
+      setError(err instanceof Error ? err.message : copy.errors.regenerateFailed);
     } finally {
       setLoading(false);
       setAnalyzingLoading(false);
@@ -422,7 +381,7 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
     setAnalysis(item.analysis ?? null);
     setActiveResultTab("reply");
     setError("");
-    setFeedbackMessage("히스토리 기록을 현재 작업 화면으로 복원했습니다.");
+    setFeedbackMessage(copy.feedback.historyRestored);
     setResponse({
       id: item.id,
       reply: item.reply,
@@ -443,15 +402,26 @@ export function CsTab({ mode = "advanced" }: CsTabProps) {
 async function loadProjects(
   setProjects: (value: CsProject[]) => void,
   setProjectId: (value: string) => void,
+  locale: "ko" | "en",
+  preferredProjectId?: string,
 ) {
-  const response = await fetch("/api/cs-helper/projects", { cache: "no-store" });
+  const response = await fetch("/api/cs-helper/projects", {
+    cache: "no-store",
+    headers: { "x-dashboard-locale": locale },
+  });
   const payload = (await response.json()) as { projects: CsProject[] };
   setProjects(payload.projects);
-  setProjectId(payload.projects[0]?.id ?? "");
+  const nextProjectId = payload.projects.some((project) => project.id === preferredProjectId)
+    ? preferredProjectId ?? ""
+    : payload.projects[0]?.id ?? "";
+  setProjectId(nextProjectId);
 }
 
-async function loadHistory(setHistory: (value: CsHistoryItem[]) => void) {
-  const response = await fetch("/api/cs-helper/history", { cache: "no-store" });
+async function loadHistory(setHistory: (value: CsHistoryItem[]) => void, locale: "ko" | "en") {
+  const response = await fetch("/api/cs-helper/history", {
+    cache: "no-store",
+    headers: { "x-dashboard-locale": locale },
+  });
   const payload = (await response.json()) as CsHistoryResponse;
   setHistory(payload.items);
 }
@@ -460,25 +430,26 @@ async function initContext(
   projectName: string,
   setProjects: (value: CsProject[]) => void,
   setProjectId: (value: string) => void,
+  locale: "ko" | "en",
 ) {
   await fetch("/api/cs-helper/context/init", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-dashboard-locale": locale },
     body: JSON.stringify({ projectName }),
   });
-  await loadProjects(setProjects, setProjectId);
+  await loadProjects(setProjects, setProjectId, locale);
 }
 
-async function postCsResponse(url: string, payload: object) {
+async function postCsResponse(url: string, payload: object, locale: "ko" | "en", fallback: string) {
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-dashboard-locale": locale },
     body: JSON.stringify(payload),
   });
   const data = (await response.json()) as CsResponse | { error?: { message: string } };
 
   if (!response.ok) {
-    throw new Error("error" in data ? data.error?.message ?? "요청 처리에 실패했습니다." : "요청 처리에 실패했습니다.");
+    throw new Error("error" in data ? data.error?.message ?? fallback : fallback);
   }
 
   return data as CsResponse;

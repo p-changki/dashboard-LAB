@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
+import { getCsHelperCopy } from "@/features/cs-helper/copy";
 import type { CsAiRunner, CsChannel, CsProject, CsTone } from "@/lib/types";
 
 interface CsSettingsBarProps {
@@ -14,26 +16,15 @@ interface CsSettingsBarProps {
   onToneChange: (value: CsTone) => void;
 }
 
-const CHANNEL_LABELS: Record<CsChannel, string> = {
-  kakao: "카카오톡",
-  email: "이메일",
-  instagram: "인스타그램",
-  phone: "전화",
-  other: "기타",
-};
-
-const TONE_LABELS: Record<CsTone, string> = {
-  friendly: "친절",
-  formal: "공식",
-  casual: "캐주얼",
-};
-
 export function CsSettingsBar(props: CsSettingsBarProps) {
+  const { locale } = useLocale();
+  const copy = getCsHelperCopy(locale);
+
   return (
     <section className="panel p-5">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SelectField
-          label="프로젝트"
+          label={copy.settings.project}
           value={props.projectId}
           onChange={props.onProjectChange}
           options={props.projects.map((project) => ({
@@ -42,7 +33,7 @@ export function CsSettingsBar(props: CsSettingsBarProps) {
           }))}
         />
         <SelectField
-          label="AI"
+          label={copy.settings.ai}
           value={props.runner}
           onChange={(value) => props.onRunnerChange(value as CsAiRunner)}
           options={[
@@ -53,16 +44,26 @@ export function CsSettingsBar(props: CsSettingsBarProps) {
           ]}
         />
         <SelectField
-          label="채널"
+          label={copy.settings.channel}
           value={props.channel}
           onChange={(value) => props.onChannelChange(value as CsChannel)}
-          options={Object.entries(CHANNEL_LABELS).map(([value, label]) => ({ value, label }))}
+          options={[
+            { value: "kakao", label: copy.getChannelLabel("kakao") },
+            { value: "email", label: copy.getChannelLabel("email") },
+            { value: "instagram", label: copy.getChannelLabel("instagram") },
+            { value: "phone", label: copy.getChannelLabel("phone") },
+            { value: "other", label: copy.getChannelLabel("other") },
+          ]}
         />
         <SelectField
-          label="톤"
+          label={copy.settings.tone}
           value={props.tone}
           onChange={(value) => props.onToneChange(value as CsTone)}
-          options={Object.entries(TONE_LABELS).map(([value, label]) => ({ value, label }))}
+          options={[
+            { value: "friendly", label: copy.getToneLabel("friendly") },
+            { value: "formal", label: copy.getToneLabel("formal") },
+            { value: "casual", label: copy.getToneLabel("casual") },
+          ]}
         />
       </div>
     </section>
