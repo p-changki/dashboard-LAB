@@ -108,7 +108,9 @@ If you are running from the source repository instead:
 
 1. Download this repository with `Code -> Download ZIP`, or clone it
 2. Open the extracted folder in Finder
-3. Double-click `Run-Dashboard-LAB.command`
+3. Double-click `Run-Dashboard-LAB.command` for the first setup and browser launch
+4. Optional but recommended on macOS: double-click `Install-Dashboard-LAB-Launcher.command`
+5. After that, open `~/Applications/dashboard-LAB Dev.app` whenever you want to start the local app without typing `pnpm dev`
 
 If you prefer the CLI:
 
@@ -142,11 +144,14 @@ If you downloaded the source code instead of a release build:
 2. Unzip the folder.
 3. Open the folder and double-click `Run-Dashboard-LAB.command`.
 4. Wait while the launcher installs missing tools and opens the app in your browser.
+5. If you want a clickable app for future launches, double-click `Install-Dashboard-LAB-Launcher.command`.
+6. After that, start the local app from `~/Applications/dashboard-LAB Dev.app`.
 
 Notes:
 
 - The first run can take several minutes.
 - Keep the terminal window open while the app is running.
+- `Install-Dashboard-LAB-Launcher.command` creates a reusable macOS launcher app so you do not need to type `pnpm dev` every time.
 - Do not download `Source code (zip)` or `Source code (tar.gz)` unless you want the raw repository instead of an installable app.
 - `Run-Dashboard-LAB.command` is a file inside the downloaded repository folder, not a button on the GitHub page.
 - If setup stops early, the terminal window will show the failed step and what to install first.

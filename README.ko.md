@@ -108,7 +108,9 @@
 
 1. GitHub에서 `Code -> Download ZIP`으로 저장소를 내려받거나 직접 clone 합니다.
 2. 압축을 풀고 Finder에서 해당 폴더를 엽니다.
-3. 폴더 안의 `Run-Dashboard-LAB.command`를 더블클릭합니다.
+3. 첫 실행과 초기 세팅은 `Run-Dashboard-LAB.command`를 더블클릭합니다.
+4. macOS에서는 이어서 `Install-Dashboard-LAB-Launcher.command`를 한 번 실행하는 것을 권장합니다.
+5. 이후부터는 `~/Applications/dashboard-LAB Dev.app`만 더블클릭해서 `pnpm dev` 없이 실행할 수 있습니다.
 
 CLI로 실행하려면:
 
@@ -142,11 +144,14 @@ macOS에서 바로 써보려면:
 2. 압축을 풉니다.
 3. 폴더를 열고 `Run-Dashboard-LAB.command`를 더블클릭합니다.
 4. 런처가 필요한 도구를 설치하고 브라우저에서 앱을 열 때까지 기다립니다.
+5. 이후 더블클릭 실행용 앱이 필요하면 `Install-Dashboard-LAB-Launcher.command`를 실행합니다.
+6. 그다음부터는 `~/Applications/dashboard-LAB Dev.app`에서 바로 시작합니다.
 
 알아둘 점:
 
 - 첫 실행은 몇 분 걸릴 수 있습니다.
 - 앱이 실행되는 동안 터미널 창은 열어 두는 편이 안전합니다.
+- `Install-Dashboard-LAB-Launcher.command`를 실행하면 이후에는 `pnpm dev`를 직접 치지 않아도 되는 macOS 런처 앱이 만들어집니다.
 - 설치본이 아니라 원본 저장소가 필요할 때만 `Source code (zip)` 또는 `Source code (tar.gz)`를 받습니다.
 - `Run-Dashboard-LAB.command`는 GitHub 페이지 위의 버튼이 아니라, 내려받은 저장소 폴더 안에 있는 파일입니다.
 - 중간에 멈추면 터미널 창에 실패한 단계와 다음 조치가 표시됩니다.

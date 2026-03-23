@@ -31,6 +31,7 @@
     "doctor": "node scripts/doctor.mjs",
     "setup:mac": "bash scripts/bootstrap-macos.sh",
     "launch": "node scripts/launch-local.mjs",
+    "launcher:install:mac": "node scripts/install-macos-launcher.mjs",
     "dev": "node server/run-local.mjs dev",
     "build": "node scripts/next-build.mjs",
     "start": "node server/run-local.mjs start",
