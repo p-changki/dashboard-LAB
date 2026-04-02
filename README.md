@@ -9,7 +9,7 @@ English | [한국어](README.ko.md)
 
 > The local AI workspace for Claude, Codex, and Gemini without living in the terminal.
 
-`dashboard-LAB` is a local-first desktop workspace for people who want to manage projects, docs, customer replies, daily updates, and PRD workflows around their own AI CLI tools from one place.
+`dashboard-LAB` is a local-first desktop workspace for people who want to manage projects, docs, customer replies, meeting ops, daily updates, signal writing, and PRD workflows around their own AI CLI tools from one place.
 
 It is positioned as the missing GUI layer around tools like `claude`, `codex`, and similar local AI workflows, especially for people who want developer-style leverage without staying terminal-first all day.
 
@@ -18,14 +18,17 @@ It is positioned as the missing GUI layer around tools like `claude`, `codex`, a
 - Manage your local AI CLI tools through a visual workspace instead of juggling shell commands
 - Turn meeting notes, call transcripts, and issue summaries into PRDs and working docs
 - Draft customer replies with project context already attached
+- Turn fresh signals into post-ready drafts with built-in research and fact checks
 - Scan repositories, docs, system state, and daily updates from one dashboard
 
 ## Signature Workflows
 
 - `Projects + Doc Hub`: understand the current state of a local repo before doing any AI-assisted work
 - `CS Helper`: turn customer messages into project-aware reply drafts and internal notes
+- `Meeting Hub`: keep teams, meeting records, and action items aligned around local project context
 - `Call → PRD`: turn calls, notes, and issue context into PRDs plus role-specific follow-up docs
 - `Info Hub`: check daily refreshed news, trends, package updates, and security signals
+- `Signal Writer`: turn curated daily signals into social drafts, angle boards, and supporting research
 
 ## Positioning
 
@@ -56,9 +59,11 @@ The main value is giving local AI tooling a practical desktop workspace where pr
 - `CS Helper`: turn project context plus incoming customer messages into reply drafts, internal notes, and support-ready response text
 - `Projects`: inspect local repositories, git status, ports, env hints, and cleanup targets
 - `Doc Hub`: browse project docs such as `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and `docs/*.md`
+- `Meeting Hub`: track teams, meetings, uploaded notes, action items, and GitHub follow-up work
 - `File Manager`: review cleanup suggestions for Desktop and Downloads
 - `System`: inspect local machine status, processes, runtime info, and app launch actions
 - `Info Hub`: read daily refreshed news, trends, package updates, and security checks
+- `Signal Writer`: turn selected signals into drafts, trend boards, fact checks, and follow-up research
 - `Call to PRD`: turn notes, transcripts, or meeting context into PRDs and working docs
 
 By default, the app starts in a simpler navigation mode and keeps more operational tabs out of the way until you switch to the full view.
@@ -80,8 +85,10 @@ It is useful when you need fast, context-aware support writing without manually 
 
 - Local AI workspace built around your own CLI tools
 - Project and document visibility across your machine
+- Meeting and action tracking tied back to local project context
 - PRD and work-doc generation from real project context
 - Daily information flow for news, trends, dependency updates, and security checks
+- Signal-to-draft writing flow with built-in research support
 - A guided UI that makes advanced local workflows more usable for non-developers
 
 ## Stack
