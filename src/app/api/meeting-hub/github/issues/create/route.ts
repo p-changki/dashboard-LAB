@@ -3,6 +3,8 @@ import {
   isJsonParseError,
   jsonError,
 } from "@/lib/api/error-response";
+import { meetingHubGithubIssueCreateSchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseJsonBody } from "@/lib/api/validation";
 import { createMeetingHubGithubIssue } from "@/lib/meeting-hub/github";
 import { getMeetingHubSummary, linkMeetingHubActionItemToIssue } from "@/lib/meeting-hub/storage";
 
@@ -11,16 +13,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as {
-      actionId?: string;
-      repo?: string;
-      title?: string;
-      body?: string;
-    };
-
-    if (!payload?.actionId || !payload.repo || !payload.title || !payload.body) {
-      return jsonError("INVALID_PAYLOAD", "actionId, repo, title, and body are required.", 400);
-    }
+    const payload = await parseJsonBody(request, meetingHubGithubIssueCreateSchema);
 
     const issue = await createMeetingHubGithubIssue({
       repo: payload.repo,
@@ -41,6 +34,14 @@ export async function POST(request: Request) {
   } catch (error) {
     if (isJsonParseError(error)) {
       return jsonError("INVALID_JSON", "JSON payload is invalid.", 400);
+    }
+
+    if (isZodError(error)) {
+      return jsonError(
+        "INVALID_INPUT",
+        getZodErrorMessage(error, "Meeting Hub GitHub issue payload is invalid."),
+        400,
+      );
     }
 
     return jsonError(

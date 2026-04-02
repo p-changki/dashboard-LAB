@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { Button } from "@/components/ui/Button";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
-import { getCsChannelLabel, getCsToneLabel } from "@/lib/cs-helper/messages";
+import { getCsChannelLabel, getCsInputModeLabel, getCsToneLabel } from "@/lib/cs-helper/messages";
 import type { CsAiRunner, CsResponse, CsTone } from "@/lib/types";
 
 interface CsResponseViewProps {
@@ -52,14 +53,14 @@ export function CsResponseView({ response, loading, copy, onRegenerate }: CsResp
         <div>
           <p className="text-lg font-semibold text-white">{copy.title}</p>
           {response ? (
-            <p className="mt-1 text-xs text-[var(--color-muted)]">
-              {response.runner} · {getCsChannelLabel(response.channel, locale)} · {getCsToneLabel(response.tone, locale)} · {new Date(response.createdAt).toLocaleString(locale === "en" ? "en-US" : "ko-KR")}
+            <p className="mt-1 text-xs text-text-muted">
+              {response.runner} · {getCsChannelLabel(response.channel, locale)} · {getCsToneLabel(response.tone, locale)} · {getCsInputModeLabel(response.inputMode ?? "customer", locale)} · {new Date(response.createdAt).toLocaleString(locale === "en" ? "en-US" : "ko-KR")}
             </p>
           ) : null}
         </div>
         {response ? <CopyButton value={response.reply} label={copy.copy} /> : null}
       </div>
-      <div className="mt-4 min-h-40 rounded-3xl border border-white/10 bg-black/15 p-5 text-sm leading-7 text-white/85">
+      <div className="mt-4 min-h-40 rounded-3xl border border-border-base bg-black/15 p-5 text-sm leading-7 text-white/85">
         {loading ? copy.loading : response?.reply}
       </div>
       {response ? (
@@ -67,7 +68,7 @@ export function CsResponseView({ response, loading, copy, onRegenerate }: CsResp
           <select
             value={tone}
             onChange={(event) => setTone(event.target.value as CsTone)}
-            className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white"
+            className="rounded-full border border-border-base bg-white/6 px-4 py-2 text-sm text-white"
           >
             <option value="friendly">{locale === "en" ? "Friendly tone" : "친절 톤"}</option>
             <option value="formal">{locale === "en" ? "Formal tone" : "공식 톤"}</option>
@@ -76,27 +77,27 @@ export function CsResponseView({ response, loading, copy, onRegenerate }: CsResp
           <select
             value={runner}
             onChange={(event) => setRunner(event.target.value as CsAiRunner)}
-            className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white"
+            className="rounded-full border border-border-base bg-white/6 px-4 py-2 text-sm text-white"
           >
             <option value="claude">Claude</option>
             <option value="codex">Codex</option>
             <option value="gemini">Gemini</option>
             <option value="openai">OpenAI API</option>
           </select>
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => onRegenerate({ tone })}
-            className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-sm text-white transition hover:bg-white/10"
           >
             {copy.regenerateTone}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => onRegenerate({ runner })}
-            className="rounded-full border border-white/12 bg-white/6 px-4 py-2 text-sm text-white transition hover:bg-white/10"
           >
             {copy.regenerateRunner}
-          </button>
+          </Button>
         </div>
       ) : null}
     </section>

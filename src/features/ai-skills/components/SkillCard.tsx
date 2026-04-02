@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { Badge } from "@/components/ui/Badge";
 import { getAiSkillsCopy } from "@/features/ai-skills/copy";
 import type { SkillTemplate } from "@/lib/types";
 
@@ -19,24 +20,30 @@ export function SkillCard({ skill, selected, onSelect }: SkillCardProps) {
       type="button"
       onClick={() => onSelect(skill)}
       className={[
-        "rounded-3xl border p-5 text-left transition",
+        "flex h-full flex-col rounded-3xl border p-5 text-left transition",
         selected
           ? "border-cyan-400/35 bg-cyan-400/10"
-          : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/8",
+          : "border-border-base bg-white/5 hover:border-white/20 hover:bg-white/8",
       ].join(" ")}
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/70">
-          {skill.runner}
-        </span>
-        <span className="text-xs text-[var(--color-muted)]">
-          {skill.builtin ? copy.builtin : copy.custom}
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Badge variant="neutral">{skill.runner}</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="neutral">{copy.categories[skill.category]}</Badge>
+          <span className="text-xs text-text-muted">
+            {skill.builtin ? copy.builtin : copy.custom}
+          </span>
+        </div>
       </div>
-      <p className="mt-4 text-lg font-semibold text-white">{skill.name}</p>
-      <p className="mt-3 text-sm leading-6 text-[var(--color-text-soft)]">
-          {skill.description}
+      <p className="mt-4 break-words text-lg font-semibold text-white">{skill.name}</p>
+      <p className="mt-3 overflow-hidden text-sm leading-6 text-text-secondary [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:4]">
+        {skill.description}
       </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Badge variant="neutral">
+          {locale === "ko" ? `${skill.inputs.length}개 입력` : `${skill.inputs.length} inputs`}
+        </Badge>
+      </div>
     </button>
   );
 }

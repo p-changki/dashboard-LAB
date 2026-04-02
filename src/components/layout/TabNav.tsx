@@ -83,6 +83,7 @@ export function TabNav({
       switchToAdvanced: "전체 모드로 전환",
       switchToCore: "간단 모드로 전환",
       collapseSidebar: "사이드바 접기",
+      expandSidebar: "사이드바 펼치기",
       language: "언어",
     },
     en: {
@@ -96,31 +97,33 @@ export function TabNav({
       switchToAdvanced: "Switch to full mode",
       switchToCore: "Switch to simple mode",
       collapseSidebar: "Collapse sidebar",
+      expandSidebar: "Expand sidebar",
       language: "Language",
     },
   });
 
   return (
     <aside
+      aria-label={APP_META.displayName}
       className={[
-        "flex min-h-screen flex-col border-r border-white/8 bg-[#161616] transition-all duration-[250ms]",
+        "flex min-h-screen flex-col border-r border-border-base bg-bg-surface transition-all duration-[250ms]",
         collapsed ? "w-16" : "w-64",
       ].join(" ")}
     >
-      <div className="flex h-16 items-center border-b border-white/8 px-4">
+      <div className="flex h-16 items-center border-b border-border-base px-4">
         <div className="flex items-center gap-3">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-500 to-emerald-400 text-sm font-bold text-black shadow-lg shadow-cyan-500/20">
             {APP_META.shortName}
           </div>
           {!collapsed ? (
             <div>
-              <p className="text-sm font-semibold text-gray-100">{APP_META.displayName}</p>
+              <p className="text-sm font-semibold text-text-primary">{APP_META.displayName}</p>
             </div>
           ) : null}
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav aria-label="Main navigation" className="flex-1 space-y-1 px-3 py-4">
         {getVisibleTabs(mode).map((tab) => {
           const isActive = activeTab === tab.id;
 
@@ -129,14 +132,15 @@ export function TabNav({
               key={tab.id}
               type="button"
               onClick={() => onChange(tab.id)}
+              aria-current={isActive ? "page" : undefined}
+              aria-label={collapsed ? tabMeta[tab.id].title : undefined}
               className={[
                 "flex w-full items-center gap-3 rounded-r-2xl border-l-2 px-3 py-2.5 text-left text-sm transition-all duration-[150ms]",
                 isActive
-                  ? "border-purple-500/60 bg-purple-900/[.15] text-purple-400"
-                  : "border-transparent text-gray-400 hover:bg-white/5 hover:text-gray-100",
+                  ? "border-accent-claude/60 bg-accent-claude-muted text-accent-claude"
+                  : "border-transparent text-text-muted hover:bg-white/5 hover:text-text-primary",
                 collapsed ? "justify-center rounded-l-2xl" : "",
               ].join(" ")}
-              title={collapsed ? tabMeta[tab.id].title : undefined}
             >
               <tab.icon aria-hidden className="h-4 w-4 shrink-0" />
               {!collapsed ? <span>{tabMeta[tab.id].title}</span> : null}
@@ -145,11 +149,11 @@ export function TabNav({
         })}
       </nav>
 
-      <div className="space-y-3 border-t border-white/8 p-3">
+      <div className="space-y-3 border-t border-border-base p-3">
         {!collapsed ? (
           <div className="space-y-3">
-            <div className="rounded-2xl border border-white/8 bg-[#0f0f0f]/60 p-3">
-              <p className="text-[10px] uppercase tracking-widest text-gray-600">
+            <div className="rounded-2xl border border-border-base bg-bg-page/60 p-3">
+              <p className="text-[10px] uppercase tracking-widest text-text-disabled">
                 {copy.viewMode}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -160,7 +164,7 @@ export function TabNav({
                     "rounded-xl border px-3 py-2 text-xs transition",
                     mode === "core"
                       ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-100"
-                      : "border-white/8 bg-white/[0.03] text-gray-400 hover:bg-white/5 hover:text-gray-200",
+                      : "border-border-base bg-white/[0.03] text-text-muted hover:bg-white/5 hover:text-text-secondary",
                   ].join(" ")}
                 >
                   {copy.coreMode}
@@ -172,18 +176,18 @@ export function TabNav({
                     "rounded-xl border px-3 py-2 text-xs transition",
                     mode === "advanced"
                       ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-100"
-                      : "border-white/8 bg-white/[0.03] text-gray-400 hover:bg-white/5 hover:text-gray-200",
+                      : "border-border-base bg-white/[0.03] text-text-muted hover:bg-white/5 hover:text-text-secondary",
                   ].join(" ")}
                 >
                   {copy.advancedMode}
                 </button>
               </div>
-              <p className="mt-3 text-xs leading-5 text-gray-500">
+              <p className="mt-3 text-xs leading-5 text-text-muted">
                 {copy.modeHint}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/8 bg-[#0f0f0f]/60 p-3">
-              <p className="text-[10px] uppercase tracking-widest text-gray-600">
+            <div className="rounded-2xl border border-border-base bg-bg-page/60 p-3">
+              <p className="text-[10px] uppercase tracking-widest text-text-disabled">
                 {copy.language}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -196,7 +200,7 @@ export function TabNav({
                       "rounded-xl border px-3 py-2 text-xs transition",
                       locale === value
                         ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-100"
-                        : "border-white/8 bg-white/[0.03] text-gray-400 hover:bg-white/5 hover:text-gray-200",
+                        : "border-border-base bg-white/[0.03] text-text-muted hover:bg-white/5 hover:text-text-secondary",
                     ].join(" ")}
                   >
                     {value.toUpperCase()}
@@ -204,15 +208,15 @@ export function TabNav({
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl border border-white/8 bg-[#0f0f0f]/60 p-3">
-              <p className="text-[10px] uppercase tracking-widest text-gray-600">
+            <div className="rounded-2xl border border-border-base bg-bg-page/60 p-3">
+              <p className="text-[10px] uppercase tracking-widest text-text-disabled">
                 {copy.aiStatus}
               </p>
               <div className="mt-3 space-y-2">
                 {TOOL_STATUS.map((tool) => (
                   <div
                     key={tool.name}
-                    className="flex items-center justify-between text-sm text-gray-300"
+                    className="flex items-center justify-between text-sm text-text-secondary"
                   >
                     <span>{tool.name}</span>
                     <span className={`inline-flex items-center gap-2 ${tool.tone}`}>
@@ -229,7 +233,7 @@ export function TabNav({
             <button
               type="button"
               onClick={() => onChangeMode(mode === "core" ? "advanced" : "core")}
-              className="grid h-8 w-8 place-items-center rounded-xl border border-white/8 bg-[#0f0f0f]/60 text-gray-300 transition hover:bg-white/5 hover:text-gray-100"
+              className="grid h-8 w-8 place-items-center rounded-xl border border-border-base bg-bg-page/60 text-text-secondary transition hover:bg-white/5 hover:text-text-primary"
               title={mode === "core" ? copy.switchToAdvanced : copy.switchToCore}
             >
               <SlidersHorizontal className="h-4 w-4" />
@@ -247,9 +251,11 @@ export function TabNav({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="flex w-full items-center justify-center rounded-2xl border border-white/8 bg-[#0f0f0f]/60 px-3 py-2 text-sm text-gray-400 transition-all duration-[150ms] hover:bg-white/5 hover:text-gray-200"
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? copy.expandSidebar : copy.collapseSidebar}
+          className="flex w-full items-center justify-center rounded-2xl border border-border-base bg-bg-page/60 px-3 py-2 text-sm text-text-muted transition-all duration-[150ms] hover:bg-white/5 hover:text-text-secondary"
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : copy.collapseSidebar}
+          {collapsed ? <ChevronRight aria-hidden className="h-4 w-4" /> : copy.collapseSidebar}
         </button>
       </div>
     </aside>

@@ -1,4 +1,6 @@
 import { getErrorMessage, jsonError } from "@/lib/api/error-response";
+import { searchQuerySchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseSearchParams } from "@/lib/api/validation";
 import { getOverviewData } from "@/lib/dashboard-data";
 import { readThroughCache } from "@/lib/parsers/cache";
 import { collectDocs } from "@/lib/parsers/doc-hub-parser";
@@ -19,8 +21,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const query = searchParams.get("q")?.trim() ?? "";
+    const { q: query } = parseSearchParams(request, searchQuerySchema);
 
     if (!query) {
       return Response.json({ query, results: [], totalCount: 0 } satisfies GlobalSearchResponse);
@@ -94,6 +95,10 @@ export async function GET(request: Request) {
 
     return Response.json({ query, results, totalCount } satisfies GlobalSearchResponse);
   } catch (error) {
+    if (isZodError(error)) {
+      return jsonError("INVALID_QUERY", getZodErrorMessage(error, "검색 쿼리 형식이 올바르지 않습니다."), 400);
+    }
+
     return jsonError("SEARCH_FAILED", getErrorMessage(error, "검색을 처리하지 못했습니다."), 500);
   }
 }

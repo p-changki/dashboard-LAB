@@ -121,6 +121,12 @@ export interface DashboardLabRuntimeIntegrations {
   openaiConfigured: boolean;
 }
 
+export type DashboardLabDisconnectableCommand =
+  | "claude"
+  | "codex"
+  | "gemini"
+  | "gh";
+
 export interface DashboardLabRuntimeSettingsPaths {
   projectsRoot: string | null;
   dataRoot: string | null;
@@ -132,6 +138,7 @@ export interface DashboardLabRuntimeSettingsPaths {
 export interface DashboardLabRuntimeSettings {
   version: 1;
   paths: DashboardLabRuntimeSettingsPaths;
+  disabledCommands: DashboardLabDisconnectableCommand[];
 }
 
 export interface DashboardLabRuntimePathStatus {

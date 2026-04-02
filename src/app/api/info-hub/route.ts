@@ -1,15 +1,20 @@
 import { getInfoHubFeed } from "@/lib/info-hub/feed-service";
-import type { FeedCategoryId } from "@/lib/types";
+import { jsonError } from "@/lib/api/error-response";
+import { infoHubFeedQuerySchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseSearchParams } from "@/lib/api/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const category = (searchParams.get("category") ?? "all") as FeedCategoryId | "all";
-  const page = Number.parseInt(searchParams.get("page") ?? "1", 10) || 1;
-  const limit = Number.parseInt(searchParams.get("limit") ?? "20", 10) || 20;
-  const query = searchParams.get("q")?.trim() ?? "";
-  const forceRefresh = searchParams.get("refresh") === "1";
-  return Response.json(await getInfoHubFeed(category, page, limit, query, { forceRefresh }));
+  try {
+    const { category, page, limit, q, refresh } = parseSearchParams(request, infoHubFeedQuerySchema);
+    return Response.json(await getInfoHubFeed(category, page, limit, q, { forceRefresh: refresh }));
+  } catch (error) {
+    if (isZodError(error)) {
+      return jsonError("INVALID_QUERY", getZodErrorMessage(error, "Info Hub query 형식이 올바르지 않습니다."), 400);
+    }
+
+    throw error;
+  }
 }

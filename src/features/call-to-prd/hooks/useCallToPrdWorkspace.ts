@@ -45,6 +45,10 @@ export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = 
   const [projectPath, setProjectPath] = useState("");
   const [currentProjectPath, setCurrentProjectPath] = useState("");
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projectContextStatus, setProjectContextStatus] = useState<"idle" | "loading" | "ready" | "failed">("idle");
+  const [projectContextSummary, setProjectContextSummary] = useState("");
+  const [projectContextSources, setProjectContextSources] = useState<string[]>([]);
+  const [projectContextError, setProjectContextError] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [additionalContext, setAdditionalContext] = useState("");
   const [inputKind, setInputKind] = useState<CallInputKind>(DEFAULT_CALL_INTAKE_METADATA.inputKind);
@@ -95,8 +99,14 @@ export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = 
   );
   const displayDocs = useMemo(() => getDisplayDocs(displayRecord), [displayRecord]);
   const generationWarnings = useMemo(
-    () => displayRecord?.generationWarnings ?? [],
-    [displayRecord],
+    () => {
+      const warnings = [...(displayRecord?.generationWarnings ?? [])];
+      if (displayRecord?.status === "completed" && (displayRecord.savedEntryName || selectedSaved) && !displayRecord.projectContext) {
+        warnings.unshift(displayRecord.projectContextError ?? copy.viewer.noProjectContextWarning);
+      }
+      return warnings;
+    },
+    [copy.viewer.noProjectContextWarning, displayRecord, selectedSaved],
   );
   const queueRecords = useMemo(() => {
     const merged = new Map<string, CallRecord>();
@@ -222,6 +232,20 @@ export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = 
     }
   }, [activeNextActionResult]);
 
+  useEffect(() => {
+    if (projectPath || !currentProjectPath) {
+      return;
+    }
+
+    const currentProject = projects.find((project) => project.path === currentProjectPath);
+    if (!currentProject) {
+      return;
+    }
+
+    setProjectPath(currentProject.path);
+    setProjectName((current) => current || currentProject.name);
+  }, [currentProjectPath, projectPath, projects]);
+
   return {
     isCoreMode,
     subTab,
@@ -242,6 +266,14 @@ export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = 
     setCurrentProjectPath,
     projects,
     setProjects,
+    projectContextStatus,
+    setProjectContextStatus,
+    projectContextSummary,
+    setProjectContextSummary,
+    projectContextSources,
+    setProjectContextSources,
+    projectContextError,
+    setProjectContextError,
     customerName,
     setCustomerName,
     additionalContext,

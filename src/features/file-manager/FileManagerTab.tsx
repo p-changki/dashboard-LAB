@@ -52,7 +52,7 @@ export function FileManagerTab() {
             onClick={() => setSource(item)}
             className={[
               "rounded-full px-3 py-2 text-sm transition",
-              source === item ? "bg-blue-900/40 text-blue-300" : "bg-gray-800 text-gray-400",
+              source === item ? "bg-blue-900/40 text-blue-300" : "bg-gray-800 text-text-muted",
             ].join(" ")}
           >
             {item === "desktop" ? "Desktop" : "Downloads"}

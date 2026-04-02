@@ -1,5 +1,6 @@
 import { getAllRecords } from "@/lib/call-to-prd/call-store";
 import { getCsHistory } from "@/lib/cs-helper/cs-runner";
+import { isCommandDisconnected } from "@/lib/command-availability";
 import { parseAgents, parseCommands, parseMcpServers, parseSkills, parseTeams } from "@/lib/parsers/claude-parser";
 import { readThroughCache } from "@/lib/parsers/cache";
 import { parseCodexInfo } from "@/lib/parsers/codex-parser";
@@ -21,22 +22,25 @@ export async function getOverviewData(): Promise<OverviewResponse> {
 }
 
 async function loadOverviewData(): Promise<OverviewResponse> {
+  const claudeDisconnected = isCommandDisconnected("claude");
+  const codexDisconnected = isCommandDisconnected("codex");
+  const geminiDisconnected = isCommandDisconnected("gemini");
   const [claudeVersion, agents, teams, skills, commands, mcpServers, codex, gemini] =
     await Promise.all([
-      detectCliVersion("claude"),
-      parseAgents(),
-      parseTeams(),
-      parseSkills(),
-      parseCommands(),
-      parseMcpServers(),
-      parseCodexInfo(),
-      parseGeminiInfo(),
+      claudeDisconnected ? Promise.resolve("disconnected") : detectCliVersion("claude"),
+      claudeDisconnected ? Promise.resolve([]) : parseAgents(),
+      claudeDisconnected ? Promise.resolve([]) : parseTeams(),
+      claudeDisconnected ? Promise.resolve([]) : parseSkills(),
+      claudeDisconnected ? Promise.resolve([]) : parseCommands(),
+      claudeDisconnected ? Promise.resolve([]) : parseMcpServers(),
+      codexDisconnected ? Promise.resolve(createDisconnectedCodexInfo()) : parseCodexInfo(),
+      geminiDisconnected ? Promise.resolve(createDisconnectedGeminiInfo()) : parseGeminiInfo(),
     ]);
 
   const [claudeExists, codexExists, geminiExists] = await Promise.all([
-    pathExists(CLAUDE_SETTINGS_FILE),
-    pathExists(CODEX_SKILLS_DIR),
-    pathExists(GEMINI_SETTINGS_FILE),
+    claudeDisconnected ? Promise.resolve(false) : pathExists(CLAUDE_SETTINGS_FILE),
+    codexDisconnected ? Promise.resolve(false) : pathExists(CODEX_SKILLS_DIR),
+    geminiDisconnected ? Promise.resolve(false) : pathExists(GEMINI_SETTINGS_FILE),
   ]);
   const todayWork = loadTodayWork();
 
@@ -51,13 +55,13 @@ async function loadOverviewData(): Promise<OverviewResponse> {
       },
       codex: {
         name: "Codex CLI",
-        version: codex.version,
+        version: codexDisconnected ? "disconnected" : codex.version,
         configPath: CODEX_SKILLS_DIR,
         exists: codexExists,
       },
       gemini: {
         name: "Gemini CLI",
-        version: gemini.version,
+        version: geminiDisconnected ? "disconnected" : gemini.version,
         configPath: GEMINI_SETTINGS_FILE,
         exists: geminiExists,
       },
@@ -78,6 +82,28 @@ async function loadOverviewData(): Promise<OverviewResponse> {
       totalCodexSkills: codex.skills.length + codex.promptSkills.length,
     },
     todayWork,
+  };
+}
+
+function createDisconnectedCodexInfo(): OverviewResponse["codex"] {
+  return {
+    version: "disconnected",
+    skills: [],
+    promptSkills: [],
+    hasRoleFile: false,
+    roleSummary: "",
+    roleFilePath: "",
+  };
+}
+
+function createDisconnectedGeminiInfo(): OverviewResponse["gemini"] {
+  return {
+    version: "disconnected",
+    authType: "disconnected",
+    policySummary: "",
+    settings: {},
+    settingsPath: "",
+    policyPath: "",
   };
 }
 

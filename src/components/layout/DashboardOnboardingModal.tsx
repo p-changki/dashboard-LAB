@@ -20,6 +20,7 @@ import {
 
 import type { DashboardTabId } from "@/components/layout/TabNav";
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { Button } from "@/components/ui/Button";
 import { APP_META } from "@/lib/app-meta";
 import { pickLocale, type AppLocale } from "@/lib/locale";
 import type {
@@ -387,8 +388,8 @@ export function DashboardOnboardingModal({
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <div className="relative mx-auto w-full max-w-6xl rounded-[30px] border border-white/10 bg-[#131313] shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
-        <div className="flex items-start justify-between border-b border-white/10 px-6 py-5">
+      <div className="relative mx-auto w-full max-w-6xl rounded-[30px] border border-border-base bg-bg-page shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+        <div className="flex items-start justify-between border-b border-border-base px-6 py-5">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-950/20 px-3 py-1 text-xs text-cyan-200">
               <Sparkles className="h-3.5 w-3.5" />
@@ -397,31 +398,33 @@ export function DashboardOnboardingModal({
             <h2 className="mt-3 text-xl font-semibold text-white">
               {copy.title}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-gray-400">
+            <p className="mt-2 text-sm leading-6 text-text-muted">
               {copy.description}
             </p>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="rounded-full border border-white/10 bg-white/5 p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label={copy.closeAria}
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <div className="grid gap-5 px-6 py-6 xl:grid-cols-[1.05fr_0.95fr]">
           <div className="space-y-5">
-            <section className="rounded-[26px] border border-white/8 bg-white/[0.03] p-5">
+            <section className="rounded-[26px] border border-border-base bg-white/[0.03] p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-white">
                     {copy.runtimeTitle}
                   </p>
-                  <p className="mt-1 text-sm leading-6 text-[var(--color-text-soft)]">
+                  <p className="mt-1 text-sm leading-6 text-text-secondary">
                     {copy.runtimeDescription}
                   </p>
-                  <p className="mt-2 text-xs leading-5 text-gray-500">
+                  <p className="mt-2 text-xs leading-5 text-text-muted">
                     {copy.optionalAudio}
                   </p>
                 </div>
@@ -449,15 +452,17 @@ export function DashboardOnboardingModal({
                       <p className="text-sm font-semibold text-white">
                         {copy.installTitle}
                       </p>
-                      <p className="mt-1 text-sm leading-6 text-[var(--color-text-soft)]">
+                      <p className="mt-1 text-sm leading-6 text-text-secondary">
                         {copy.installDescription}
                       </p>
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      variant="secondary"
+                      size="lg"
                       onClick={() => void handleInstallTasks(requiredInstallableTaskIds)}
                       disabled={installingTaskIds.length > 0}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="border-cyan-400/30 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15"
                     >
                       {installingTaskIds.length > 0 ? (
                         <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -465,7 +470,7 @@ export function DashboardOnboardingModal({
                         <Wrench className="h-4 w-4" />
                       )}
                       {copy.installButton}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : null}
@@ -491,7 +496,7 @@ export function DashboardOnboardingModal({
                   ))}
                 </div>
               ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-gray-400">
+                <div className="mt-4 rounded-2xl border border-dashed border-border-base px-4 py-6 text-sm text-text-muted">
                   {loading
                     ? copy.loadingRuntime
                     : copy.missingRuntime}
@@ -499,9 +504,9 @@ export function DashboardOnboardingModal({
               )}
             </section>
 
-            <section className="rounded-[26px] border border-white/8 bg-white/[0.03] p-5">
+            <section className="rounded-[26px] border border-border-base bg-white/[0.03] p-5">
               <p className="text-sm font-semibold text-white">{copy.sequenceTitle}</p>
-              <div className="mt-4 space-y-4 text-sm text-[var(--color-text-soft)]">
+              <div className="mt-4 space-y-4 text-sm text-text-secondary">
                 {copy.sequenceItems.map((item) => (
                   <div key={item.title}>
                     <p className="font-medium text-white">{item.title}</p>
@@ -513,9 +518,9 @@ export function DashboardOnboardingModal({
           </div>
 
           <div className="space-y-5">
-            <section className="rounded-[26px] border border-white/8 bg-white/[0.03] p-5">
+            <section className="rounded-[26px] border border-border-base bg-white/[0.03] p-5">
               <p className="text-sm font-semibold text-white">{copy.readyTitle}</p>
-              <p className="mt-1 text-sm leading-6 text-[var(--color-text-soft)]">
+              <p className="mt-1 text-sm leading-6 text-text-secondary">
                 {copy.readyDescription}
               </p>
 
@@ -549,7 +554,7 @@ export function DashboardOnboardingModal({
                     ))}
                 </div>
               ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-gray-400">
+                <div className="mt-4 rounded-2xl border border-dashed border-border-base px-4 py-6 text-sm text-text-muted">
                   {loading
                     ? copy.loadingWorkflows
                     : copy.missingWorkflows}
@@ -557,7 +562,7 @@ export function DashboardOnboardingModal({
               )}
             </section>
 
-            <section className="rounded-[26px] border border-white/8 bg-white/[0.03] p-5">
+            <section className="rounded-[26px] border border-border-base bg-white/[0.03] p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-950/20 px-3 py-1 text-xs text-emerald-200">
@@ -567,17 +572,18 @@ export function DashboardOnboardingModal({
                   <p className="mt-3 text-sm font-semibold text-white">
                     {copy.setupTitle}
                   </p>
-                  <p className="mt-1 text-sm leading-6 text-[var(--color-text-soft)]">
+                  <p className="mt-1 text-sm leading-6 text-text-secondary">
                     {copy.setupDescription}
                   </p>
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => void loadSummary()}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-300 transition hover:bg-white/10"
                 >
                   {copy.redetect}
-                </button>
+                </Button>
               </div>
 
               <div className="mt-5 space-y-4">
@@ -613,10 +619,10 @@ export function DashboardOnboardingModal({
                 <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-500">
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-text-disabled">
                         OpenAI API Key
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">
+                      <p className="mt-2 text-sm leading-6 text-text-secondary">
                         {copy.openAiDescription}
                       </p>
                     </div>
@@ -643,15 +649,17 @@ export function DashboardOnboardingModal({
                         ? copy.openAiReplacePlaceholder
                         : "sk-..."
                     }
-                    className="mt-3 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-gray-100 outline-none transition placeholder:text-gray-500 focus:border-cyan-400/40"
+                    className="mt-3 w-full rounded-2xl border border-border-base bg-black/20 px-4 py-3 text-sm text-text-primary outline-none transition placeholder:text-text-muted focus:border-cyan-400/40"
                   />
                   {summary?.integrations.openaiConfigured ? (
                     <div className="mt-3 flex items-center justify-between gap-3">
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-text-muted">
                         {copy.keepExistingKey}
                       </p>
-                      <button
+                      <Button
                         type="button"
+                        variant={clearOpenAiKey ? "destructive" : "secondary"}
+                        size="sm"
                         onClick={() => {
                           setClearOpenAiKey((current) => !current);
                           setDraft((current) => ({
@@ -659,25 +667,21 @@ export function DashboardOnboardingModal({
                             openaiApiKey: "",
                           }));
                         }}
-                        className={`rounded-full border px-3 py-1.5 text-xs transition ${
-                          clearOpenAiKey
-                            ? "border-rose-400/30 bg-rose-500/10 text-rose-200"
-                            : "border-white/10 bg-white/5 text-gray-300 hover:bg-white/10"
-                        }`}
                       >
                         {clearOpenAiKey ? copy.clearKeyPending : copy.clearSavedKey}
-                      </button>
+                      </Button>
                     </div>
                   ) : null}
                 </div>
               </div>
 
               <div className="mt-5 flex flex-wrap gap-2">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={() => void handleSave()}
                   disabled={saving || loading}
-                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="border-cyan-400/20 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15"
                 >
                   {saving ? (
                     <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -685,14 +689,14 @@ export function DashboardOnboardingModal({
                     <Save className="h-4 w-4" />
                   )}
                   {copy.saveAndStart}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={onClose}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-300 transition hover:bg-white/10"
                 >
                   {copy.maybeLater}
-                </button>
+                </Button>
               </div>
             </section>
 
@@ -700,29 +704,30 @@ export function DashboardOnboardingModal({
               {quickStarts.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <button
+                  <Button
                     key={item.tab}
                     type="button"
+                    variant="ghost"
                     onClick={() => {
                       onSelectTab(item.tab);
                       onClose();
                     }}
-                    className="w-full rounded-[26px] border border-white/8 bg-white/[0.03] p-5 text-left transition hover:bg-white/[0.06]"
+                    className="w-full rounded-[26px] border border-border-base bg-white/[0.03] p-5 !h-auto !justify-start !items-start text-left hover:bg-white/[0.06]"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/70">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-border-base bg-white/6 px-3 py-1 text-xs text-white/70">
                         <Icon className="h-3.5 w-3.5" />
                         {copy.quickJump}
                       </div>
-                      <ArrowRight className="h-4 w-4 text-gray-500" />
+                      <ArrowRight className="h-4 w-4 text-text-muted" />
                     </div>
                     <p className="mt-4 text-sm font-semibold text-white">
                       {item.title}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">
+                    <p className="mt-2 text-sm leading-6 text-text-secondary">
                       {item.description}
                     </p>
-                  </button>
+                  </Button>
                 );
               })}
             </section>
@@ -762,22 +767,28 @@ function RuntimeCheckCard({
         <Icon className="mt-0.5 h-4 w-4 shrink-0" />
         <div className="min-w-0">
           <p className="text-sm font-medium">{check.label}</p>
-          <p className="mt-1 text-xs leading-5 opacity-80">{check.detail}</p>
+          <p className="mt-1 break-all text-xs leading-5 opacity-80">
+            {check.detail}
+          </p>
           {check.fixHint ? (
-            <p className="mt-2 text-xs leading-5 opacity-80">{check.fixHint}</p>
+            <p className="mt-2 break-words text-xs leading-5 opacity-80">
+              {check.fixHint}
+            </p>
           ) : null}
           {check.remedy?.action === "manual" ? (
-            <div className="mt-3 rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-[11px] leading-5 text-white/80">
+            <div className="mt-3 break-words rounded-xl border border-border-base bg-black/15 px-3 py-2 text-[11px] leading-5 text-white/80">
               {check.remedy.detail}
             </div>
           ) : null}
           {check.status !== "pass" && check.remedy?.action !== "manual" ? (
             <div className="mt-3">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={onRunRemedy}
                 disabled={installing}
-                className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-60"
+                className="border-white/12 bg-white/8 text-white hover:bg-white/12"
               >
                 {installing ? (
                   <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
@@ -787,7 +798,7 @@ function RuntimeCheckCard({
                   <Wrench className="h-3.5 w-3.5" />
                 )}
                 {check.remedy?.label}
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>
@@ -820,34 +831,31 @@ function RuntimeInput({
 
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-500">
+      <p className="text-xs font-medium uppercase tracking-[0.2em] text-text-disabled">
         {label}
       </p>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder ?? `${copy.inputPrefix} ${label}`}
-        className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-gray-100 outline-none transition placeholder:text-gray-500 focus:border-cyan-400/40"
+        className="mt-2 w-full rounded-2xl border border-border-base bg-black/20 px-4 py-3 text-sm text-text-primary outline-none transition placeholder:text-text-muted focus:border-cyan-400/40"
       />
       {helperText ? (
-        <p className="mt-2 text-xs leading-5 text-gray-500">{helperText}</p>
+        <p className="mt-2 text-xs leading-5 text-text-muted">{helperText}</p>
       ) : null}
       {candidates.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-2">
           {candidates.map((candidate) => (
-            <button
+            <Button
               key={candidate.path}
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => onChange(candidate.path)}
-              className={[
-                "rounded-full border px-3 py-1.5 text-xs transition",
-                candidate.selected
-                  ? "border-cyan-400/25 bg-cyan-400/10 text-cyan-100"
-                  : "border-white/10 bg-white/5 text-gray-300 hover:bg-white/10",
-              ].join(" ")}
+              className={candidate.selected ? "border-cyan-400/25 bg-cyan-400/10 text-cyan-100" : undefined}
             >
               {candidate.exists ? copy.recommended : copy.candidate} · {candidate.path}
-            </button>
+            </Button>
           ))}
         </div>
       ) : null}
@@ -881,27 +889,29 @@ function WorkflowReadinessCard({
   return (
     <article className={`rounded-2xl border px-4 py-4 ${tone}`}>
       <div className="flex items-start gap-3">
-        <div className="rounded-2xl border border-white/10 bg-black/15 p-2">
+        <div className="rounded-2xl border border-border-base bg-black/15 p-2">
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-medium">{workflow.label}</p>
-            <span className="rounded-full border border-white/10 bg-black/15 px-2 py-0.5 text-[11px] uppercase tracking-[0.18em] text-white/70">
+            <span className="rounded-full border border-border-base bg-black/15 px-2 py-0.5 text-[11px] uppercase tracking-[0.18em] text-white/70">
               {workflow.status === "pass" ? copy.ready : workflow.status}
             </span>
           </div>
           <p className="mt-2 text-xs leading-5 opacity-80">{workflow.detail}</p>
           {actionLabel ? (
             <div className="mt-3">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={onOpen}
-                className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/12"
+                className="border-white/12 bg-white/8 text-white hover:bg-white/12"
               >
                 <ArrowRight className="h-3.5 w-3.5" />
                 {actionLabel}
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>

@@ -12,8 +12,8 @@ export function FileActions({ actions }: FileActionsProps) {
 
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
-      <p className="text-lg font-semibold text-gray-100">File Actions</p>
-      <p className="mt-2 text-sm text-gray-400">
+      <p className="text-lg font-semibold text-text-primary">File Actions</p>
+      <p className="mt-2 text-sm text-text-muted">
         삭제는 휴지통 이동으로 처리되며, 기본값은 dry run입니다.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -21,7 +21,7 @@ export function FileActions({ actions }: FileActionsProps) {
       </div>
       <div className="mt-4 space-y-2">
         {actions.map((action) => (
-          <div key={`${action.type}-${action.sourcePath}`} className="rounded-xl border border-gray-800 bg-gray-900/70 px-3 py-3 text-sm text-gray-300">
+          <div key={`${action.type}-${action.sourcePath}`} className="rounded-xl border border-gray-800 bg-gray-900/70 px-3 py-3 text-sm text-text-secondary">
             {action.type === "move" ? "📁" : "🗑️"} {action.sourcePath}
           </div>
         ))}
@@ -37,7 +37,7 @@ export function FileActionResultPanel({ result }: { result: FileActionResponse |
 
   return (
     <div className="mt-4 rounded-2xl border border-gray-800 bg-gray-900/70 p-4">
-      <p className="text-sm text-gray-300">
+      <p className="text-sm text-text-secondary">
         성공 {result.totalSuccess}건 · 실패 {result.totalFailed}건
       </p>
       <div className="mt-3">

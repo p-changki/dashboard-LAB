@@ -113,8 +113,8 @@ export function GlobalSearchModal() {
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 px-4 py-16 backdrop-blur-sm">
       <button type="button" aria-label={copy.close} className="absolute inset-0 cursor-default" onClick={close} />
-      <div className="relative w-full max-w-3xl rounded-[28px] border border-white/8 bg-[#161616] shadow-2xl">
-        <div className="border-b border-white/10 p-4">
+      <div className="relative w-full max-w-3xl rounded-[28px] border border-border-base bg-bg-surface shadow-2xl">
+        <div className="border-b border-border-base p-4">
           <SearchInput open={open} onQueryChange={setQuery} />
           <p className="mt-2 text-right text-xs text-white/35">{copy.esc}</p>
         </div>

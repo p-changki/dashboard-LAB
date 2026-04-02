@@ -4,6 +4,8 @@ import { pickLocale } from "@/lib/locale";
 
 type CallToPrdErrorCode =
   | "NO_INPUT"
+  | "PROJECT_REQUIRED"
+  | "PROJECT_CONTEXT_UNAVAILABLE"
   | "INVALID_FORMAT"
   | "TOO_LARGE"
   | "INVALID_PDF"
@@ -81,6 +83,22 @@ export function getCallToPrdApiError(
         message: pickLocale(locale, {
           ko: "파일 또는 텍스트를 입력해주세요.",
           en: "Please provide an audio file or text input.",
+        }),
+      };
+    case "PROJECT_REQUIRED":
+      return {
+        code,
+        message: pickLocale(locale, {
+          ko: detail ?? "프로젝트를 선택하고 컨텍스트 준비가 완료된 뒤 다시 시도해 주세요.",
+          en: detail ?? "Select a project and wait for project context to be ready before trying again.",
+        }),
+      };
+    case "PROJECT_CONTEXT_UNAVAILABLE":
+      return {
+        code,
+        message: pickLocale(locale, {
+          ko: detail ?? "프로젝트 컨텍스트를 준비하지 못했습니다.",
+          en: detail ?? "Failed to prepare the project context.",
         }),
       };
     case "INVALID_FORMAT":

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { Pagination } from "@/components/common/Pagination";
+import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { formatAiSkillDate, getAiSkillsCopy } from "@/features/ai-skills/copy";
 import type { SkillRun } from "@/lib/types";
 
@@ -31,13 +33,11 @@ export function RunHistory({ runs, onView, onCancel }: RunHistoryProps) {
       <div className="flex items-center justify-between gap-3">
         <p className="text-lg font-semibold text-white">{copy.historyTitle}</p>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/60">
-            {copy.resultsCount(runs.length)}
-          </span>
+          <Badge variant="neutral">{copy.resultsCount(runs.length)}</Badge>
           <select
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value as "latest" | "oldest" | "status")}
-            className="rounded-full border border-white/10 bg-black/15 px-3 py-1 text-xs text-white"
+            className="rounded-full border border-border-base bg-black/15 px-3 py-1 text-xs text-white"
           >
             <option value="latest">{copy.sortLatest}</option>
             <option value="oldest">{copy.sortOldest}</option>
@@ -45,42 +45,47 @@ export function RunHistory({ runs, onView, onCancel }: RunHistoryProps) {
           </select>
         </div>
       </div>
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
         {runs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-[var(--color-text-soft)]">
+          <div className="rounded-2xl border border-dashed border-border-base px-4 py-6 text-sm text-text-secondary xl:col-span-2">
             {copy.noHistory}
           </div>
         ) : null}
         {pagedRuns.map((run) => (
-          <article key={run.id} className="rounded-2xl border border-white/10 bg-black/15 p-4">
+          <article key={run.id} className="rounded-3xl border border-border-base bg-black/15 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-medium text-white">{run.skillName}</p>
-                <p className="mt-2 text-xs text-[var(--color-muted)]">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="break-words font-medium text-white">{run.skillName}</p>
+                  <Badge variant="neutral" size="sm">{run.runner}</Badge>
+                </div>
+                <p className="mt-2 text-xs text-text-muted">
                   {copy.startedAt} {formatAiSkillDate(locale, run.startedAt)}
                 </p>
               </div>
-              <span className={statusClassName(run.status)}>{copy.status[run.status]}</span>
+              <Badge variant={runStatusVariant(run.status)}>{copy.status[run.status]}</Badge>
             </div>
-            <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--color-text-soft)]">
+            <p className="mt-3 line-clamp-3 text-sm leading-6 text-text-secondary">
               {run.prompt}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => onView(run)}
-                className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-xs text-white transition hover:bg-white/10"
               >
                 {copy.viewResult}
-              </button>
+              </Button>
               {run.status === "queued" || run.status === "running" ? (
-                <button
+                <Button
                   type="button"
+                  variant="destructive"
+                  size="sm"
                   onClick={() => onCancel(run.id)}
-                  className="rounded-full border border-rose-400/25 bg-rose-400/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-400/15"
                 >
                   {copy.cancel}
-                </button>
+                </Button>
               ) : null}
             </div>
           </article>
@@ -117,13 +122,8 @@ function sortRuns(runs: SkillRun[], sortBy: "latest" | "oldest" | "status") {
   });
 }
 
-function statusClassName(status: SkillRun["status"]) {
-  return [
-    "rounded-full border px-3 py-1 text-xs",
-    status === "completed"
-      ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
-      : status === "failed"
-        ? "border-rose-400/25 bg-rose-400/10 text-rose-200"
-        : "border-amber-300/20 bg-amber-300/10 text-amber-100",
-  ].join(" ");
+function runStatusVariant(status: SkillRun["status"]): BadgeVariant {
+  if (status === "completed") return "success";
+  if (status === "failed") return "error";
+  return "warning"; // queued | running
 }

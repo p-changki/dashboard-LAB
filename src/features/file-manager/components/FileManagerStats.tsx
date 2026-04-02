@@ -29,9 +29,9 @@ export function FileManagerStats({ data }: FileManagerStatsProps) {
 function StatCard({ title, value, meta }: { title: string; value: string; meta: string }) {
   return (
     <article className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
-      <p className="text-sm text-gray-500">{title}</p>
+      <p className="text-sm text-text-muted">{title}</p>
       <p className="mt-3 text-xl font-semibold text-white">{value}</p>
-      <p className="mt-2 text-sm text-gray-400">{meta}</p>
+      <p className="mt-2 text-sm text-text-muted">{meta}</p>
     </article>
   );
 }

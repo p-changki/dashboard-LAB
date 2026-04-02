@@ -15,10 +15,10 @@ export function ProcessTable({ data, filter, onKill }: ProcessTableProps) {
 
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
-      <p className="text-lg font-semibold text-gray-100">Processes</p>
+      <p className="text-lg font-semibold text-text-primary">Processes</p>
       <div className="mt-4 overflow-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="text-gray-500">
+          <thead className="text-text-muted">
             <tr>
               <th className="pb-2">PID</th>
               <th className="pb-2">Name</th>
@@ -30,7 +30,7 @@ export function ProcessTable({ data, filter, onKill }: ProcessTableProps) {
           </thead>
           <tbody>
             {processes.map((process) => (
-              <tr key={process.pid} className="border-t border-gray-800 text-gray-300">
+              <tr key={process.pid} className="border-t border-gray-800 text-text-secondary">
                 <td className="py-3">{process.pid}</td>
                 <td className="py-3">{process.name}</td>
                 <td className="py-3">{process.cpu}%</td>
@@ -41,7 +41,7 @@ export function ProcessTable({ data, filter, onKill }: ProcessTableProps) {
                     type="button"
                     onClick={() => onKill(process.pid)}
                     disabled={process.category === "system"}
-                    className="rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800 disabled:cursor-not-allowed disabled:text-gray-600"
+                    className="rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-xs text-text-secondary hover:bg-gray-800 disabled:cursor-not-allowed disabled:text-text-disabled"
                   >
                     kill
                   </button>

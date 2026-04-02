@@ -61,7 +61,7 @@ export function RecentItems({ onSelect }: RecentItemsProps) {
           key={item.id}
           type="button"
           onClick={() => onSelect(item)}
-          className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-left transition hover:bg-white/8"
+          className="flex w-full items-center justify-between rounded-2xl border border-border-base bg-white/5 px-4 py-3 text-left transition hover:bg-white/8"
         >
           <div>
             <p className="text-sm font-medium text-white">{item.name}</p>

@@ -1,5 +1,5 @@
 import { pickLocale, type AppLocale } from "@/lib/locale";
-import type { CsChannel, CsTone } from "@/lib/types";
+import type { CsChannel, CsInputMode, CsTone } from "@/lib/types";
 
 export function getCsToneLabel(tone: CsTone, locale: AppLocale) {
   return pickLocale(locale, {
@@ -32,6 +32,19 @@ export function getCsChannelLabel(channel: CsChannel, locale: AppLocale) {
       phone: "Phone",
       other: "Other",
     }[channel],
+  });
+}
+
+export function getCsInputModeLabel(inputMode: CsInputMode, locale: AppLocale) {
+  return pickLocale(locale, {
+    ko: {
+      customer: "고객 원문",
+      summary: "상황 요약",
+    }[inputMode],
+    en: {
+      customer: "Customer message",
+      summary: "Situation summary",
+    }[inputMode],
   });
 }
 
@@ -76,8 +89,8 @@ export function getCsValidationMessage(
     | "openAiKeyMissing"
     | "runnerMissing"
     | "projectRequired"
-    | "customerRequired"
-    | "customerTooLong"
+    | "contentRequired"
+    | "contentTooLong"
     | "additionalTooLong"
     | "emptyResponse"
     | "contextNameRequired"
@@ -92,8 +105,8 @@ export function getCsValidationMessage(
       openAiKeyMissing: "OpenAI API 키가 설정되어 있지 않습니다. 온보딩에서 API 키를 저장해 주세요.",
       runnerMissing: `${options?.label ?? "선택한 AI"}가 설치되어 있지 않습니다. CLI를 설치하거나 온보딩에서 OpenAI API 키를 저장해 주세요.`,
       projectRequired: "프로젝트를 선택해 주세요.",
-      customerRequired: "고객 메시지를 입력해 주세요.",
-      customerTooLong: "고객 메시지는 2000자 이하로 입력해 주세요.",
+      contentRequired: "입력 내용을 작성해 주세요.",
+      contentTooLong: "입력 내용은 2000자 이하로 작성해 주세요.",
       additionalTooLong: "추가 맥락은 1000자 이하로 입력해 주세요.",
       emptyResponse: "AI 응답이 비어 있습니다.",
       contextNameRequired: "프로젝트 이름이 비어 있습니다.",
@@ -106,8 +119,8 @@ export function getCsValidationMessage(
       openAiKeyMissing: "No OpenAI API key is configured. Save an API key in onboarding first.",
       runnerMissing: `${options?.label ?? "The selected AI runner"} is not installed. Install the CLI or save an OpenAI API key in onboarding.`,
       projectRequired: "Select a project first.",
-      customerRequired: "Enter a customer message.",
-      customerTooLong: "Customer messages must be 2000 characters or fewer.",
+      contentRequired: "Enter the input content first.",
+      contentTooLong: "The input content must be 2000 characters or fewer.",
       additionalTooLong: "Additional context must be 1000 characters or fewer.",
       emptyResponse: "The AI response was empty.",
       contextNameRequired: "Project name is required.",

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpenText, Check, Sparkles, Target, X } from "lucide-react";
 
+import { Badge } from "@/components/ui/Badge";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import type { CallDocPreset, CallDocType } from "@/lib/call-to-prd/document-config";
 import { getCallDocDescription, getCallDocLabel, getCallDocShortLabel, getCallPresetLabel, getCallToPrdCopy } from "@/features/call-to-prd/copy";
@@ -54,20 +55,17 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
   return (
     <div className="fixed inset-0 z-[110] overflow-y-auto bg-black/65 px-4 py-6 backdrop-blur-sm">
       <button type="button" aria-label={copy.guide.closeAria} className="absolute inset-0 cursor-default" onClick={onClose} />
-      <div className="relative mx-auto flex max-h-[calc(100vh-3rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[#131313] shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
-        <div className="flex items-start justify-between border-b border-white/10 px-6 py-5">
+      <div className="relative mx-auto flex max-h-[calc(100vh-3rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[30px] border border-border-base bg-bg-page shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+        <div className="flex items-start justify-between border-b border-border-base px-6 py-5">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-950/30 px-3 py-1 text-xs text-purple-200">
-              <BookOpenText className="h-3.5 w-3.5" />
-              {copy.guide.badge}
-            </div>
+            <Badge variant="claude" size="sm"><BookOpenText className="h-3.5 w-3.5" />{copy.guide.badge}</Badge>
             <h2 className="mt-3 text-xl font-semibold text-white">{copy.guide.title}</h2>
-            <p className="mt-2 text-sm leading-6 text-gray-400">{copy.guide.description}</p>
+            <p className="mt-2 text-sm leading-6 text-text-muted">{copy.guide.description}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/10 bg-white/5 p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-text-muted transition-colors hover:bg-white/10 hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
@@ -83,7 +81,7 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
                 className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition-all ${
                   activeTab === tab.id
                     ? "border-purple-500/30 bg-purple-950/25 text-purple-200"
-                    : "border-white/8 bg-white/[0.03] text-gray-400 hover:bg-white/[0.06] hover:text-gray-200"
+                    : "border-border-base bg-white/[0.03] text-text-muted hover:bg-white/[0.06] hover:text-text-secondary"
                 }`}
               >
                 <span>{tab.label}</span>
@@ -99,11 +97,11 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
                   const presetId = preset as Exclude<CallDocPreset, "custom">;
 
                   return (
-                    <div key={presetId} className="rounded-[26px] border border-white/8 bg-white/[0.03] p-5">
+                    <div key={presetId} className="rounded-[26px] border border-border-base bg-white/[0.03] p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <h3 className="text-base font-semibold text-white">{getCallPresetLabel(presetId, locale)}</h3>
-                          <p className="mt-2 text-sm leading-6 text-gray-400">{guide.summary}</p>
+                          <p className="mt-2 text-sm leading-6 text-text-muted">{guide.summary}</p>
                         </div>
                         <button
                           type="button"
@@ -129,7 +127,7 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
                             release: ["prd", "acceptance-criteria", "qa-checklist", "release-runbook"],
                           } as const
                         )[presetId].map((docType) => (
-                          <span key={docType} className="rounded-full bg-white/8 px-2.5 py-1 text-xs text-gray-300">
+                          <span key={docType} className="rounded-full bg-white/8 px-2.5 py-1 text-xs text-text-secondary">
                             {getCallDocShortLabel(docType, locale)}
                           </span>
                         ))}
@@ -141,7 +139,7 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
                             <Target className="h-4 w-4" />
                             {copy.guide.chooseWhen}
                           </div>
-                          <ul className="mt-3 space-y-2 text-sm leading-6 text-gray-300">
+                          <ul className="mt-3 space-y-2 text-sm leading-6 text-text-secondary">
                             {guide.useWhen.map((item: string) => (
                               <li key={item}>- {item}</li>
                             ))}
@@ -153,7 +151,7 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
                             <Sparkles className="h-4 w-4" />
                             {copy.guide.skipWhen}
                           </div>
-                          <ul className="mt-3 space-y-2 text-sm leading-6 text-gray-300">
+                          <ul className="mt-3 space-y-2 text-sm leading-6 text-text-secondary">
                             {guide.avoidWhen.map((item: string) => (
                               <li key={item}>- {item}</li>
                             ))}
@@ -172,15 +170,15 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
                   const resolvedDocType = docType as CallDocType;
 
                   return (
-                    <div key={docType} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
+                    <div key={docType} className="rounded-[24px] border border-border-base bg-white/[0.03] p-5">
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="text-base font-semibold text-white">{getCallDocLabel(resolvedDocType, locale)}</h3>
-                        <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-gray-400">
+                        <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-text-muted">
                           {guide.useWhen}
                         </span>
                       </div>
-                      <p className="mt-3 text-sm leading-6 text-gray-300">{guide.value}</p>
-                      <p className="mt-3 text-xs leading-6 text-gray-500">{getCallDocDescription(resolvedDocType, locale)}</p>
+                      <p className="mt-3 text-sm leading-6 text-text-secondary">{guide.value}</p>
+                      <p className="mt-3 text-xs leading-6 text-text-muted">{getCallDocDescription(resolvedDocType, locale)}</p>
                     </div>
                   );
                 })}
@@ -190,11 +188,11 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
             {activeTab === "scenarios" ? (
               <div className="space-y-4">
                 {scenarioGuide.map((scenario) => (
-                  <div key={scenario.title} className="rounded-[26px] border border-white/8 bg-white/[0.03] p-5">
+                  <div key={scenario.title} className="rounded-[26px] border border-border-base bg-white/[0.03] p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <h3 className="text-base font-semibold text-white">{scenario.title}</h3>
-                        <p className="mt-2 text-sm leading-6 text-gray-400">{scenario.description}</p>
+                        <p className="mt-2 text-sm leading-6 text-text-muted">{scenario.description}</p>
                       </div>
                       <button
                         type="button"
@@ -208,12 +206,12 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
                       </button>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-gray-300">
+                    <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-text-secondary">
                       <span className="rounded-full bg-purple-950/30 px-3 py-1 text-purple-200">
                         {copy.guide.useLabel}: {getCallPresetLabel(scenario.preset, locale)}
                       </span>
                       {("extras" in scenario ? scenario.extras : undefined)?.map((docType) => (
-                        <span key={docType} className="rounded-full bg-white/8 px-3 py-1 text-gray-300">
+                        <span key={docType} className="rounded-full bg-white/8 px-3 py-1 text-text-secondary">
                           {copy.guide.extraLabel}: {getCallDocLabel(docType, locale)}
                         </span>
                       ))}
@@ -228,7 +226,7 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
                 <BookOpenText className="h-4 w-4" />
                 {copy.guide.flowTitle}
               </div>
-              <div className="mt-3 space-y-2 text-sm leading-6 text-gray-300">
+              <div className="mt-3 space-y-2 text-sm leading-6 text-text-secondary">
                 {copy.guide.flowSteps.map((step) => (
                   <p key={step}>{step}</p>
                 ))}

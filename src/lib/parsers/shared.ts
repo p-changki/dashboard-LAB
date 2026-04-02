@@ -1,10 +1,11 @@
-import { exec, execFile } from "node:child_process";
+import { exec } from "node:child_process";
 import { access, readdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
-const execFileAsync = promisify(execFile);
+import { readCommandVersion } from "@/lib/command-availability";
+
 const execAsync = promisify(exec);
 
 const SENSITIVE_KEY_RE =
@@ -204,21 +205,7 @@ export async function detectCliVersion(
   command: string,
   args: string[] = ["--version"],
 ): Promise<string> {
-  try {
-    const { stdout, stderr } = await execFileAsync(command, args, {
-      timeout: 5000,
-      env: process.env,
-    });
-    const output = `${stdout ?? ""}\n${stderr ?? ""}`.trim();
-
-    if (!output) {
-      return "unknown";
-    }
-
-    return output.split(/\r?\n/)[0]?.trim() || "unknown";
-  } catch {
-    return "unknown";
-  }
+  return (await readCommandVersion(command, args)) ?? "unknown";
 }
 
 export async function runShellCommand(command: string, cwd?: string) {

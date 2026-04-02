@@ -19,17 +19,17 @@ export function CleanNodeModules() {
   );
 
   return (
-    <section className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-5 transition-all duration-[150ms] hover:bg-[#242424]">
+    <section className="rounded-2xl border border-border-base bg-bg-card p-5 transition-all duration-[150ms] hover:bg-bg-card-hover">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-gray-500">Node Modules 정리</p>
-          <p className="mt-2 text-sm text-gray-400">미리보기 후 한 번에 정리할 수 있습니다.</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-text-muted">Node Modules 정리</p>
+          <p className="mt-2 text-sm text-text-muted">미리보기 후 한 번에 정리할 수 있습니다.</p>
         </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => void runCleanup(true, [], setPreview, setSelected, setLoading)}
-            className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2 text-sm text-gray-200 hover:bg-gray-800"
+            className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2 text-sm text-text-secondary hover:bg-gray-800"
           >
             미리보기
           </button>
@@ -45,7 +45,7 @@ export function CleanNodeModules() {
       </div>
       {preview ? (
         <div className="mt-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-300">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary">
             <span>대상 {preview.totalTargets}개</span>
             <span>선택 {selected.length}개</span>
             <span>선택 용량 {formatSize(selectedSize)}</span>
@@ -53,7 +53,7 @@ export function CleanNodeModules() {
           </div>
           <div className="space-y-2">
             {preview.items.map((item) => (
-              <label key={item.targetPath} className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-gray-300">
+              <label key={item.targetPath} className="flex items-center justify-between gap-3 rounded-xl border border-border-base bg-black/20 px-4 py-3 text-sm text-text-secondary">
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"

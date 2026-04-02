@@ -1,6 +1,5 @@
 import { checkCommandAvailable } from "@/lib/command-availability";
 import { generateOpenAiText, hasOpenAiApiFallback } from "@/lib/ai/openai-responses";
-import { pathExists } from "@/lib/parsers/shared";
 import { persistJson, readPersistentJson } from "@/lib/storage/persistent-json";
 import { runSpawnTask } from "@/lib/ai-skills/runner";
 import { DEFAULT_LOCALE, type AppLocale } from "@/lib/locale";
@@ -53,6 +52,7 @@ export async function generateCsReply(request: CsRequest, locale: AppLocale = DE
     projectId: request.projectId,
     channel: request.channel,
     tone: request.tone,
+    inputMode: request.inputMode,
     customerMessage: request.customerMessage,
     additionalContext: request.additionalContext,
     createdAt: new Date().toISOString(),
@@ -74,6 +74,7 @@ export async function generateCsAnalysis(request: CsRequest, locale: AppLocale =
     analysis,
     runner: resolvedRunner,
     projectId: request.projectId,
+    inputMode: request.inputMode,
     customerMessage: request.customerMessage,
     createdAt: new Date().toISOString(),
   };
@@ -91,6 +92,7 @@ export async function regenerateCsReply(request: CsRegenerateRequest, locale: Ap
     runner: request.runner ?? original.runner,
     channel: original.channel,
     tone: request.tone ?? original.tone,
+    inputMode: original.inputMode ?? "customer",
     customerMessage: original.customerMessage,
     additionalContext: original.additionalContext,
     includeAnalysis: request.includeAnalysis ?? original.includeAnalysis,
@@ -133,7 +135,7 @@ async function runCsModel(runner: CsAiRunner, prompt: string, locale: AppLocale)
     const outputPath = `/tmp/dashboard-lab-cs-${crypto.randomUUID()}.txt`;
     const result = await runSpawnTask({
       command: "codex",
-      args: ["exec", "-o", outputPath, prompt],
+      args: ["exec", "--skip-git-repo-check", "-o", outputPath, prompt],
       cwd: process.env.HOME || "/",
       outputPath,
       timeoutMs: CS_TIMEOUT_MS,
@@ -141,9 +143,8 @@ async function runCsModel(runner: CsAiRunner, prompt: string, locale: AppLocale)
     return unwrapOutput(result.output, result.error, locale);
   }
 
-  const geminiCommand = (await pathExists("/opt/homebrew/bin/gemini")) ? "/opt/homebrew/bin/gemini" : "gemini";
   const result = await runSpawnTask({
-    command: geminiCommand,
+    command: "gemini",
     args: ["-p", prompt],
     cwd: process.env.HOME || "/",
     timeoutMs: CS_TIMEOUT_MS,
@@ -176,7 +177,7 @@ async function resolveCsRunner(requestedRunner: CsAiRunner, locale: AppLocale): 
     return fallbackToOpenAiOrThrow("Codex CLI", locale);
   }
 
-  if (await pathExists("/opt/homebrew/bin/gemini") || await checkCommandAvailable("gemini")) {
+  if (await checkCommandAvailable("gemini")) {
     return "gemini";
   }
 
@@ -197,11 +198,11 @@ function validateCsRequest(request: CsRequest, locale: AppLocale) {
   }
 
   if (!request.customerMessage.trim()) {
-    throw new CsRequestError(getCsValidationMessage(locale, "customerRequired"));
+    throw new CsRequestError(getCsValidationMessage(locale, "contentRequired"));
   }
 
   if (request.customerMessage.trim().length > MAX_CUSTOMER_MESSAGE) {
-    throw new CsRequestError(getCsValidationMessage(locale, "customerTooLong"));
+    throw new CsRequestError(getCsValidationMessage(locale, "contentTooLong"));
   }
 
   if (request.additionalContext.trim().length > MAX_ADDITIONAL_CONTEXT) {
@@ -238,6 +239,7 @@ function getCsStore() {
     const items = readPersistentJson<CsResponse[]>(CS_STORE_FILE, [])
       .map((item) => ({
         ...item,
+        inputMode: item.inputMode ?? "customer",
         includeAnalysis: item.includeAnalysis ?? Boolean(item.analysis),
       }))
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
@@ -255,6 +257,7 @@ function toHistoryItem(item: CsResponse): CsHistoryItem {
     id: item.id,
     projectId: item.projectId,
     channel: item.channel,
+    inputMode: item.inputMode ?? "customer",
     customerMessagePreview: item.customerMessage.slice(0, 50),
     replyPreview: item.reply.slice(0, 50),
     customerMessage: item.customerMessage,

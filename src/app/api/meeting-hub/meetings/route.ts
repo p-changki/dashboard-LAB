@@ -3,12 +3,13 @@ import {
   isJsonParseError,
   jsonError,
 } from "@/lib/api/error-response";
+import { meetingHubMeetingInputSchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseJsonBody } from "@/lib/api/validation";
 import {
   createMeetingHubMeeting,
   getMeetingHubSummary,
 } from "@/lib/meeting-hub/storage";
 import { processMeetingHubNotes } from "@/lib/meeting-hub/processor";
-import type { CreateMeetingHubMeetingInput } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as CreateMeetingHubMeetingInput;
+    const payload = await parseJsonBody(request, meetingHubMeetingInputSchema);
     const processed =
       payload.useAi === false
         ? undefined
@@ -45,6 +46,14 @@ export async function POST(request: Request) {
   } catch (error) {
     if (isJsonParseError(error)) {
       return jsonError("INVALID_JSON", "JSON payload is invalid.", 400);
+    }
+
+    if (isZodError(error)) {
+      return jsonError(
+        "INVALID_INPUT",
+        getZodErrorMessage(error, "Meeting Hub meeting payload is invalid."),
+        400,
+      );
     }
 
     return jsonError(

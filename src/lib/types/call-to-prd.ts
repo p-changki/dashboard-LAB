@@ -27,6 +27,22 @@ export interface GeneratedDoc {
   markdown: string;
 }
 
+export interface ProjectContextSnapshot {
+  projectName: string;
+  projectPath: string;
+  summary: string;
+  sources: string[];
+}
+
+export interface CallProjectContextResponse {
+  status: "ready" | "failed";
+  projectPath: string;
+  projectName: string | null;
+  summary: string | null;
+  sources: string[];
+  error: string | null;
+}
+
 export interface CallRecord {
   id: string;
   savedEntryName: string | null;
@@ -55,6 +71,8 @@ export interface CallRecord {
   pdfContent: string | null;
   pdfAnalysis: string | null;
   projectContext: string | null;
+  projectContextSources: string[];
+  projectContextError: string | null;
   baselineEntryName: string | null;
   baselineTitle: string | null;
   claudePrd: string | null;
@@ -119,6 +137,10 @@ export interface SavedCallBundleDetail {
   reproducibility: CallReproducibility;
   currentWorkaround: string | null;
   separateExternalDocs: boolean;
+  projectPath: string | null;
+  projectContext: string | null;
+  projectContextSources: string[];
+  projectContextError: string | null;
   generationPreset: CallDocPreset;
   selectedDocTypes: CallDocType[];
   generatedDocs: GeneratedDoc[];
@@ -164,6 +186,7 @@ export interface CallNextActionRequest {
   projectName?: string | null;
   customerName?: string | null;
   projectContext?: string | null;
+  projectContextSources?: string[] | null;
   baselineTitle?: string | null;
   baselinePrd?: string | null;
   additionalContext?: string | null;

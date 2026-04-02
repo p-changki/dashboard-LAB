@@ -12,6 +12,7 @@ import {
 
 import type { DashboardNavigationMode } from "@/components/layout/TabNav";
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { Button } from "@/components/ui/Button";
 import { ErrorCard } from "@/components/ui/ErrorCard";
 import { getMeetingHubTemplateDefinitions } from "@/lib/meeting-hub/templates";
 import { MetricCard } from "@/features/meeting-hub/components/MeetingHubUI";
@@ -122,20 +123,20 @@ export function MeetingHubTab({ mode }: { mode: DashboardNavigationMode }) {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-white/[0.05] via-white/[0.025] to-cyan-500/[0.06] p-6">
+      <div className="rounded-[28px] border border-border-base bg-gradient-to-br from-white/[0.05] via-white/[0.025] to-cyan-500/[0.06] p-6">
         <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">{copy.eyebrow}</p>
         <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl space-y-2">
             <h2 className="text-2xl font-semibold tracking-tight text-white">{copy.title}</h2>
-            <p className="text-sm leading-6 text-[var(--color-text-soft)]">{copy.description}</p>
-            <p className="text-xs leading-5 text-gray-500">
+            <p className="text-sm leading-6 text-text-secondary">{copy.description}</p>
+            <p className="text-xs leading-5 text-text-muted">
               {mode === "core" ? copy.simpleMode : copy.fullMode}
             </p>
           </div>
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => void (summary ? loadSummary() : loadOverview())}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
           >
             {loading ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -143,7 +144,7 @@ export function MeetingHubTab({ mode }: { mode: DashboardNavigationMode }) {
               <LayoutGrid className="h-4 w-4" />
             )}
             {copy.refresh}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -156,19 +157,20 @@ export function MeetingHubTab({ mode }: { mode: DashboardNavigationMode }) {
 
       <div className="flex flex-wrap gap-2">
         {(["overview", "teams", "meetings", "actions", "github"] as const).map((item) => (
-          <button
+          <Button
             key={item}
             type="button"
+            variant="ghost"
             onClick={() => setView(item)}
             className={[
-              "rounded-full border px-4 py-2 text-sm transition",
+              "rounded-full border px-4",
               view === item
                 ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-100"
-                : "border-white/10 bg-white/[0.03] text-gray-400 hover:bg-white/5 hover:text-white",
+                : "border-border-base bg-white/[0.03] text-text-muted hover:bg-white/5 hover:text-white",
             ].join(" ")}
           >
             {copy.views[item]}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -188,7 +190,7 @@ export function MeetingHubTab({ mode }: { mode: DashboardNavigationMode }) {
       ) : null}
 
       {loading && !overview ? (
-        <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-sm text-[var(--color-text-soft)]">
+        <section className="rounded-3xl border border-border-base bg-white/[0.03] p-6 text-sm text-text-secondary">
           {copy.loading}
         </section>
       ) : null}

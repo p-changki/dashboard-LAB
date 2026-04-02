@@ -242,7 +242,7 @@ export function Dashboard({ data }: DashboardProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#0f0f0f] text-[#f0f0f0]">
+    <main className="min-h-screen bg-bg-page text-text-primary">
       <div className="flex min-h-screen">
         <TabNav
           activeTab={activeTab}
@@ -253,17 +253,17 @@ export function Dashboard({ data }: DashboardProps) {
           onToggleCollapse={() => setCollapsed((current) => !current)}
         />
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-16 items-center justify-between border-b border-white/8 bg-[#0f0f0f] px-6">
+          <header className="flex h-16 items-center justify-between border-b border-border-base bg-bg-page px-6">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-gray-600">{APP_META.displayName}</p>
-              <h1 className="text-xl font-bold tracking-tight text-[#f0f0f0]">{meta.title}</h1>
-              <p className="text-sm text-gray-400">{meta.description}</p>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-text-disabled">{APP_META.displayName}</p>
+              <h1 className="text-xl font-bold tracking-tight text-text-primary">{meta.title}</h1>
+              <p className="text-sm text-text-muted">{meta.description}</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setGuideOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/8 bg-[#1e1e1e] px-4 py-2 text-sm text-gray-300 transition-all duration-[150ms] hover:bg-[#242424] hover:border-white/[.14]"
+                className="inline-flex items-center gap-2 rounded-xl border border-border-base bg-bg-card px-4 py-2 text-sm text-text-secondary transition-all duration-[150ms] hover:bg-bg-card-hover hover:border-border-hover"
               >
                 <CircleHelp className="h-4 w-4" />
                 {copy.guide}
@@ -271,7 +271,7 @@ export function Dashboard({ data }: DashboardProps) {
               <button
                 type="button"
                 onClick={() => void loadOverview()}
-                className="rounded-xl border border-white/8 bg-[#1e1e1e] px-4 py-2 text-sm text-gray-300 transition-all duration-[150ms] hover:bg-[#242424] hover:border-white/[.14]"
+                className="rounded-xl border border-border-base bg-bg-card px-4 py-2 text-sm text-text-secondary transition-all duration-[150ms] hover:bg-bg-card-hover hover:border-border-hover"
               >
                 {copy.refresh}
               </button>
@@ -330,9 +330,11 @@ function isValidTab(value: string): value is DashboardTabId {
 
 function TabPanelMessage({ title, message }: { title: string; message: string }) {
   return (
-    <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-6">
-      <p className="text-sm uppercase tracking-[0.24em] text-gray-500">{title}</p>
-      <p className="mt-4 text-sm text-gray-300">{message}</p>
+    <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+      <div className="inline-flex items-center rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs uppercase tracking-[0.22em] text-white/65">
+        {title}
+      </div>
+      <p className="mt-4 text-sm leading-7 text-[var(--color-text-soft)]">{message}</p>
     </section>
   );
 }

@@ -3,8 +3,9 @@ import {
   isJsonParseError,
   jsonError,
 } from "@/lib/api/error-response";
+import { meetingHubActionUpdateSchema, routeActionIdParamSchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseJsonBody, parseRouteParams } from "@/lib/api/validation";
 import { getMeetingHubSummary, updateMeetingHubActionItem } from "@/lib/meeting-hub/storage";
-import type { MeetingHubActionStatus } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,18 +15,8 @@ export async function PATCH(
   context: { params: Promise<{ actionId: string }> },
 ) {
   try {
-    const { actionId } = await context.params;
-    const payload = (await request.json()) as {
-      status?: MeetingHubActionStatus;
-    };
-
-    if (!actionId.trim()) {
-      return jsonError("INVALID_ACTION_ID", "Action id is required.", 400);
-    }
-
-    if (!payload.status || !["open", "in_progress", "done"].includes(payload.status)) {
-      return jsonError("INVALID_STATUS", "A valid action status is required.", 400);
-    }
+    const { actionId } = await parseRouteParams(context.params, routeActionIdParamSchema);
+    const payload = await parseJsonBody(request, meetingHubActionUpdateSchema);
 
     updateMeetingHubActionItem(actionId, {
       status: payload.status,
@@ -35,6 +26,14 @@ export async function PATCH(
   } catch (error) {
     if (isJsonParseError(error)) {
       return jsonError("INVALID_JSON", "JSON payload is invalid.", 400);
+    }
+
+    if (isZodError(error)) {
+      return jsonError(
+        "INVALID_INPUT",
+        getZodErrorMessage(error, "Meeting Hub action request is invalid."),
+        400,
+      );
     }
 
     return jsonError(

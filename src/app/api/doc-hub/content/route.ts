@@ -1,4 +1,6 @@
 import { getErrorMessage, jsonError } from "@/lib/api/error-response";
+import { docHubContentQuerySchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseSearchParams } from "@/lib/api/validation";
 import { readLocaleFromHeaders } from "@/lib/locale";
 import { getDocContent } from "@/lib/parsers/doc-hub-parser";
 
@@ -7,21 +9,22 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const locale = readLocaleFromHeaders(request.headers);
-  const { searchParams } = new URL(request.url);
-  const project = searchParams.get("project")?.trim() ?? "";
-  const file = searchParams.get("file")?.trim() ?? "";
-
-  if (!project || !file || project.includes("..") || file.includes("..")) {
-    return jsonError(
-      "INVALID_PATH",
-      locale === "en" ? "The document path is not valid." : "유효하지 않은 문서 경로입니다.",
-      400,
-    );
-  }
 
   try {
+    const { project, file } = parseSearchParams(request, docHubContentQuerySchema);
     return Response.json(await getDocContent(project, file));
   } catch (error) {
+    if (isZodError(error)) {
+      return jsonError(
+        "INVALID_PATH",
+        getZodErrorMessage(
+          error,
+          locale === "en" ? "The document path is not valid." : "유효하지 않은 문서 경로입니다.",
+        ),
+        400,
+      );
+    }
+
     const message = getErrorMessage(
       error,
       locale === "en" ? "Failed to load the document." : "문서를 불러오지 못했습니다.",

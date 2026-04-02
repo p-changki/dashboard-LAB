@@ -15,10 +15,7 @@ import {
 export async function parseGeminiSettings(): Promise<GeminiSettings> {
   const settings = maskSensitiveData(await readJsonObject(GEMINI_SETTINGS_FILE));
   const authType = getGeminiAuthType(settings);
-  const version =
-    (await detectCliVersion("gemini")) !== "unknown"
-      ? await detectCliVersion("gemini")
-      : await detectCliVersion("/opt/homebrew/bin/gemini");
+  const version = await detectCliVersion("gemini");
 
   return {
     version,

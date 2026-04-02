@@ -4,8 +4,10 @@ import { spawn } from "node:child_process";
 
 import { generateOpenAiText, hasOpenAiApiFallback } from "@/lib/ai/openai-responses";
 import { runSpawnTask } from "@/lib/ai-skills/runner";
-import { checkCommandAvailable } from "@/lib/command-availability";
-import { pathExists } from "@/lib/parsers/shared";
+import {
+  checkCommandAvailable,
+  getCommandEnvironment,
+} from "@/lib/command-availability";
 import type {
   CreateMeetingHubMeetingInput,
   MeetingHubAiRunner,
@@ -67,7 +69,7 @@ async function resolveMeetingHubRunner(
   }
 
   if (requestedRunner === "gemini") {
-    if ((await pathExists("/opt/homebrew/bin/gemini")) || (await checkCommandAvailable("gemini"))) {
+    if (await checkCommandAvailable("gemini")) {
       return "gemini";
     }
     throw new Error("Gemini CLI is not available.");
@@ -81,7 +83,7 @@ async function resolveMeetingHubRunner(
     return "codex";
   }
 
-  if ((await pathExists("/opt/homebrew/bin/gemini")) || (await checkCommandAvailable("gemini"))) {
+  if (await checkCommandAvailable("gemini")) {
     return "gemini";
   }
 
@@ -108,7 +110,7 @@ async function runMeetingHubModel(
     const outputPath = `/tmp/dashboard-lab-meeting-hub-${crypto.randomUUID()}.txt`;
     const result = await runSpawnTask({
       command: "codex",
-      args: ["exec", "-o", outputPath, prompt],
+      args: ["exec", "--skip-git-repo-check", "-o", outputPath, prompt],
       cwd: process.env.HOME || "/",
       outputPath,
       timeoutMs: PROMPT_TIMEOUT_MS,
@@ -116,11 +118,8 @@ async function runMeetingHubModel(
     return unwrapOutput(result.output, result.error);
   }
 
-  const geminiCommand = (await pathExists("/opt/homebrew/bin/gemini"))
-    ? "/opt/homebrew/bin/gemini"
-    : "gemini";
   const result = await runSpawnTask({
-    command: geminiCommand,
+    command: "gemini",
     args: ["-p", prompt],
     cwd: process.env.HOME || "/",
     timeoutMs: PROMPT_TIMEOUT_MS,
@@ -133,7 +132,7 @@ function runClaude(prompt: string): Promise<string> {
     const proc = spawn(
       "claude",
       ["-p", "--output-format", "text", "--effort", "low"],
-      { cwd: process.env.HOME || "/", env: { ...process.env, TERM: "dumb" } },
+      { cwd: process.env.HOME || "/", env: getCommandEnvironment({ TERM: "dumb" }) },
     );
 
     let output = "";

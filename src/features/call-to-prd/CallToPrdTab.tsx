@@ -18,6 +18,7 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
   const copy = getCallToPrdCopy(locale);
   const workspace = useCallToPrdWorkspace(navigationMode);
   const data = useCallToPrdData({
+    projectPath: workspace.projectPath,
     savedPage: workspace.savedPage,
     deferredSavedQuery: workspace.deferredSavedQuery,
     setHistory: workspace.setHistory,
@@ -27,6 +28,10 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
     setSavedPage: workspace.setSavedPage,
     setProjects: workspace.setProjects,
     setCurrentProjectPath: workspace.setCurrentProjectPath,
+    setProjectContextStatus: workspace.setProjectContextStatus,
+    setProjectContextSummary: workspace.setProjectContextSummary,
+    setProjectContextSources: workspace.setProjectContextSources,
+    setProjectContextError: workspace.setProjectContextError,
     setTemplateSets: workspace.setTemplateSets,
     setCurrent: workspace.setCurrent,
   });
@@ -37,6 +42,8 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
     directText: workspace.directText,
     projectName: workspace.projectName,
     projectPath: workspace.projectPath,
+    projectContextStatus: workspace.projectContextStatus,
+    projectContextError: workspace.projectContextError,
     customerName: workspace.customerName,
     additionalContext: workspace.additionalContext,
     inputKind: workspace.inputKind,
@@ -99,42 +106,42 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
 
   return (
     <div className="space-y-5">
-      <section className="rounded-3xl border border-white/8 bg-[radial-gradient(circle_at_top_left,_rgba(192,132,252,0.16),_transparent_42%),linear-gradient(180deg,_rgba(20,20,20,0.94),_rgba(14,14,14,0.98))] p-6">
+      <section className="rounded-3xl border border-border-base bg-[radial-gradient(circle_at_top_left,_rgba(192,132,252,0.16),_transparent_42%),linear-gradient(180deg,_rgba(20,20,20,0.94),_rgba(14,14,14,0.98))] p-6">
         <p className="text-xs uppercase tracking-[0.24em] text-purple-200/80">{copy.tab.heroEyebrow}</p>
         <h2 className="mt-3 text-xl font-semibold tracking-tight text-white">{copy.tab.heroTitle}</h2>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-text-soft)]">
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-text-secondary">
           {copy.tab.heroDescription}
         </p>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           {copy.tab.cards.map((item) => (
-            <article key={item.label} className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
+            <article key={item.label} className="rounded-2xl border border-border-base bg-black/15 px-4 py-4">
               <p className="text-[11px] uppercase tracking-[0.2em] text-purple-200/70">{item.label}</p>
               <p className="mt-2 text-sm font-medium text-white">{item.title}</p>
-              <p className="mt-2 text-xs leading-6 text-[var(--color-text-soft)]">{item.description}</p>
+              <p className="mt-2 text-xs leading-6 text-text-secondary">{item.description}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => workspace.setSubTab("intake")}
-          className={`rounded-full px-4 py-2 text-sm transition-all duration-[150ms] ${workspace.subTab === "intake" ? "bg-purple-900/30 text-purple-300 border border-purple-500/20" : "bg-[#1e1e1e] text-gray-400 border border-white/8"}`}
+          className={`rounded-full px-4 py-2 text-sm transition-all duration-[150ms] ${workspace.subTab === "intake" ? "bg-purple-900/30 text-purple-300 border border-purple-500/20" : "bg-bg-card text-text-muted border border-border-base"}`}
         >
           {copy.tab.tabs.intake}
         </button>
         <button
           type="button"
           onClick={() => workspace.setSubTab("viewer")}
-          className={`rounded-full px-4 py-2 text-sm transition-all duration-[150ms] ${workspace.subTab === "viewer" ? "bg-purple-900/30 text-purple-300 border border-purple-500/20" : "bg-[#1e1e1e] text-gray-400 border border-white/8"}`}
+          className={`rounded-full px-4 py-2 text-sm transition-all duration-[150ms] ${workspace.subTab === "viewer" ? "bg-purple-900/30 text-purple-300 border border-purple-500/20" : "bg-bg-card text-text-muted border border-border-base"}`}
         >
           {copy.tab.tabs.viewer}
         </button>
         <button
           type="button"
           onClick={() => workspace.setSubTab("history")}
-          className={`rounded-full px-4 py-2 text-sm transition-all duration-[150ms] ${workspace.subTab === "history" ? "bg-purple-900/30 text-purple-300 border border-purple-500/20" : "bg-[#1e1e1e] text-gray-400 border border-white/8"}`}
+          className={`rounded-full px-4 py-2 text-sm transition-all duration-[150ms] ${workspace.subTab === "history" ? "bg-purple-900/30 text-purple-300 border border-purple-500/20" : "bg-bg-card text-text-muted border border-border-base"}`}
         >
           {copy.tab.tabs.history}
         </button>
@@ -155,6 +162,10 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
           projectPath={workspace.projectPath}
           projectName={workspace.projectName}
           setProjectName={workspace.setProjectName}
+          projectContextStatus={workspace.projectContextStatus}
+          projectContextSummary={workspace.projectContextSummary}
+          projectContextSources={workspace.projectContextSources}
+          projectContextError={workspace.projectContextError}
           customerName={workspace.customerName}
           setCustomerName={workspace.setCustomerName}
           additionalContext={workspace.additionalContext}

@@ -14,14 +14,14 @@ export function AutoOrganize() {
     <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-gray-500">자동 정리</p>
-          <p className="mt-2 text-sm text-gray-400">먼저 미리보기 후, move 작업만 실행합니다.</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-text-muted">자동 정리</p>
+          <p className="mt-2 text-sm text-text-muted">먼저 미리보기 후, move 작업만 실행합니다.</p>
         </div>
         <div className="flex items-center gap-2">
           <select
             value={target}
             onChange={(event) => setTarget(event.target.value as AutoOrganizeTarget)}
-            className="rounded-xl border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-300"
+            className="rounded-xl border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-text-secondary"
           >
             <option value="desktop">Desktop</option>
             <option value="downloads">Downloads</option>
@@ -30,7 +30,7 @@ export function AutoOrganize() {
           <button
             type="button"
             onClick={() => void runAutoOrganize(target, true, setPreview, setLoading)}
-            className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2 text-sm text-gray-200 hover:bg-gray-800"
+            className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2 text-sm text-text-secondary hover:bg-gray-800"
           >
             자동 정리
           </button>
@@ -51,7 +51,7 @@ export function AutoOrganize() {
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-gray-900 px-3 py-1 text-xs text-gray-300">
+            <span className="rounded-full bg-gray-900 px-3 py-1 text-xs text-text-secondary">
               총 이동 용량 {preview.summary.totalSize}
             </span>
             <button
@@ -75,9 +75,9 @@ function PanelList({ title, items, empty }: { title: string; items: string[]; em
     <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-4">
       <p className="text-sm font-semibold text-white">{title}</p>
       <div className="mt-3 space-y-2">
-        {items.length === 0 ? <p className="text-sm text-gray-500">{empty}</p> : null}
+        {items.length === 0 ? <p className="text-sm text-text-muted">{empty}</p> : null}
         {items.map((item) => (
-          <p key={item} className="text-xs leading-6 text-gray-300">
+          <p key={item} className="text-xs leading-6 text-text-secondary">
             {item}
           </p>
         ))}

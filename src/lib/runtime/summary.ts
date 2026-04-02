@@ -1,9 +1,13 @@
 import "server-only";
 
-import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 
 import { APP_META } from "@/lib/app-meta";
+import {
+  isCommandDisconnected,
+  readCommandVersionSync,
+  resolveCommandPathSync,
+} from "@/lib/command-availability";
 import { pickLocale, type AppLocale, DEFAULT_LOCALE } from "@/lib/locale";
 import {
   CLAUDE_SETTINGS_FILE,
@@ -325,7 +329,9 @@ function buildCommandCheckFromResult(
     status,
     result.exists
       ? [result.path, result.version].filter(Boolean).join(" · ")
-      : t(locale, "설치되지 않음", "Not installed"),
+      : result.disconnected
+        ? t(locale, "dashboard-LAB에서 연결 해제됨", "Disconnected in dashboard-LAB")
+        : t(locale, "설치되지 않음", "Not installed"),
     required,
     locale,
   );
@@ -371,6 +377,7 @@ function buildStaticCheck(
 
 type CommandDetectionResult = {
   exists: boolean;
+  disconnected: boolean;
   path: string | null;
   version: string | null;
 };
@@ -385,54 +392,39 @@ function detectAnyCommand(commands: string[]): CommandDetectionResult {
 
   return {
     exists: false,
+    disconnected: false,
     path: null,
     version: null,
   };
 }
 
 function detectCommand(command: string): CommandDetectionResult {
-  const commandPath = resolveCommandPath(command);
-
-  if (!commandPath) {
+  if (isCommandDisconnected(command)) {
     return {
       exists: false,
+      disconnected: true,
       path: null,
       version: null,
     };
   }
 
-  const versionResult = spawnSync(commandPath, ["--version"], {
-    encoding: "utf8",
-    timeout: 5000,
-  });
-  const versionOutput = `${versionResult.stdout ?? ""}\n${versionResult.stderr ?? ""}`
-    .trim()
-    .split(/\r?\n/)[0] ?? null;
+  const commandPath = resolveCommandPathSync(command);
+
+  if (!commandPath) {
+    return {
+      exists: false,
+      disconnected: false,
+      path: null,
+      version: null,
+    };
+  }
 
   return {
     exists: true,
+    disconnected: false,
     path: commandPath,
-    version: versionOutput || null,
+    version: readCommandVersionSync(commandPath),
   };
-}
-
-function resolveCommandPath(command: string) {
-  if (process.platform === "win32") {
-    const result = spawnSync("where", [command], { encoding: "utf8" });
-    if (result.status !== 0) {
-      return "";
-    }
-
-    return result.stdout
-      .split(/\r?\n/)
-      .map((item) => item.trim())
-      .find(Boolean) ?? "";
-  }
-
-  const result = spawnSync("sh", ["-lc", `command -v '${command}'`], {
-    encoding: "utf8",
-  });
-  return result.status === 0 ? result.stdout.trim() : "";
 }
 
 function t(locale: AppLocale, ko: string, en: string) {

@@ -1,8 +1,9 @@
 import { getErrorMessage, isJsonParseError, jsonError } from "@/lib/api/error-response";
+import { runtimeSettingsRequestSchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseJsonBody } from "@/lib/api/validation";
 import { readLocaleFromHeaders } from "@/lib/locale";
 import { getRuntimeSummary } from "@/lib/runtime/summary";
 import { updateRuntimeSecrets, updateRuntimeSettings } from "@/lib/runtime/settings";
-import type { DashboardLabRuntimeSettingsPaths } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,24 +17,14 @@ export async function POST(request: Request) {
   const locale = readLocaleFromHeaders(request.headers);
 
   try {
-    const payload = (await request.json()) as {
-      paths?: Partial<DashboardLabRuntimeSettingsPaths>;
-      secrets?: {
-        openaiApiKey?: string;
-        clearOpenaiApiKey?: boolean;
-      };
-    };
-
-    if (!payload || typeof payload !== "object") {
-      return jsonError("INVALID_PAYLOAD", "설정 형식이 올바르지 않습니다.", 400);
-    }
+    const payload = await parseJsonBody(request, runtimeSettingsRequestSchema);
 
     updateRuntimeSettings({
-      projectsRoot: readOptionalString(payload.paths?.projectsRoot),
-      dataRoot: readOptionalString(payload.paths?.dataRoot),
-      prdSaveDir: readOptionalString(payload.paths?.prdSaveDir),
-      csContextsDir: readOptionalString(payload.paths?.csContextsDir),
-      allowedRoots: readOptionalStringArray(payload.paths?.allowedRoots),
+      projectsRoot: payload.paths?.projectsRoot ?? null,
+      dataRoot: payload.paths?.dataRoot ?? null,
+      prdSaveDir: payload.paths?.prdSaveDir ?? null,
+      csContextsDir: payload.paths?.csContextsDir ?? null,
+      allowedRoots: payload.paths?.allowedRoots ?? [],
     });
 
     if (payload.secrets?.clearOpenaiApiKey) {
@@ -51,20 +42,18 @@ export async function POST(request: Request) {
       return jsonError("INVALID_JSON", "JSON 형식이 올바르지 않습니다.", 400);
     }
 
+    if (isZodError(error)) {
+      return jsonError(
+        "INVALID_INPUT",
+        getZodErrorMessage(error, "런타임 설정 요청 형식이 올바르지 않습니다."),
+        400,
+      );
+    }
+
     return jsonError(
       "RUNTIME_SETTINGS_SAVE_FAILED",
       getErrorMessage(error, "런타임 설정을 저장하지 못했습니다."),
       400,
     );
   }
-}
-
-function readOptionalString(value: unknown) {
-  return typeof value === "string" ? value : null;
-}
-
-function readOptionalStringArray(value: unknown) {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string")
-    : [];
 }

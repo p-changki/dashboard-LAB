@@ -9,8 +9,8 @@ export function SystemOverview({ data, lastUpdatedAt = null }: SystemOverviewPro
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-lg font-semibold text-gray-100">System Overview</p>
-        <p className="text-xs text-gray-500">
+        <p className="text-lg font-semibold text-text-primary">System Overview</p>
+        <p className="text-xs text-text-muted">
           약 15초마다 갱신
           {lastUpdatedAt ? ` · 최근 갱신 ${lastUpdatedAt}` : ""}
         </p>
@@ -20,7 +20,7 @@ export function SystemOverview({ data, lastUpdatedAt = null }: SystemOverviewPro
         <Gauge title="Memory" value={data?.memory.percent ?? 0} meta={`${data?.memory.used ?? "-"} / ${data?.memory.total ?? "-"}`} />
         <Gauge title="Disk" value={data?.disk.percent ?? 0} meta={`${data?.disk.used ?? "-"} / ${data?.disk.total ?? "-"}`} />
       </div>
-      <div className="mt-4 space-y-1 text-sm text-gray-400">
+      <div className="mt-4 space-y-1 text-sm text-text-muted">
         <p>OS: {data?.os ?? "-"}</p>
         <p>Uptime: {data?.uptime ?? "-"}</p>
         <p>IP: {data?.network.localIP ?? "-"}</p>
@@ -32,12 +32,12 @@ export function SystemOverview({ data, lastUpdatedAt = null }: SystemOverviewPro
 function Gauge({ title, value, meta }: { title: string; value: number; meta: string }) {
   return (
     <article className="rounded-2xl border border-gray-800 bg-gray-900/70 p-4">
-      <p className="text-sm text-gray-500">{title}</p>
+      <p className="text-sm text-text-muted">{title}</p>
       <p className="mt-2 text-lg font-semibold text-white">{meta}</p>
       <div className="mt-3 h-2 rounded-full bg-gray-800">
         <div className="h-2 rounded-full bg-blue-500" style={{ width: `${Math.min(value, 100)}%` }} />
       </div>
-      <p className="mt-2 text-xs text-gray-500">{value}%</p>
+      <p className="mt-2 text-xs text-text-muted">{value}%</p>
     </article>
   );
 }

@@ -66,7 +66,7 @@ const LOCALIZED_TAB_META: Record<AppLocale, Record<DashboardTabId, DashboardTabM
     },
     signalwriter: {
       title: "Signal Writer",
-      description: "오늘 기사에서 Threads용 초안을 바로 만드는 글쓰기 탭입니다.",
+      description: "오늘 기사에서 소셜 초안을 바로 만드는 글쓰기 탭입니다.",
     },
     calltoprd: {
       title: "Call → PRD",
@@ -112,7 +112,7 @@ const LOCALIZED_TAB_META: Record<AppLocale, Record<DashboardTabId, DashboardTabM
     },
     signalwriter: {
       title: "Signal Writer",
-      description: "Turn today's signals into Threads-ready drafts from one writing flow.",
+      description: "Turn today's signals into social-ready drafts from one writing flow.",
     },
     calltoprd: {
       title: "Call → PRD",
@@ -352,17 +352,18 @@ const LOCALIZED_GUIDES: Record<AppLocale, Record<DashboardTabId, DashboardGuide>
     signalwriter: {
       badge: "소셜 초안 작성",
       summary:
-        "오늘 의미 있는 기사 4~5개를 추려서, 선택한 신호 하나를 Threads용 초안으로 바꾸는 글쓰기 탭입니다.",
+        "오늘 의미 있는 기사 4~5개를 추려서, 선택한 신호 하나를 Threads, X, LinkedIn용 초안으로 바꾸는 글쓰기 탭입니다.",
       features: [
         "Info Hub 피드에서 지금 글로 풀기 좋은 신호만 카드 형태로 먼저 추립니다.",
-        "카드를 하나 선택하면 훅, 짧은 본문, 쓰레드 버전, 해시태그를 한 번에 생성합니다.",
+        "카드를 하나 선택하면 훅, 메인 포스트, 연속 포스트, 해시태그를 한 번에 생성합니다.",
         "생성 중에는 어떤 단계로 초안을 만들고 있는지 진행 상태를 보여줍니다.",
         "완성된 결과를 바로 복사하고 로컬 파일로 저장해 이후 이력을 남길 수 있습니다.",
       ],
       quickSteps: [
         "첫 화면에서 오늘 쓸 만한 기사 카드를 1개 고릅니다.",
+        "게시할 채널과 생성 모드를 맞춥니다.",
         "생성 버튼을 눌러 초안 작성 단계를 진행합니다.",
-        "완료된 짧은 글이나 쓰레드 버전을 복사해서 소셜에 올립니다.",
+        "완료된 메인 포스트나 연속 포스트를 복사해서 소셜에 올립니다.",
       ],
       useWhen: [
         "매일 최신 기술 뉴스를 바탕으로 짧은 관점 글을 올리고 싶을 때",
@@ -631,17 +632,18 @@ const LOCALIZED_GUIDES: Record<AppLocale, Record<DashboardTabId, DashboardGuide>
     signalwriter: {
       badge: "Social draft writing",
       summary:
-        "A writing tab that picks 4-5 meaningful stories for today, then turns one selected signal into a Threads-ready draft.",
+        "A writing tab that picks 4-5 meaningful stories for today, then turns one selected signal into a Threads, X, or LinkedIn-ready draft.",
       features: [
         "Start from curated signal cards rather than raw feed noise.",
-        "Generate a hook, short post, thread version, and hashtags from one chosen card.",
+        "Generate a hook, primary post, series version, and hashtags from one chosen card.",
         "See staged progress instead of a blank loading state while the draft is being prepared.",
         "Copy the final result and keep a local file record of the generated draft.",
       ],
       quickSteps: [
         "Choose one of the daily signal cards.",
+        "Pick the publishing channel and draft mode.",
         "Press generate and wait for the staged writing flow to finish.",
-        "Copy either the short post or the thread version.",
+        "Copy either the primary post or the series version.",
       ],
       useWhen: [
         "You want to post timely takes about dev and AI news without starting from a blank page.",

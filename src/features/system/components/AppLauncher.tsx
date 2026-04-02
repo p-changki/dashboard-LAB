@@ -15,9 +15,9 @@ export function AppLauncher({ apps, onLaunch }: AppLauncherProps) {
 
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
-      <p className="text-lg font-semibold text-gray-100">App Launcher</p>
+      <p className="text-lg font-semibold text-text-primary">App Launcher</p>
       {apps.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-400">
+        <p className="mt-4 text-sm text-text-muted">
           이 환경에서는 자동으로 찾은 앱이 아직 없습니다. macOS는 앱 폴더를,
           Windows와 Linux는 주요 앱 경로 또는 실행 파일을 기준으로 탐지합니다.
         </p>
@@ -25,7 +25,7 @@ export function AppLauncher({ apps, onLaunch }: AppLauncherProps) {
       <div className="mt-4 space-y-4">
         {Object.entries(grouped).map(([category, categoryApps]) => (
           <div key={category}>
-            <p className="mb-2 text-sm font-medium text-gray-400">{category}</p>
+            <p className="mb-2 text-sm font-medium text-text-muted">{category}</p>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {categoryApps.map((app) => (
                 <button
@@ -35,7 +35,7 @@ export function AppLauncher({ apps, onLaunch }: AppLauncherProps) {
                   className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900/70 px-3 py-3 text-left hover:bg-gray-800"
                 >
                   <span className="text-sm text-white">{app.name}</span>
-                  <span className={app.isRunning ? "text-green-400" : "text-gray-500"}>
+                  <span className={app.isRunning ? "text-green-400" : "text-text-muted"}>
                     {app.isRunning ? "●" : "○"}
                   </span>
                 </button>

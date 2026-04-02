@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { callHistoryDeleteSchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseJsonBody } from "@/lib/api/validation";
 import { deleteRecord, getAllRecords } from "@/lib/call-to-prd/call-store";
 import { getCallToPrdApiError } from "@/lib/call-to-prd/messages";
 import { readLocaleFromHeaders } from "@/lib/locale";
@@ -10,16 +12,10 @@ export async function GET() {
 }
 
 export async function DELETE(request: Request) {
-  try {
-    const locale = readLocaleFromHeaders(request.headers);
-    const body = (await request.json()) as { id?: string };
+  const locale = readLocaleFromHeaders(request.headers);
 
-    if (!body.id?.trim()) {
-      return NextResponse.json(
-        { error: getCallToPrdApiError(locale, "INVALID_INPUT", locale === "en" ? "A history record ID is required." : "삭제할 기록 ID가 필요합니다.") },
-        { status: 400 },
-      );
-    }
+  try {
+    const body = await parseJsonBody(request, callHistoryDeleteSchema);
 
     const deleted = deleteRecord(body.id);
 
@@ -31,8 +27,25 @@ export async function DELETE(request: Request) {
     }
 
     return NextResponse.json({ deleted: true, id: body.id });
-  } catch {
-    const locale = readLocaleFromHeaders(request.headers);
+  } catch (error) {
+    if (isZodError(error)) {
+      return NextResponse.json(
+        {
+          error: getCallToPrdApiError(
+            locale,
+            "INVALID_INPUT",
+            getZodErrorMessage(
+              error,
+              locale === "en"
+                ? "The history delete request body is invalid."
+                : "기록 삭제 요청 형식이 올바르지 않습니다.",
+            ),
+          ),
+        },
+        { status: 400 },
+      );
+    }
+
     return NextResponse.json(
       { error: getCallToPrdApiError(locale, "DELETE_FAILED", locale === "en" ? "Failed to delete the current session record." : "현재 세션 기록 삭제에 실패했습니다.") },
       { status: 500 },

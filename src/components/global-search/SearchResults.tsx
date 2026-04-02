@@ -17,7 +17,7 @@ export function SearchResults({ results, activeIndex, onSelect }: SearchResultsP
 
   if (results.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/8 bg-[#1e1e1e] px-4 py-6 text-sm text-white/55">
+      <div className="rounded-2xl border border-border-base bg-bg-card px-4 py-6 text-sm text-white/55">
         {pickLocale(locale, {
           ko: "검색 결과가 없습니다.",
           en: "No results found.",
@@ -30,7 +30,7 @@ export function SearchResults({ results, activeIndex, onSelect }: SearchResultsP
     <div className="space-y-4">
       {groups.map(([label, items]) => (
         <section key={label} className="space-y-2">
-          <p className="px-2 text-[10px] uppercase tracking-widest text-gray-500">{label}</p>
+          <p className="px-2 text-[10px] uppercase tracking-widest text-text-muted">{label}</p>
           <div className="space-y-1">
             {items.map(({ result, index }) => (
               <SearchResultItem

@@ -1,8 +1,10 @@
 "use client";
 
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { Badge } from "@/components/ui/Badge";
 import { PinButton } from "@/components/ui/PinButton";
 import { getHomeCopy } from "@/features/home/copy";
+import { HomeEmptyCard } from "@/features/home/components/HomeEmptyCard";
 import type { Team } from "@/lib/types";
 
 interface TeamGridProps {
@@ -14,28 +16,22 @@ export function TeamGrid({ teams }: TeamGridProps) {
   const copy = getHomeCopy(locale);
 
   if (teams.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-white/10 bg-transparent p-6 text-center text-sm text-gray-500">
-        {copy.noTeams}
-      </div>
-    );
+    return <HomeEmptyCard message={copy.noTeams} />;
   }
 
   return (
     <div className="grid gap-3 lg:grid-cols-2">
       {teams.map((team) => (
-        <article key={team.name} className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-5 transition-all duration-[150ms] hover:-translate-y-0.5 hover:border-white/[.14] hover:bg-[#242424]">
+        <article key={team.name} className="rounded-2xl border border-border-base bg-bg-card p-5 transition-all duration-[150ms] hover:-translate-y-0.5 hover:border-border-hover hover:bg-bg-card-hover">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-sm font-medium text-[#f0f0f0]">{team.name}</h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">
+              <h3 className="text-sm font-medium text-text-primary">{team.name}</h3>
+              <p className="mt-2 text-sm leading-6 text-text-secondary">
                 {team.purpose}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-xs font-medium text-white/80">
-                {copy.memberCount(team.memberCount)}
-              </span>
+              <Badge variant="neutral">{copy.memberCount(team.memberCount)}</Badge>
               <PinButton
                 item={{
                   id: `team:${team.name}`,
@@ -50,12 +46,12 @@ export function TeamGrid({ teams }: TeamGridProps) {
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {team.members.map((member) => (
-              <span
+              <Badge
                 key={`${team.name}-${member.role}-${member.model}`}
-                className="rounded-full border border-purple-500/20 bg-purple-900/30 px-3 py-1 text-xs text-purple-300"
+                variant="claude"
               >
                 {member.role} · {member.model}
-              </span>
+              </Badge>
             ))}
           </div>
         </article>

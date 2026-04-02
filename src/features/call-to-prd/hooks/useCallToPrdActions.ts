@@ -37,6 +37,8 @@ type UseCallToPrdActionsParams = {
   directText: string;
   projectName: string;
   projectPath: string;
+  projectContextStatus: "idle" | "loading" | "ready" | "failed";
+  projectContextError: string;
   customerName: string;
   additionalContext: string;
   inputKind: CallRecord["inputKind"];
@@ -106,6 +108,8 @@ export function useCallToPrdActions({
   directText,
   projectName,
   projectPath,
+  projectContextStatus,
+  projectContextError,
   customerName,
   additionalContext,
   inputKind,
@@ -169,6 +173,16 @@ export function useCallToPrdActions({
   const copy = getCallToPrdCopy(locale);
 
   async function handleSubmit() {
+    if (!projectPath.trim()) {
+      setFeedbackMessage(copy.hooks.projectRequired);
+      return;
+    }
+
+    if (projectContextStatus !== "ready") {
+      setFeedbackMessage(projectContextError || copy.hooks.projectContextNotReady);
+      return;
+    }
+
     const formData = new FormData();
     if (mode === "file" && file) {
       formData.append("file", file);
@@ -247,6 +261,7 @@ export function useCallToPrdActions({
           projectName: displayRecord.projectName,
           customerName: displayRecord.customerName,
           projectContext: displayRecord.projectContext,
+          projectContextSources: displayRecord.projectContextSources,
           baselineTitle: displayRecord.baselineTitle,
           additionalContext: displayRecord.additionalContext,
           inputKind: displayRecord.inputKind,
@@ -343,7 +358,10 @@ export function useCallToPrdActions({
 
     if (nextProject) {
       setProjectName(nextProject.name);
+      return;
     }
+
+    setProjectName("");
   }
 
   function applyTemplateSet(templateSet: CallDocTemplateSet) {

@@ -1,6 +1,9 @@
 import { spawn } from "node:child_process";
 
-import { checkCommandAvailable } from "@/lib/command-availability";
+import {
+  checkCommandAvailable,
+  getCommandEnvironment,
+} from "@/lib/command-availability";
 import { generateOpenAiText, hasOpenAiApiFallback } from "@/lib/ai/openai-responses";
 
 const TIMEOUT_MS = 5 * 60 * 1000; // 5분
@@ -67,7 +70,7 @@ function runClaudeCliPrd(
 
     const proc = spawn("claude", args, {
       cwd: options?.cwd,
-      env: { ...process.env, TERM: "dumb" },
+      env: getCommandEnvironment({ TERM: "dumb" }),
     });
 
     let output = "";

@@ -35,7 +35,7 @@ export function SearchInput({ open, onQueryChange }: SearchInputProps) {
       value={value}
       onChange={(event) => setValue(event.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-2xl border border-white/8 bg-[#1e1e1e] px-4 py-3 text-sm text-[#f0f0f0] outline-none transition-all duration-[150ms] placeholder:text-gray-500 focus:border-purple-500/60 focus:bg-[#242424]"
+      className="w-full rounded-2xl border border-border-base bg-bg-card px-4 py-3 text-sm text-text-primary outline-none transition-all duration-[150ms] placeholder:text-text-muted focus:border-purple-500/60 focus:bg-bg-card-hover"
     />
   );
 }

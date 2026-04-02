@@ -1,10 +1,20 @@
+import { jsonError } from "@/lib/api/error-response";
+import { refreshOnlyQuerySchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseSearchParams } from "@/lib/api/validation";
 import { getSecurityAudit } from "@/lib/info-hub/security-auditor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const forceRefresh = searchParams.get("refresh") === "1";
-  return Response.json(await getSecurityAudit({ forceRefresh }));
+  try {
+    const { refresh } = parseSearchParams(request, refreshOnlyQuerySchema);
+    return Response.json(await getSecurityAudit({ forceRefresh: refresh }));
+  } catch (error) {
+    if (isZodError(error)) {
+      return jsonError("INVALID_QUERY", getZodErrorMessage(error, "Info Hub query 형식이 올바르지 않습니다."), 400);
+    }
+
+    throw error;
+  }
 }

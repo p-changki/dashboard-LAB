@@ -24,13 +24,17 @@ import type {
 import { getRuntimeConfig } from "@/lib/runtime/config";
 
 interface SavedBundleManifest {
-  version: 1 | 2 | 3 | 4 | 5;
+  version: 1 | 2 | 3 | 4 | 5 | 6;
   id: string;
   title: string;
   createdAt: string;
   callDate: string;
   projectName: string | null;
+  projectPath?: string | null;
   customerName: string | null;
+  projectContext?: string | null;
+  projectContextSources?: string[];
+  projectContextError?: string | null;
   generationMode?: CallGenerationMode;
   baselineEntryName?: string | null;
   baselineTitle?: string | null;
@@ -65,7 +69,11 @@ interface SavedBundleManifest {
 interface SaveBundleOptions {
   id: string;
   projectName: string | null;
+  projectPath: string | null;
   customerName: string | null;
+  projectContext: string | null;
+  projectContextSources: string[];
+  projectContextError: string | null;
   generationMode: CallGenerationMode;
   baselineEntryName?: string | null;
   baselineTitle?: string | null;
@@ -90,7 +98,11 @@ export async function saveGeneratedDocsBundle(options: SaveBundleOptions): Promi
   const {
     id,
     projectName,
+    projectPath,
     customerName,
+    projectContext,
+    projectContextSources,
+    projectContextError,
     baselineEntryName,
     baselineTitle,
     callDate,
@@ -135,13 +147,17 @@ export async function saveGeneratedDocsBundle(options: SaveBundleOptions): Promi
   }
 
   const manifest: SavedBundleManifest = {
-    version: 5,
+    version: 6,
     id,
     title: buildBundleTitle(projectName, customerName),
     createdAt: new Date().toISOString(),
     callDate,
     projectName,
+    projectPath,
     customerName,
+    projectContext,
+    projectContextSources,
+    projectContextError,
     generationMode: options.generationMode,
     baselineEntryName: baselineEntryName ?? null,
     baselineTitle: baselineTitle ?? null,
@@ -210,7 +226,7 @@ export async function saveNextActionDraft(
 
   const updatedManifest: SavedBundleManifest = {
     ...manifest,
-    version: 5,
+    version: 6,
     nextActions,
     summary: manifest.summary
       ? {
@@ -534,7 +550,11 @@ async function loadBundleDetail(entryName: string): Promise<SavedCallBundleDetai
     createdAt: manifest.createdAt,
     callDate: manifest.callDate,
     projectName: manifest.projectName,
+    projectPath: manifest.projectPath ?? null,
     customerName: manifest.customerName,
+    projectContext: manifest.projectContext ?? null,
+    projectContextSources: manifest.projectContextSources ?? [],
+    projectContextError: manifest.projectContextError ?? null,
     generationMode: manifest.generationMode ?? "dual",
     baselineEntryName: manifest.baselineEntryName ?? null,
     baselineTitle: manifest.baselineTitle ?? null,
@@ -614,7 +634,11 @@ async function loadLegacyDetail(entryName: string): Promise<SavedCallBundleDetai
     createdAt: fileStat.birthtime.toISOString(),
     callDate: fileStat.birthtime.toISOString().slice(0, 10),
     projectName: null,
+    projectPath: null,
     customerName: null,
+    projectContext: null,
+    projectContextSources: [],
+    projectContextError: "legacy bundle / no project context",
     generationMode: "dual",
     baselineEntryName: null,
     baselineTitle: null,

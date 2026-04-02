@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/Button";
 import type { TerminalSession } from "@/lib/types";
 
 interface TerminalTabsProps {
@@ -26,25 +27,36 @@ export function TerminalTabs({
             "flex items-center gap-2 rounded-full px-3 py-2 text-sm",
             activeSessionId === session.id
               ? "bg-blue-900/40 text-blue-300"
-              : "bg-gray-900 text-gray-300",
+              : "bg-gray-900 text-text-secondary",
           ].join(" ")}
         >
-          <button type="button" onClick={() => onSelect(session.id)}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onSelect(session.id)}
+            className="h-auto p-0 rounded-none text-sm font-normal text-inherit hover:text-white"
+          >
             {session.title}
-          </button>
-          <button type="button" onClick={() => onClose(session.id)} className="text-xs text-gray-500">
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onClose(session.id)}
+            className="h-auto p-0 rounded-none text-xs font-normal text-text-muted hover:text-white"
+          >
             ×
-          </button>
+          </Button>
         </div>
       ))}
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={onCreate}
         disabled={sessions.length >= 5}
-        className="rounded-full border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-300 disabled:cursor-not-allowed disabled:text-gray-600"
+        className="rounded-full border border-gray-700 bg-gray-900 px-3 text-text-secondary"
       >
         +
-      </button>
+      </Button>
     </div>
   );
 }

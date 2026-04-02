@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/Badge";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { PinButton } from "@/components/ui/PinButton";
 import { ProjectMemo } from "@/features/projects/components/advanced/ProjectMemo";
@@ -21,14 +22,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-lg font-semibold text-white">{project.name}</p>
-          <p className="mt-2 text-sm text-[var(--color-muted)]">
+          <p className="mt-2 text-sm text-text-muted">
             {TYPE_LABELS[project.type]}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/80">
-            {project.diskUsage.total}
-          </span>
+          <Badge variant="neutral">{project.diskUsage.total}</Badge>
           <PinButton
             item={{
               id: `project:${project.name}`,
@@ -42,13 +41,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
         </div>
       </div>
 
-      <p className="mt-4 text-sm leading-6 text-[var(--color-text-soft)]">
+      <p className="mt-4 text-sm leading-6 text-text-secondary">
         {project.techStack.length > 0
           ? project.techStack.join(", ")
           : "감지된 기술 스택 없음"}
       </p>
 
-      <div className="mt-5 space-y-2 text-sm text-[var(--color-text-soft)]">
+      <div className="mt-5 space-y-2 text-sm text-text-secondary">
         <p>{project.hasGit ? `🔀 ${project.gitBranch ?? "알 수 없음"}` : "📂 git 없음"}</p>
         <p>
           {project.lastCommitDate
@@ -63,9 +62,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
         {project.cleanupActions.length > 0 ? (
           project.cleanupActions.map((action) => (
             <div key={`${project.path}-${action.label}`} className="flex items-center gap-2">
-              <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-cyan-100">
-                {action.label}
-              </span>
+              <Badge variant="info">{action.label}</Badge>
               <CopyButton
                 value={action.command}
                 label="📋"
@@ -78,9 +75,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             </div>
           ))
         ) : (
-          <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/60">
-            정리 항목 없음
-          </span>
+          <Badge variant="neutral">정리 항목 없음</Badge>
         )}
       </div>
 

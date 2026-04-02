@@ -431,10 +431,17 @@ const baseCopy = {
       textPlaceholder: "고객 불만, 회의 메모, 통화 내용, 운영 이슈를 여기에 붙여넣기...",
       pdfPlaceholder: "참고 PDF 첨부 (워크북/양식, 선택, 최대 20MB)",
       pdfAttached: (name: string) => `첨부 PDF: ${name}`,
-      projectSelectPlaceholder: "로컬 프로젝트 선택 (선택)",
-      projectNamePlaceholder: "프로젝트명 (선택)",
+      projectSelectPlaceholder: "로컬 프로젝트 선택 (필수)",
+      projectNamePlaceholder: "프로젝트명 (표시용)",
       customerNamePlaceholder: "고객명 (선택)",
       additionalContextPlaceholder: "추가 맥락 (선택)",
+      projectContextTitle: "프로젝트 컨텍스트 확인",
+      projectContextDescription: "선택한 프로젝트를 실제로 읽어 PRD 생성 기준선으로 사용합니다.",
+      projectContextReady: "프로젝트 기준선 준비 완료",
+      projectContextLoading: "프로젝트 컨텍스트를 스캔하는 중입니다.",
+      projectContextFailed: "프로젝트 컨텍스트를 준비하지 못했습니다.",
+      projectContextSources: "읽은 기준 파일",
+      projectContextSummary: "요약 미리보기",
       structuringTitle: "입력 구조화",
       structuringDescription:
         "입력 유형과 문제 강도를 같이 주면 문제정의서, PRD, 고객 공유 문서의 톤과 우선순위 판단이 더 안정적으로 나옵니다.",
@@ -447,7 +454,7 @@ const baseCopy = {
       externalDocsTitle: "고객 공유 문서 분리",
       externalDocsDescription: "켜면 고객 전달용 문서에서 내부 메모와 원인 가설을 제외합니다.",
       selectedProjectPrompt:
-        "선택한 프로젝트의 `package.json`, `README`, `docs`, git 상태를 요약해서 문서 생성 프롬프트에 함께 반영합니다.",
+        "선택한 프로젝트의 문서, 설정, 핵심 엔트리포인트를 실제로 읽어 문서 생성 프롬프트에 기준선으로 반영합니다.",
       currentWorkspaceHint: "현재 이 워크스페이스를 기준으로 문서를 생성합니다.",
       baselineTitle: "변경 비교 기준 문서",
       baselineDescription:
@@ -511,6 +518,7 @@ const baseCopy = {
       noClaudeResult: "(Claude 결과 없음)",
       noCodexResult: "(Codex 결과 없음)",
       noDiffResult: "(차이점 리포트 없음)",
+      noProjectContextWarning: "legacy bundle / no project context",
     },
     history: {
       currentSession: "현재 세션",
@@ -550,6 +558,8 @@ const baseCopy = {
     hooks: {
       submitStarted: "문서 생성 작업이 시작되었습니다. 완료되면 저장 구조와 다음 액션에서 이어서 사용할 수 있습니다.",
       submitMissingInput: "녹음 파일을 올리거나 텍스트 메모를 입력한 뒤 다시 시도해 주세요.",
+      projectRequired: "프로젝트를 선택하고 컨텍스트 준비가 완료된 뒤 다시 시도해 주세요.",
+      projectContextNotReady: "프로젝트 컨텍스트가 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.",
       submitFailed: "문서 생성을 시작하지 못했습니다. 입력값과 로컬 실행 환경을 확인한 뒤 다시 시도해 주세요.",
       nextActionSaved: (title: string) => `${title} 초안을 저장 구조 아래 next-actions에 저장했습니다.`,
       nextActionCreated: (title: string) => `${title} 초안을 생성했습니다.`,
@@ -604,10 +614,17 @@ const baseCopy = {
       textPlaceholder: "Paste customer complaints, meeting notes, call content, or ops issues here...",
       pdfPlaceholder: "Attach reference PDF (optional, up to 20MB)",
       pdfAttached: (name: string) => `Attached PDF: ${name}`,
-      projectSelectPlaceholder: "Select a local project (optional)",
-      projectNamePlaceholder: "Project name (optional)",
+      projectSelectPlaceholder: "Select a local project (required)",
+      projectNamePlaceholder: "Project name (display only)",
       customerNamePlaceholder: "Customer name (optional)",
       additionalContextPlaceholder: "Additional context (optional)",
+      projectContextTitle: "Project context check",
+      projectContextDescription: "The selected project is scanned and used as the PRD baseline.",
+      projectContextReady: "Project baseline is ready",
+      projectContextLoading: "Scanning the selected project context.",
+      projectContextFailed: "Failed to prepare the project context.",
+      projectContextSources: "Files used as baseline",
+      projectContextSummary: "Summary preview",
       structuringTitle: "Input structure",
       structuringDescription:
         "Providing issue type and severity helps the system produce more stable tone and prioritization across problem statements, PRDs, and client docs.",
@@ -620,7 +637,7 @@ const baseCopy = {
       externalDocsTitle: "Separate client-facing docs",
       externalDocsDescription: "When enabled, client-facing docs omit internal notes and root-cause hypotheses.",
       selectedProjectPrompt:
-        "The selected project's `package.json`, `README`, `docs`, and git status are summarized into the generation prompt.",
+        "The selected project's docs, config, and key entrypoints are read and used as the generation baseline.",
       currentWorkspaceHint: "Documents will be generated against the current workspace.",
       baselineTitle: "Baseline document for comparison",
       baselineDescription:
@@ -684,6 +701,7 @@ const baseCopy = {
       noClaudeResult: "(No Claude result)",
       noCodexResult: "(No Codex result)",
       noDiffResult: "(No diff report)",
+      noProjectContextWarning: "legacy bundle / no project context",
     },
     history: {
       currentSession: "Current session",
@@ -723,6 +741,8 @@ const baseCopy = {
     hooks: {
       submitStarted: "Document generation started. Once it finishes, continue from the saved structure and next actions.",
       submitMissingInput: "Upload an audio file or enter text notes, then try again.",
+      projectRequired: "Select a project and wait for project context to be ready before trying again.",
+      projectContextNotReady: "Project context is not ready yet. Please try again shortly.",
       submitFailed: "Could not start document generation. Check the input and local runtime, then try again.",
       nextActionSaved: (title: string) => `Saved the ${title} draft under next-actions in the bundle.`,
       nextActionCreated: (title: string) => `Generated the ${title} draft.`,

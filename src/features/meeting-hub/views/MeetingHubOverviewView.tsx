@@ -2,6 +2,7 @@
 
 import { ArrowUpRight, CheckCircle2, Github, ListTodo, NotebookPen, Sparkles } from "lucide-react";
 
+import { Button } from "@/components/ui/Button";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import type { AppLocale } from "@/lib/locale";
 import type {
@@ -12,13 +13,14 @@ import type {
 } from "@/lib/types";
 import {
   ActionRow,
+  CollapsiblePanel,
   DecisionRow,
   MeetingRow,
   Panel,
   WeeklyBriefRow,
 } from "@/features/meeting-hub/components/MeetingHubUI";
 
-import type { MeetingHubCopy } from "../copy";
+import type { MeetingHubCopy, MeetingHubView } from "../copy";
 
 type MeetingHubOverviewViewProps = {
   locale: AppLocale;
@@ -29,7 +31,7 @@ type MeetingHubOverviewViewProps = {
   weeklyBriefs: MeetingHubWeeklyBrief[];
   linkedRepositories: string[];
   creatingIssueId: string | null;
-  setView: (view: "teams" | "meetings") => void;
+  setView: (view: MeetingHubView) => void;
   onCreateIssue: (item: MeetingHubActionItem) => void;
 };
 
@@ -45,8 +47,15 @@ export function MeetingHubOverviewView({
   setView,
   onCreateIssue,
 }: MeetingHubOverviewViewProps) {
+  const quickMetrics = [
+    { label: copy.cards.recentMeetings, value: recentMeetings.length },
+    { label: copy.cards.recentActions, value: recentActions.length },
+    { label: copy.cards.weeklyBrief, value: weeklyBriefs.length },
+    { label: copy.cards.linkedRepos, value: linkedRepositories.length },
+  ];
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+    <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.22fr)_minmax(320px,0.78fr)]">
       <div className="space-y-6">
         <Panel title={copy.cards.recentMeetings} icon={NotebookPen}>
           {recentMeetings.length > 0 ? (
@@ -94,6 +103,39 @@ export function MeetingHubOverviewView({
       </div>
 
       <div className="space-y-6">
+        <Panel title={locale === "ko" ? "워크스페이스 상태" : "Workspace pulse"} icon={Sparkles}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {quickMetrics.map((item) => (
+              <div key={item.label} className="rounded-2xl border border-border-base bg-black/20 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">{item.label}</p>
+                <p className="mt-3 text-2xl font-semibold text-white">{item.value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <QuickLinkButton
+              label={copy.views.meetings}
+              description={locale === "ko" ? "회의 저장과 프리뷰 확인" : "Save meetings and review previews"}
+              onClick={() => setView("meetings")}
+            />
+            <QuickLinkButton
+              label={copy.views.actions}
+              description={locale === "ko" ? "열린 액션 상태 정리" : "Review open action status"}
+              onClick={() => setView("actions")}
+            />
+            <QuickLinkButton
+              label={copy.views.teams}
+              description={locale === "ko" ? "팀/저장소 연결 관리" : "Manage teams and repo links"}
+              onClick={() => setView("teams")}
+            />
+            <QuickLinkButton
+              label={copy.views.github}
+              description={locale === "ko" ? "GitHub 보드/이슈 상태 확인" : "Inspect GitHub boards and issues"}
+              onClick={() => setView("github")}
+            />
+          </div>
+        </Panel>
+
         <Panel title={copy.cards.linkedRepos} icon={Github}>
           {linkedRepositories.length > 0 ? (
             <div className="space-y-3">
@@ -103,10 +145,10 @@ export function MeetingHubOverviewView({
                   href={`https://github.com/${repo}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white transition hover:bg-white/6"
+                  className="flex items-center justify-between rounded-2xl border border-border-base bg-white/[0.03] px-4 py-3 text-sm text-white transition hover:bg-white/6"
                 >
-                  <span>{repo}</span>
-                  <ArrowUpRight className="h-4 w-4 text-gray-400" />
+                  <span className="break-words">{repo}</span>
+                  <ArrowUpRight className="h-4 w-4 text-text-muted" />
                 </a>
               ))}
             </div>
@@ -120,9 +162,9 @@ export function MeetingHubOverviewView({
           )}
         </Panel>
 
-        <Panel title={copy.cards.localStorage} icon={Sparkles}>
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-            <pre className="overflow-x-auto text-xs leading-6 text-gray-300">{`data/meeting-hub/
+        <CollapsiblePanel title={copy.cards.localStorage} icon={Sparkles}>
+          <div className="rounded-2xl border border-border-base bg-black/20 p-4">
+            <pre className="overflow-x-auto text-xs leading-6 text-text-secondary">{`data/meeting-hub/
   teams/{teamId}/
     team.json
     meetings/{date}-{slug}.md
@@ -133,12 +175,12 @@ export function MeetingHubOverviewView({
     decisions/decision-log.md
     briefs/latest-weekly-brief.md`}</pre>
           </div>
-          <p className="mt-3 text-sm leading-6 text-[var(--color-text-soft)]">
+          <p className="mt-3 text-sm leading-6 text-text-secondary">
             {copy.status.localFiles}
           </p>
-        </Panel>
+        </CollapsiblePanel>
 
-        <Panel title={copy.cards.weeklyBrief} icon={Sparkles}>
+        <CollapsiblePanel title={copy.cards.weeklyBrief} icon={Sparkles}>
           {weeklyBriefs.length > 0 ? (
             <div className="space-y-3">
               {weeklyBriefs.map((brief) => (
@@ -151,9 +193,9 @@ export function MeetingHubOverviewView({
               message={copy.status.noWeeklyBrief}
             />
           )}
-        </Panel>
+        </CollapsiblePanel>
 
-        <Panel title={copy.cards.decisionLog} icon={CheckCircle2}>
+        <CollapsiblePanel title={copy.cards.decisionLog} icon={CheckCircle2}>
           {recentDecisions.length > 0 ? (
             <div className="space-y-3">
               {recentDecisions.map((entry) => (
@@ -166,8 +208,32 @@ export function MeetingHubOverviewView({
               message={copy.status.noDecisionLog}
             />
           )}
-        </Panel>
+        </CollapsiblePanel>
       </div>
     </div>
+  );
+}
+
+function QuickLinkButton({
+  label,
+  description,
+  onClick,
+}: {
+  label: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="lg"
+      onClick={onClick}
+      className="h-auto w-full rounded-2xl border border-border-base px-4 py-4 text-left"
+    >
+      <div className="w-full">
+        <p className="text-sm font-medium text-white">{label}</p>
+        <p className="mt-2 text-xs leading-5 text-text-secondary">{description}</p>
+      </div>
+    </Button>
   );
 }

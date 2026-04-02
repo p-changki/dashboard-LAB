@@ -4,6 +4,7 @@ import { useDeferredValue, useEffect, useState } from "react";
 
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { Pagination } from "@/components/common/Pagination";
+import { Badge } from "@/components/ui/Badge";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { PinButton } from "@/components/ui/PinButton";
 import { getHomeCopy } from "@/features/home/copy";
@@ -44,8 +45,8 @@ export function SkillList({ items, title, placeholder }: SkillListProps) {
     <section className="panel p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-sm text-[var(--color-muted)]">{title}</p>
-          <p className="mt-2 text-sm text-[var(--color-text-soft)]">
+          <p className="text-sm text-text-muted">{title}</p>
+          <p className="mt-2 text-sm text-text-secondary">
             {filteredItems.length} / {items.length}
           </p>
         </div>
@@ -59,7 +60,7 @@ export function SkillList({ items, title, placeholder }: SkillListProps) {
 
       <div className="mt-5 space-y-3">
         {filteredItems.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-[var(--color-text-soft)]">
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-text-secondary">
             {copy.noSettings}
           </div>
         ) : null}
@@ -69,15 +70,13 @@ export function SkillList({ items, title, placeholder }: SkillListProps) {
           return (
             <div
               key={`${item.name}-${item.filePath}`}
-              className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 md:flex-row md:items-center md:justify-between"
+              className="grid gap-4 rounded-3xl border border-white/10 bg-white/5 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium text-white">{item.name}</p>
+                  <p className="text-base font-semibold text-white">{item.name}</p>
                   {"source" in item ? (
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-white/55">
-                      {item.source}
-                    </span>
+                    <Badge variant="neutral" size="sm" className="uppercase tracking-[0.18em]">{item.source}</Badge>
                   ) : null}
                   {isPinnable(item) ? (
                     <PinButton
@@ -92,12 +91,12 @@ export function SkillList({ items, title, placeholder }: SkillListProps) {
                     />
                   ) : null}
                 </div>
-                <p className="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">
+                <p className="mt-3 overflow-hidden text-sm leading-6 text-text-secondary [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
                   {item.description}
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <code className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-cyan-100">
+              <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                <code className="max-w-full break-all rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-cyan-100 lg:max-w-[220px]">
                   {command}
                 </code>
                 <CopyButton

@@ -13,8 +13,8 @@ export function ICloudBrowser() {
   }, []);
 
   return (
-    <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
-      <p className="text-lg font-semibold text-gray-100">iCloud Browser</p>
+    <section className="rounded-2xl border border-border-base bg-bg-surface/40 p-5">
+      <p className="text-lg font-semibold text-text-primary">iCloud Browser</p>
       <div className="mt-4 space-y-2">
         {data?.entries.map((entry) => (
           <button
@@ -26,13 +26,13 @@ export function ICloudBrowser() {
                 : undefined
             }
             className={[
-              "flex w-full items-center justify-between rounded-xl border border-gray-800 px-3 py-3 text-left",
-              entry.isDownloaded ? "bg-gray-900/70 text-gray-200" : "bg-gray-900/40 text-gray-500",
+              "flex w-full items-center justify-between rounded-xl border border-border-base px-3 py-3 text-left",
+              entry.isDownloaded ? "bg-bg-page/70 text-text-secondary" : "bg-bg-page/40 text-text-muted",
             ].join(" ")}
           >
             <span className="flex items-center gap-3">
               {entry.type === "folder" ? (
-                <span className="text-sm text-gray-400">📁</span>
+                <span className="text-sm text-text-muted">📁</span>
               ) : (
                 <FileTypeIcon extension={entry.name.split(".").pop() ?? "txt"} />
               )}

@@ -65,7 +65,7 @@ export function MermaidBlock({ chart }: MermaidBlockProps) {
       <div className="rounded-xl border border-amber-500/20 bg-amber-950/20 p-4 text-sm text-amber-200">
         <p className="font-medium">시퀀스 다이어그램 렌더링 실패</p>
         <p className="mt-1 text-xs text-amber-100/80">{error}</p>
-        <pre className="mt-3 overflow-x-auto rounded-lg bg-[#141414] p-3 text-xs text-gray-300">
+        <pre className="mt-3 overflow-x-auto rounded-lg bg-bg-page p-3 text-xs text-text-secondary">
           <code>{chart}</code>
         </pre>
       </div>
@@ -74,7 +74,7 @@ export function MermaidBlock({ chart }: MermaidBlockProps) {
 
   if (!svg) {
     return (
-      <div className="rounded-xl border border-white/8 bg-[#181818] p-6 text-center text-sm text-gray-400">
+      <div className="rounded-xl border border-border-base bg-bg-surface p-6 text-center text-sm text-text-muted">
         시퀀스 다이어그램 렌더링 중...
       </div>
     );
@@ -82,7 +82,7 @@ export function MermaidBlock({ chart }: MermaidBlockProps) {
 
   return (
     <div
-      className="overflow-x-auto rounded-xl border border-white/8 bg-[#181818] p-4 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+      className="overflow-x-auto rounded-xl border border-border-base bg-bg-surface p-4 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );

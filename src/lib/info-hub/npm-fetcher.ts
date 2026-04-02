@@ -1,9 +1,22 @@
 import type { FeedItem, TrendingItem } from "@/lib/types";
 
+import {
+  fetchNpmPackageMetadata,
+  fetchNpmSearchResults,
+  getNpmFreshnessScore,
+  getNpmPublishedAt,
+} from "./npm-registry";
 import { buildGoogleTranslateUrl, sanitizeText } from "./sanitizer";
 import { translateTitle } from "./translator";
 
-const SEARCH_URL = "https://registry.npmjs.org/-/v1/search?text=ai+agent&popularity=1.0";
+const SEARCH_RESULTS_PER_QUERY = 4;
+const SEARCH_LIMIT = 10;
+const SEARCH_STRATEGIES = [
+  { text: "ai agent", weight: 1.1 },
+  { text: "mcp", weight: 1.05 },
+  { text: "developer tools", weight: 0.95 },
+  { text: "cli automation", weight: 0.9 },
+] as const;
 
 export async function fetchNpmTrendFeed(): Promise<FeedItem[]> {
   const items = await fetchNpmTrending();
@@ -27,25 +40,76 @@ export async function fetchNpmTrendFeed(): Promise<FeedItem[]> {
 }
 
 export async function fetchNpmTrending(): Promise<TrendingItem[]> {
-  const response = await fetch(SEARCH_URL, { cache: "no-store" });
-  const payload = (await response.json()) as {
-    objects?: Array<{
-      package: { name: string; description?: string; version: string; links?: { npm?: string } };
-      score?: { final?: number };
-    }>;
-  };
+  const groups = await Promise.all(
+    SEARCH_STRATEGIES.map(async (strategy) => ({
+      strategy,
+      items: await fetchNpmSearchResults(strategy.text, SEARCH_RESULTS_PER_QUERY),
+    })),
+  );
 
-  return (payload.objects ?? []).slice(0, 10).map((item, index) => ({
-    type: "npm",
-    rank: index + 1,
-    name: item.package.name,
-    description: sanitizeText(item.package.description || ""),
-    link: item.package.links?.npm || `https://www.npmjs.com/package/${item.package.name}`,
-    extra: {
-      version: item.package.version,
-      weeklyDownloads: Math.round((item.score?.final ?? 0) * 10_000),
-      npmPackage: item.package.name,
-    },
-    publishedAt: new Date().toISOString(),
-  }));
+  const candidates = new Map<
+    string,
+    {
+      packageName: string;
+      description: string;
+      version: string;
+      link: string;
+      searchScore: number;
+    }
+  >();
+
+  for (const group of groups) {
+    for (const item of group.items) {
+      const packageName = item.package.name;
+      const searchScore = (item.score?.final ?? 0) * 10 * group.strategy.weight;
+      const existing = candidates.get(packageName);
+
+      if (!existing || searchScore > existing.searchScore) {
+        candidates.set(packageName, {
+          packageName,
+          description: sanitizeText(item.package.description || ""),
+          version: item.package.version,
+          link: item.package.links?.npm || `https://www.npmjs.com/package/${packageName}`,
+          searchScore,
+        });
+      }
+    }
+  }
+
+  const enriched = await Promise.all(
+    [...candidates.values()].map(async (candidate) => {
+      const metadata = await fetchNpmPackageMetadata(candidate.packageName);
+      const freshnessScore = getNpmFreshnessScore(metadata);
+      const totalScore = Number((candidate.searchScore + freshnessScore).toFixed(2));
+
+      return {
+        type: "npm" as const,
+        name: candidate.packageName,
+        description: candidate.description,
+        link: candidate.link,
+        extra: {
+          score: totalScore,
+          version: metadata?.latestVersion ?? candidate.version,
+          weeklyDownloads: Math.round(candidate.searchScore * 1_000),
+          npmPackage: candidate.packageName,
+        },
+        publishedAt: getNpmPublishedAt(metadata),
+      };
+    }),
+  );
+
+  return enriched
+    .sort((left, right) => {
+      const scoreDelta = (right.extra.score ?? 0) - (left.extra.score ?? 0);
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+
+      return new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime();
+    })
+    .slice(0, SEARCH_LIMIT)
+    .map((item, index) => ({
+      ...item,
+      rank: index + 1,
+    }));
 }

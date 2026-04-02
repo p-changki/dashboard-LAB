@@ -1,35 +1,178 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Design Tokens — dashboard-LAB v0.2
+   Based on docs/design/design-system.md
+   Dark-only. --color-* prefix convention.
+   ============================================================ */
+
 :root {
-  /* ── Background Layers ── */
-  --background: #0f0f0f;
-  --foreground: #f0f0f0;
-  --bg-surface: #161616;
-  --bg-card: #1e1e1e;
-  --bg-card-hover: #242424;
+  /* ── Surface Hierarchy (7 layers) ── */
+  --color-bg-base:        #0a0a0a;   /* lowest — app chrome */
+  --color-bg-page:        #0f0f0f;   /* page layer */
+  --color-bg-surface:     #161616;   /* sidebar / panels */
+  --color-bg-card:              #1e1e1e;   /* card default */
+  --color-bg-card-hover:        #242424;   /* card hover */
+  --color-bg-card-hover-subtle: #202020;   /* subtle hover (surface-level elements) */
+  --color-bg-overlay:     #2a2a2a;   /* modal / popover */
+  --color-bg-elevated:    #303030;   /* dropdown / tooltip */
 
-  /* ── Border ── */
-  --border-base: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.14);
+  /* ── Text Hierarchy (4 levels + inverse) ── */
+  --color-text-primary:   #f0f0f0;
+  --color-text-secondary: #c1c9d6;
+  --color-text-muted:     #8f98ab;
+  --color-text-disabled:  #4a5568;
+  --color-text-inverse:   #0a0a0a;
 
-  /* ── Accent ── */
-  --accent-claude: #c084fc;
-  --accent-codex: #34d399;
-  --accent-gemini: #60a5fa;
+  /* ── Border (4 levels) ── */
+  --color-border-subtle:  rgba(255, 255, 255, 0.06);
+  --color-border-base:    rgba(255, 255, 255, 0.10);
+  --color-border-hover:   rgba(255, 255, 255, 0.18);
+  --color-border-focus:   rgba(255, 255, 255, 0.35);
 
-  /* ── Legacy (panel) ── */
-  --panel: rgba(30, 30, 30, 0.7);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --color-muted: #6b7280;
-  --color-text-soft: #9ca3af;
+  /* ── AI Brand Accent ── */
+  --color-accent-claude:        #c084fc;
+  --color-accent-claude-muted:  rgba(192, 132, 252, 0.15);
+  --color-accent-codex:         #34d399;
+  --color-accent-codex-muted:   rgba(52, 211, 153, 0.15);
+  --color-accent-gemini:        #60a5fa;
+  --color-accent-gemini-muted:  rgba(96, 165, 250, 0.15);
+
+  /* ── Semantic Status ── */
+  --color-success:        #4ade80;
+  --color-success-muted:  rgba(74, 222, 128, 0.15);
+  --color-warning:        #fbbf24;
+  --color-warning-muted:  rgba(251, 191, 36, 0.15);
+  --color-error:          #f87171;
+  --color-error-muted:    rgba(248, 113, 113, 0.15);
+  --color-info:           #60a5fa;
+  --color-info-muted:     rgba(96, 165, 250, 0.15);
+
+  /* ── Typography Scale ── */
+  --text-2xs:   0.625rem;    /* 10px — labels, uppercase badges */
+  --text-xs:    0.6875rem;   /* 11px — caption, meta */
+  --text-sm:    0.75rem;     /* 12px — secondary text */
+  --text-base:  0.875rem;    /* 14px — body default */
+  --text-md:    1rem;        /* 16px — small heading */
+  --text-lg:    1.125rem;    /* 18px — medium heading */
+  --text-xl:    1.25rem;     /* 20px — large heading */
+  --text-2xl:   1.5rem;      /* 24px — page header */
+
+  /* Font Weight */
+  --weight-normal:    400;
+  --weight-medium:    500;
+  --weight-semibold:  600;
+  --weight-bold:      700;
+
+  /* Line Height */
+  --leading-tight:    1.25;
+  --leading-normal:   1.5;
+  --leading-relaxed:  1.625;
+
+  /* Letter Spacing */
+  --tracking-tight:   -0.01em;
+  --tracking-normal:  0em;
+  --tracking-wide:    0.05em;
+  --tracking-widest:  0.18em;   /* section labels uppercase */
+
+  /* ── Border Radius ── */
+  --radius-xs:    4px;
+  --radius-sm:    6px;
+  --radius-md:    8px;
+  --radius-lg:    12px;
+  --radius-xl:    16px;
+  --radius-full:  9999px;
+
+  /* ── Shadow ── */
+  --shadow-xs:  0 1px 3px rgba(0, 0, 0, 0.30);
+  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md:  0 2px 12px rgba(0, 0, 0, 0.40);
+  --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.50);
+  --shadow-xl:  0 16px 40px rgba(0, 0, 0, 0.60);
+
+  /* AI Glow */
+  --shadow-glow-claude:  0 0 12px rgba(192, 132, 252, 0.30);
+  --shadow-glow-codex:   0 0 12px rgba(52, 211, 153, 0.30);
+  --shadow-glow-gemini:  0 0 12px rgba(96, 165, 250, 0.30);
+
+  /* ── Transition ── */
+  --transition-fast:    100ms ease;
+  --transition-base:    150ms ease;
+  --transition-slow:    250ms ease;
+  --transition-layout:  300ms ease;
+
+  /* ── Legacy Aliases (backward-compat) ── */
+  /* Keep old names pointing to new tokens so existing code continues to work. */
+  --background:       var(--color-bg-page);
+  --foreground:       var(--color-text-primary);
+  --bg-surface:       var(--color-bg-surface);
+  --bg-card:          var(--color-bg-card);
+  --bg-card-hover:    var(--color-bg-card-hover);
+  --border-base:      var(--color-border-base);
+  --border-hover:     var(--color-border-hover);
+  --accent-claude:    var(--color-accent-claude);
+  --accent-codex:     var(--color-accent-codex);
+  --accent-gemini:    var(--color-accent-gemini);
+  --panel:            rgba(30, 30, 30, 0.70);
+  --panel-border:     var(--color-border-subtle);
+  --color-muted:      var(--color-text-muted);
+  --color-text-soft:  var(--color-text-secondary);
 }
 
+/* ── Tailwind CSS 4 @theme — register design tokens ── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  /* Fonts */
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Colors — surface */
+  --color-bg-base:        var(--color-bg-base);
+  --color-bg-page:        var(--color-bg-page);
+  --color-bg-surface:     var(--color-bg-surface);
+  --color-bg-card:        var(--color-bg-card);
+  --color-bg-card-hover:  var(--color-bg-card-hover);
+  --color-bg-overlay:     var(--color-bg-overlay);
+  --color-bg-elevated:    var(--color-bg-elevated);
+
+  /* Colors — text */
+  --color-text-primary:   var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted:     var(--color-text-muted);
+  --color-text-disabled:  var(--color-text-disabled);
+  --color-text-inverse:   var(--color-text-inverse);
+
+  /* Colors — border */
+  --color-border-subtle:  var(--color-border-subtle);
+  --color-border-base:    var(--color-border-base);
+  --color-border-hover:   var(--color-border-hover);
+  --color-border-focus:   var(--color-border-focus);
+
+  /* Colors — accent */
+  --color-accent-claude:        var(--color-accent-claude);
+  --color-accent-claude-muted:  var(--color-accent-claude-muted);
+  --color-accent-codex:         var(--color-accent-codex);
+  --color-accent-codex-muted:   var(--color-accent-codex-muted);
+  --color-accent-gemini:        var(--color-accent-gemini);
+  --color-accent-gemini-muted:  var(--color-accent-gemini-muted);
+
+  /* Colors — semantic */
+  --color-success:        var(--color-success);
+  --color-success-muted:  var(--color-success-muted);
+  --color-warning:        var(--color-warning);
+  --color-warning-muted:  var(--color-warning-muted);
+  --color-error:          var(--color-error);
+  --color-error-muted:    var(--color-error-muted);
+  --color-info:           var(--color-info);
+  --color-info-muted:     var(--color-info-muted);
+
+  /* Legacy Tailwind compat */
+  --color-background: var(--color-bg-page);
+  --color-foreground: var(--color-text-primary);
 }
+
+/* ============================================================
+   Global Base Styles
+   ============================================================ */
 
 * {
   box-sizing: border-box;
@@ -42,9 +185,13 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
-  background: var(--background);
-  color: var(--foreground);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.05), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 18%),
+    var(--color-bg-page);
+  color: var(--color-text-primary);
   font-family: var(--font-geist-sans), sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -52,10 +199,11 @@ a {
   text-decoration: none;
 }
 
+/* ── Legacy .panel utility — preserved for backward compat ── */
 .panel {
   border: 1px solid var(--panel-border);
   background: var(--panel);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-md);
   backdrop-filter: blur(10px);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
 }

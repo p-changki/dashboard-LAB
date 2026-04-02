@@ -153,6 +153,7 @@ function buildNextActionPrompt(request: CallNextActionRequest, title: string) {
       separateExternalDocs: request.separateExternalDocs,
     },
     projectContext: request.projectContext,
+    projectContextSources: request.projectContextSources,
     baselineTitle: request.baselineTitle,
     baselinePrd: request.baselinePrd,
     prdMarkdown: request.prdMarkdown,

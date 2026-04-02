@@ -101,7 +101,7 @@
 대부분의 사용자는 이 경로를 권장합니다.
 
 1. [Releases](https://github.com/p-changki/dashboard-LAB/releases) 페이지를 엽니다.
-2. `dashboard-LAB-0.1.12-arm64.dmg` 또는 `dashboard-LAB-0.1.12-arm64-mac.zip` 같은 macOS 설치 파일을 내려받습니다.
+2. `dashboard-LAB-0.1.13-arm64.dmg` 또는 `dashboard-LAB-0.1.13-arm64-mac.zip` 같은 macOS 설치 파일을 내려받습니다.
 3. 내려받은 앱 패키지를 열어 실행합니다.
 
 소스 저장소 기준으로 실행하려면:
@@ -135,7 +135,7 @@ pnpm launch
 macOS에서 바로 써보려면:
 
 1. [Releases](https://github.com/p-changki/dashboard-LAB/releases) 페이지를 엽니다.
-2. `dashboard-LAB-0.1.12-arm64.dmg` 같은 macOS 설치 파일을 내려받습니다.
+2. `dashboard-LAB-0.1.13-arm64.dmg` 같은 macOS 설치 파일을 내려받습니다.
 3. 내려받은 앱 패키지를 열어 실행합니다.
 
 릴리즈 빌드가 아니라 소스 코드를 내려받은 경우:

@@ -14,10 +14,10 @@ export function SuggestionItem({ suggestion }: SuggestionItemProps) {
           <FileTypeIcon extension={suggestion.file.extension || "txt"} />
           <div>
             <p className="text-sm text-white">{suggestion.file.name}</p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-text-muted">
               {suggestion.reason} · {suggestion.file.sizeHuman}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-text-muted">
               {suggestion.destination ?? "휴지통 이동"}
             </p>
           </div>

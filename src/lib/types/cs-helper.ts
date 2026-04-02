@@ -1,6 +1,7 @@
 export type CsChannel = "kakao" | "email" | "instagram" | "phone" | "other";
 export type CsTone = "friendly" | "formal" | "casual";
 export type CsAiRunner = "claude" | "codex" | "gemini" | "openai";
+export type CsInputMode = "customer" | "summary";
 
 export interface CsProject {
   id: string;
@@ -17,6 +18,7 @@ export interface CsRequest {
   runner: CsAiRunner;
   channel: CsChannel;
   tone: CsTone;
+  inputMode: CsInputMode;
   customerMessage: string;
   additionalContext: string;
   includeAnalysis: boolean;
@@ -31,6 +33,7 @@ export interface CsResponse {
   projectId: string;
   channel: CsChannel;
   tone: CsTone;
+  inputMode: CsInputMode;
   customerMessage: string;
   additionalContext: string;
   createdAt: string;
@@ -41,6 +44,7 @@ export interface CsHistoryItem {
   id: string;
   projectId: string;
   channel: CsChannel;
+  inputMode: CsInputMode;
   customerMessagePreview: string;
   replyPreview: string;
   customerMessage: string;

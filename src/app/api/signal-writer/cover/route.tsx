@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og";
 
+import { signalWriterCoverQuerySchema } from "@/lib/api/schemas";
+import { parseSearchParams } from "@/lib/api/validation";
 import type { SignalWriterVisualAccent, SignalWriterVisualMode } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -8,14 +10,10 @@ export const dynamic = "force-dynamic";
 const SIZE = { width: 1080, height: 1350 };
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const title = (searchParams.get("title") ?? "Signal Writer").trim();
-  const subtitle = (searchParams.get("subtitle") ?? "").trim();
-  const badge = (searchParams.get("badge") ?? "Signal").trim();
-  const footer = (searchParams.get("footer") ?? "").trim();
-  const source = (searchParams.get("source") ?? "").trim();
-  const accent = normalizeAccent(searchParams.get("accent"));
-  const mode = normalizeMode(searchParams.get("mode"));
+  const { title, subtitle, badge, footer, source, accent, mode } = parseSearchParams(
+    request,
+    signalWriterCoverQuerySchema,
+  );
   const palette = getPalette(accent);
   const modeLabel = getModeLabel(mode);
 
@@ -141,29 +139,6 @@ export async function GET(request: Request) {
       ...SIZE,
     },
   );
-}
-
-function normalizeAccent(value: string | null): SignalWriterVisualAccent {
-  switch (value) {
-    case "cyan":
-    case "emerald":
-    case "violet":
-    case "rose":
-      return value;
-    default:
-      return "amber";
-  }
-}
-
-function normalizeMode(value: string | null): SignalWriterVisualMode {
-  switch (value) {
-    case "tool-spotlight":
-    case "trend-brief":
-    case "opinion-angle":
-      return value;
-    default:
-      return "news-flash";
-  }
 }
 
 function getModeLabel(value: SignalWriterVisualMode) {

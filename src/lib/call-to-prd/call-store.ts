@@ -102,6 +102,7 @@ function recoverRecord(record: CallRecord): CallRecord {
   const normalizedRecord: CallRecord = {
     ...record,
     additionalContext: record.additionalContext ?? null,
+    projectPath: record.projectPath ?? null,
     inputKind: intake.inputKind,
     severity: intake.severity,
     customerImpact: intake.customerImpact,
@@ -109,6 +110,9 @@ function recoverRecord(record: CallRecord): CallRecord {
     reproducibility: intake.reproducibility,
     currentWorkaround: intake.currentWorkaround,
     separateExternalDocs: intake.separateExternalDocs,
+    projectContext: record.projectContext ?? null,
+    projectContextSources: record.projectContextSources ?? [],
+    projectContextError: record.projectContextError ?? null,
     generationMode: record.generationMode ?? "dual",
     updatedAt: record.updatedAt ?? record.completedAt ?? record.createdAt,
   };

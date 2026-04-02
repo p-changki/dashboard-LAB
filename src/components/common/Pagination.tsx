@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { Button } from "@/components/ui/Button";
 import { pickLocale } from "@/lib/locale";
 
 interface PaginationProps {
@@ -39,41 +40,40 @@ export function Pagination({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-      <p className="text-xs text-[var(--color-muted)]">
+      <p className="text-xs text-text-muted">
         {copy.summary}
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() => onChange(page - 1)}
           disabled={page === 1}
-          className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-xs text-white transition hover:bg-white/10 disabled:opacity-30"
         >
           {copy.previous}
-        </button>
+        </Button>
         {pages.map((item) => (
-          <button
+          <Button
             key={item}
             type="button"
+            variant={item === page ? "primary" : "secondary"}
+            size="sm"
             onClick={() => onChange(item)}
-            className={[
-              "rounded-full px-3 py-1.5 text-xs transition",
-              item === page
-                ? "bg-cyan-300 text-black"
-                : "border border-white/10 bg-white/6 text-white hover:bg-white/10",
-            ].join(" ")}
+            className={item === page ? "bg-cyan-300 text-black hover:bg-cyan-300/90" : undefined}
           >
             {item}
-          </button>
+          </Button>
         ))}
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() => onChange(page + 1)}
           disabled={page === totalPages}
-          className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-xs text-white transition hover:bg-white/10 disabled:opacity-30"
         >
           {copy.next}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ interface WorkingContextOptions {
   additionalContext?: string | null;
   intake?: Partial<CallIntakeMetadata> | null;
   projectContext?: string | null;
+  projectContextSources?: string[] | null;
   baselineTitle?: string | null;
   baselinePrd?: string | null;
   pdfAnalysis?: string | null;
@@ -29,6 +30,7 @@ export function buildCallWorkingContext(options: WorkingContextOptions): string 
     formatNamedSection("입력 메타", buildCallIntakeMetadataMarkdown(intake)),
     formatNamedSection("추가 맥락", options.additionalContext),
     formatNamedSection("프로젝트 기준 정보 요약", compactMarkdown(options.projectContext, 900)),
+    formatNamedSection("프로젝트 기준 파일", formatSourceList(options.projectContextSources)),
     formatNamedSection(
       `기존 기준 문서 요약${options.baselineTitle ? ` (${options.baselineTitle})` : ""}`,
       compactMarkdown(options.baselinePrd, 1_000),
@@ -102,4 +104,12 @@ function compactMarkdown(content: string | null | undefined, maxChars: number) {
   }
 
   return compact.endsWith(ELLIPSIS) ? compact : `${compact}${ELLIPSIS}`;
+}
+
+function formatSourceList(sources: string[] | null | undefined) {
+  if (!sources || sources.length === 0) {
+    return null;
+  }
+
+  return sources.map((source) => `- ${source}`).join("\n");
 }

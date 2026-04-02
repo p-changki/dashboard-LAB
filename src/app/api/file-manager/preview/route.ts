@@ -1,20 +1,20 @@
 import { jsonError } from "@/lib/api/error-response";
+import { fileManagerPreviewQuerySchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseSearchParams } from "@/lib/api/validation";
 import { getExecutePreview } from "@/lib/parsers/file-manager-parser";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const action = searchParams.get("action")?.trim() ?? "review";
-  const files = (searchParams.get("files") ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  try {
+    const { action, files } = parseSearchParams(request, fileManagerPreviewQuerySchema);
+    return Response.json(await getExecutePreview(action, files));
+  } catch (error) {
+    if (isZodError(error)) {
+      return jsonError("INVALID_ACTION", getZodErrorMessage(error, "유효하지 않은 파일 작업입니다."), 400);
+    }
 
-  if (!["move", "delete", "review", "keep"].includes(action)) {
-    return jsonError("INVALID_ACTION", "유효하지 않은 파일 작업입니다.", 400);
+    throw error;
   }
-
-  return Response.json(await getExecutePreview(action as "move" | "delete" | "review" | "keep", files));
 }

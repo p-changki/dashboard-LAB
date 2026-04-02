@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { routeIdParamSchema } from "@/lib/api/schemas";
+import { isZodError, parseRouteParams } from "@/lib/api/validation";
 import { getRecord, updateStatus } from "@/lib/call-to-prd/call-store";
 import { getCallToPrdApiError } from "@/lib/call-to-prd/messages";
 import { readLocaleFromHeaders } from "@/lib/locale";
@@ -7,7 +9,21 @@ import { buildSavedBundleEntryName, buildSavedBundleEntryPath, loadSavedBundle }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const locale = readLocaleFromHeaders(request.headers);
-  const { id } = await params;
+  let id = "";
+
+  try {
+    ({ id } = await parseRouteParams(params, routeIdParamSchema));
+  } catch (error) {
+    if (isZodError(error)) {
+      return NextResponse.json(
+        { error: getCallToPrdApiError(locale, "INVALID_INPUT", locale === "en" ? "Invalid record id." : "유효하지 않은 기록 ID입니다.") },
+        { status: 400 },
+      );
+    }
+
+    throw error;
+  }
+
   const record = getRecord(id);
   if (!record) {
     return NextResponse.json({ error: getCallToPrdApiError(locale, "NOT_FOUND", locale === "en" ? "Record not found." : "기록 없음") }, { status: 404 });
@@ -39,6 +55,7 @@ async function recoverRecordFromSavedBundle(record: NonNullable<ReturnType<typeo
     updateStatus(record.id, "completed", {
       savedEntryName: entryName,
       completedAt: savedBundle.createdAt,
+      projectPath: savedBundle.projectPath,
       inputKind: savedBundle.inputKind,
       severity: savedBundle.severity,
       customerImpact: savedBundle.customerImpact,
@@ -46,6 +63,9 @@ async function recoverRecordFromSavedBundle(record: NonNullable<ReturnType<typeo
       reproducibility: savedBundle.reproducibility,
       currentWorkaround: savedBundle.currentWorkaround,
       separateExternalDocs: savedBundle.separateExternalDocs,
+      projectContext: savedBundle.projectContext,
+      projectContextSources: savedBundle.projectContextSources,
+      projectContextError: savedBundle.projectContextError,
       prdMarkdown: savedBundle.prdMarkdown,
       claudePrd: savedBundle.claudePrd,
       codexPrd: savedBundle.codexPrd,
@@ -63,6 +83,7 @@ async function recoverRecordFromSavedBundle(record: NonNullable<ReturnType<typeo
   if (!record.savedEntryName || record.generatedDocs.length < savedBundle.generatedDocs.length) {
     updateStatus(record.id, record.status, {
       savedEntryName: entryName,
+      projectPath: savedBundle.projectPath,
       inputKind: savedBundle.inputKind,
       severity: savedBundle.severity,
       customerImpact: savedBundle.customerImpact,
@@ -70,6 +91,9 @@ async function recoverRecordFromSavedBundle(record: NonNullable<ReturnType<typeo
       reproducibility: savedBundle.reproducibility,
       currentWorkaround: savedBundle.currentWorkaround,
       separateExternalDocs: savedBundle.separateExternalDocs,
+      projectContext: savedBundle.projectContext,
+      projectContextSources: savedBundle.projectContextSources,
+      projectContextError: savedBundle.projectContextError,
       generatedDocs: savedBundle.generatedDocs,
       prdMarkdown: savedBundle.prdMarkdown,
       claudePrd: savedBundle.claudePrd,

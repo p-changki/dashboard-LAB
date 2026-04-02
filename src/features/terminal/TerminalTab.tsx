@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/Button";
 import { BookmarkCommands } from "@/features/terminal/components/BookmarkCommands";
 import { QuickLauncher } from "@/features/terminal/components/QuickLauncher";
 import { TerminalInstance } from "@/features/terminal/components/TerminalInstance";
@@ -15,13 +16,21 @@ type ServerMessage =
   | { type: "error"; message: string };
 
 type ConnectionState = "connecting" | "open" | "closed" | "error";
+interface TerminalBufferState {
+  content: string;
+  trimCount: number;
+  wasTrimmed: boolean;
+}
+
+const MAX_TERMINAL_BUFFER_CHARS = 200_000;
+const TERMINAL_BUFFER_TRIM_TARGET = 160_000;
 
 export function TerminalTab() {
   const socketRef = useRef<WebSocket | null>(null);
   const pendingCommandsRef = useRef<(string | undefined)[]>([]);
   const autoCreatedRef = useRef(false);
   const [sessions, setSessions] = useState<TerminalSession[]>([]);
-  const [buffers, setBuffers] = useState<Record<string, string>>({});
+  const [bufferStates, setBufferStates] = useState<Record<string, TerminalBufferState>>({});
   const [activeSessionId, setActiveSessionId] = useState("");
   const [openPanel, setOpenPanel] = useState(true);
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
@@ -73,7 +82,7 @@ export function TerminalTab() {
     }
 
     setSessions([]);
-    setBuffers({});
+    setBufferStates({});
     setActiveSessionId("");
     const socket = new WebSocket(wsUrl);
     setConnectionState("connecting");
@@ -94,7 +103,7 @@ export function TerminalTab() {
           socket,
           pendingCommandsRef,
           setSessions,
-          setBuffers,
+          setBufferStates,
           setActiveSessionId,
           setErrorMessage,
         },
@@ -117,10 +126,11 @@ export function TerminalTab() {
     };
   }, [wsUrl]);
 
-  const activeBuffer = useMemo(
-    () => (activeSessionId ? buffers[activeSessionId] ?? "" : ""),
-    [activeSessionId, buffers],
+  const activeBufferState = useMemo(
+    () => (activeSessionId ? bufferStates[activeSessionId] ?? createTerminalBufferState() : null),
+    [activeSessionId, bufferStates],
   );
+  const activeBuffer = activeBufferState?.content ?? "";
 
   return (
     <div className="space-y-4">
@@ -139,6 +149,12 @@ export function TerminalTab() {
       />
       {connectionState === "open" && activeSessionId ? (
         <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-4">
+          {activeBufferState?.wasTrimmed ? (
+            <div className="mb-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90">
+              출력이 길어서 최근 {TERMINAL_BUFFER_TRIM_TARGET.toLocaleString()}자만 유지 중입니다.
+              {" "}자동 정리 {activeBufferState.trimCount}회.
+            </div>
+          ) : null}
           <TerminalInstance
             buffer={activeBuffer}
             onInput={(data) => sendInput(socketRef.current, activeSessionId, data)}
@@ -149,13 +165,15 @@ export function TerminalTab() {
         <TerminalFallback />
       )}
       <section className="space-y-4 rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() => setOpenPanel((current) => !current)}
-          className="rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800"
+          className="rounded-xl"
         >
           {openPanel ? "하단 패널 접기" : "하단 패널 열기"}
-        </button>
+        </Button>
         {openPanel ? (
           <div className="grid gap-4 xl:grid-cols-2">
             <QuickLauncher
@@ -173,7 +191,7 @@ interface TerminalHandlerContext {
   socket: WebSocket;
   pendingCommandsRef: React.RefObject<(string | undefined)[]>;
   setSessions: React.Dispatch<React.SetStateAction<TerminalSession[]>>;
-  setBuffers: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setBufferStates: React.Dispatch<React.SetStateAction<Record<string, TerminalBufferState>>>;
   setActiveSessionId: (value: string) => void;
   setErrorMessage: (value: string) => void;
 }
@@ -195,7 +213,7 @@ function handleMessage(
     socket,
     pendingCommandsRef,
     setSessions,
-    setBuffers,
+    setBufferStates,
     setActiveSessionId,
     setErrorMessage,
   } = context;
@@ -218,16 +236,19 @@ function handleMessage(
   }
 
   if (message.type === "output") {
-    setBuffers((current) => ({
+    setBufferStates((current) => ({
       ...current,
-      [message.sessionId]: `${current[message.sessionId] ?? ""}${message.data}`,
+      [message.sessionId]: appendTerminalBuffer(
+        current[message.sessionId] ?? createTerminalBufferState(),
+        message.data,
+      ),
     }));
     return;
   }
 
   if (message.type === "closed") {
     setSessions((current) => current.filter((session) => session.id !== message.sessionId));
-    setBuffers((current) => {
+    setBufferStates((current) => {
       const next = { ...current };
       delete next[message.sessionId];
       return next;
@@ -280,6 +301,31 @@ function sendResize(
   sendMessage(socket, { type: "resize", sessionId, cols, rows });
 }
 
+function createTerminalBufferState(): TerminalBufferState {
+  return {
+    content: "",
+    trimCount: 0,
+    wasTrimmed: false,
+  };
+}
+
+function appendTerminalBuffer(current: TerminalBufferState, nextChunk: string) {
+  const next = `${current.content}${nextChunk}`;
+  if (next.length <= MAX_TERMINAL_BUFFER_CHARS) {
+    return {
+      content: next,
+      trimCount: current.trimCount,
+      wasTrimmed: current.wasTrimmed,
+    };
+  }
+
+  return {
+    content: next.slice(-TERMINAL_BUFFER_TRIM_TARGET),
+    trimCount: current.trimCount + 1,
+    wasTrimmed: true,
+  };
+}
+
 interface TerminalStatusBannerProps {
   activeSessionId: string;
   connectionState: ConnectionState;
@@ -308,13 +354,15 @@ function TerminalStatusBanner({
             {errorMessage || "초기 세션을 준비 중입니다. 연결이 늦으면 다시 연결을 눌러 주세요."}
           </p>
         </div>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onReconnect}
-          className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-100 hover:bg-amber-500/20"
+          className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 font-medium text-amber-100 hover:bg-amber-500/20"
         >
           다시 연결
-        </button>
+        </Button>
       </div>
     </section>
   );
@@ -347,29 +395,31 @@ function TerminalFallback() {
   const commands = ["claude", "codex", "pnpm dev", "pnpm build"];
 
   return (
-    <section className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-5">
+    <section className="rounded-2xl border border-border-base bg-bg-card p-5">
       <p className="text-sm font-semibold text-white">웹 터미널 fallback</p>
-      <p className="mt-2 text-sm text-gray-400">
+      <p className="mt-2 text-sm text-text-muted">
         WebSocket 연결이 불안정하면 자주 쓰는 명령을 복사해서 로컬 터미널에서 실행할 수 있습니다.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         {commands.map((command) => (
-          <button
+          <Button
             key={command}
             type="button"
+            variant="ghost"
             onClick={() => navigator.clipboard.writeText(command)}
-            className="rounded-full border border-white/10 bg-white/6 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10"
+            className="rounded-full border border-border-base bg-white/6 px-3 text-white/80 hover:bg-white/10"
           >
             {command} 복사
-          </button>
+          </Button>
         ))}
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => openLocalTerminal()}
-          className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-sm text-purple-200 transition hover:bg-purple-500/20"
+          className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3 text-purple-200 hover:bg-purple-500/20"
         >
           로컬 터미널 열기
-        </button>
+        </Button>
       </div>
     </section>
   );

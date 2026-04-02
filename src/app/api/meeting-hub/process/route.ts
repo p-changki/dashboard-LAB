@@ -3,20 +3,21 @@ import {
   isJsonParseError,
   jsonError,
 } from "@/lib/api/error-response";
+import { meetingHubProcessRequestSchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseJsonBody } from "@/lib/api/validation";
 import { processMeetingHubNotes } from "@/lib/meeting-hub/processor";
 import { buildRuleBasedMeetingProcessing } from "@/lib/meeting-hub/storage";
-import type { CreateMeetingHubMeetingInput } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as CreateMeetingHubMeetingInput;
-
-    if (!payload?.notes?.trim()) {
-      return jsonError("INVALID_PAYLOAD", "Meeting notes are required.", 400);
-    }
+    const payload = await parseJsonBody(request, meetingHubProcessRequestSchema);
+    const previewDate = new Date().toISOString().slice(0, 10);
+    const previewTitle = payload.title ?? "Preview meeting";
+    const previewType = payload.type ?? "client";
+    const previewDateValue = payload.date ?? previewDate;
 
     const processed =
       payload.runner === "rule"
@@ -27,9 +28,9 @@ export async function POST(request: Request) {
             "preview",
           )
         : await processMeetingHubNotes({
-            title: payload.title,
-            type: payload.type,
-            date: payload.date,
+            title: previewTitle,
+            type: previewType,
+            date: previewDateValue,
             participants: payload.participants,
             linkedRepository: payload.linkedRepository,
             notes: payload.notes,
@@ -47,6 +48,14 @@ export async function POST(request: Request) {
   } catch (error) {
     if (isJsonParseError(error)) {
       return jsonError("INVALID_JSON", "JSON payload is invalid.", 400);
+    }
+
+    if (isZodError(error)) {
+      return jsonError(
+        "INVALID_INPUT",
+        getZodErrorMessage(error, "Meeting Hub processing payload is invalid."),
+        400,
+      );
     }
 
     return jsonError(

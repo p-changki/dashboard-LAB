@@ -21,7 +21,7 @@ import { analyzePdf } from "@/lib/call-to-prd/pdf-analyzer";
 import { extractPdfText } from "@/lib/call-to-prd/pdf-extractor";
 import { formatPrdMarkdown } from "@/lib/call-to-prd/prd-markdown-formatter";
 import { buildCallToPrdPrompt } from "@/lib/call-to-prd/prd-prompt-builder";
-import { summarizeLocalProject } from "@/lib/call-to-prd/project-context";
+import { inspectLocalProjectContext } from "@/lib/call-to-prd/project-context";
 import { checkCodexInstalled, runCodexPrd } from "@/lib/call-to-prd/codex-runner";
 import { mergeDualPrd } from "@/lib/call-to-prd/prd-merger";
 import { checkClaudeInstalled, runClaudePrd } from "@/lib/call-to-prd/prd-runner";
@@ -37,7 +37,7 @@ import {
 } from "@/lib/call-to-prd/messages";
 import { hasOpenAiApiFallback } from "@/lib/ai/openai-responses";
 import { readLocaleFromHeaders } from "@/lib/locale";
-import type { CallGenerationMode, GeneratedDoc } from "@/lib/types/call-to-prd";
+import type { CallGenerationMode, GeneratedDoc, ProjectContextSnapshot } from "@/lib/types/call-to-prd";
 
 const ALLOWED_AUDIO = [".m4a", ".mp3", ".wav", ".webm"];
 const ALLOWED_PDF = [".pdf"];
@@ -50,7 +50,6 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const pdfFile = formData.get("pdfFile") as File | null;
-    const projectName = (formData.get("projectName") as string) || null;
     const projectPath = (formData.get("projectPath") as string) || null;
     const customerName = (formData.get("customerName") as string) || null;
     const callDate = (formData.get("callDate") as string) || new Date().toISOString().slice(0, 10);
@@ -86,6 +85,26 @@ export async function POST(request: Request) {
     if (!file && !directTranscript) {
       return NextResponse.json({ error: getCallToPrdApiError(locale, "NO_INPUT") }, { status: 400 });
     }
+
+    if (!projectPath) {
+      return NextResponse.json({ error: getCallToPrdApiError(locale, "PROJECT_REQUIRED") }, { status: 400 });
+    }
+
+    const inspectedProjectContext = await inspectLocalProjectContext(projectPath);
+    if (!inspectedProjectContext.context) {
+      return NextResponse.json(
+        {
+          error: getCallToPrdApiError(
+            locale,
+            "PROJECT_CONTEXT_UNAVAILABLE",
+            inspectedProjectContext.error ?? undefined,
+          ),
+        },
+        { status: 400 },
+      );
+    }
+
+    const resolvedProjectName = inspectedProjectContext.context.projectName;
 
     let filePath: string | null = null;
     let fileName = getCallToPrdDirectInputLabel(locale);
@@ -133,7 +152,7 @@ export async function POST(request: Request) {
       fileName,
       fileSize,
       duration: null,
-      projectName,
+      projectName: resolvedProjectName,
       projectPath,
       customerName,
       additionalContext,
@@ -154,7 +173,9 @@ export async function POST(request: Request) {
       pdfFileName,
       pdfContent: null,
       pdfAnalysis: null,
-      projectContext: null,
+      projectContext: inspectedProjectContext.context.summary,
+      projectContextSources: inspectedProjectContext.context.sources,
+      projectContextError: null,
       baselineTitle: null,
       claudePrd: null,
       codexPrd: null,
@@ -170,7 +191,7 @@ export async function POST(request: Request) {
     });
 
     void processCallAsync(id, filePath, directTranscript, pdfPath, pdfFileName, {
-      projectName,
+      projectName: resolvedProjectName,
       projectPath,
       customerName,
       additionalContext,
@@ -178,6 +199,7 @@ export async function POST(request: Request) {
       baselineEntryName,
       callDate,
       locale,
+      projectContextSnapshot: inspectedProjectContext.context,
       generationMode,
       generationPreset,
       selectedDocTypes,
@@ -201,6 +223,7 @@ async function processCallAsync(
     projectPath: string | null;
     customerName: string | null;
     additionalContext: string | null;
+    projectContextSnapshot: ProjectContextSnapshot | null;
     intake: CallIntakeMetadata;
     baselineEntryName: string | null;
     callDate: string;
@@ -211,11 +234,13 @@ async function processCallAsync(
   },
 ) {
   let savedEntryName: string | null = null;
+  let projectContext: string | null = null;
+  let projectContextSources: string[] = [];
+  const projectContextError: string | null = null;
 
   try {
     let transcript = directTranscript || "";
     let effectiveProjectName = options.projectName;
-    let projectContext: string | null = null;
     let runnerCwd: string | undefined;
     let baselineEntryName: string | null = null;
     let baselineTitle: string | null = null;
@@ -264,13 +289,36 @@ async function processCallAsync(
       }
     }
 
-    if (options.projectPath) {
-      const projectSummary = await summarizeLocalProject(options.projectPath).catch(() => null);
-      if (projectSummary) {
-        effectiveProjectName = effectiveProjectName ?? projectSummary.projectName;
-        projectContext = projectSummary.summary;
-        runnerCwd = projectSummary.projectPath;
+    if (options.projectContextSnapshot) {
+      effectiveProjectName = effectiveProjectName ?? options.projectContextSnapshot.projectName;
+      projectContext = options.projectContextSnapshot.summary;
+      projectContextSources = options.projectContextSnapshot.sources;
+      runnerCwd = options.projectContextSnapshot.projectPath;
+    } else if (options.projectPath) {
+      const inspected = await inspectLocalProjectContext(options.projectPath).catch(() => ({
+        context: null,
+        error: "프로젝트 컨텍스트를 준비하지 못했습니다.",
+      }));
+
+      if (!inspected.context) {
+        updateStatus(id, "failed", {
+          projectName: effectiveProjectName,
+          projectPath: options.projectPath,
+          projectContext: null,
+          projectContextSources: [],
+          projectContextError: inspected.error,
+          error: formatKnownCallToPrdRuntimeMessage(
+            inspected.error ?? getCallToPrdApiError(options.locale, "PROJECT_CONTEXT_UNAVAILABLE").message,
+            options.locale,
+          ),
+        });
+        return;
       }
+
+      effectiveProjectName = effectiveProjectName ?? inspected.context.projectName;
+      projectContext = inspected.context.summary;
+      projectContextSources = inspected.context.sources;
+      runnerCwd = inspected.context.projectPath;
     }
 
     if (options.selectedDocTypes.includes("change-request-diff")) {
@@ -293,6 +341,8 @@ async function processCallAsync(
       projectName: effectiveProjectName,
       projectPath: options.projectPath,
       projectContext,
+      projectContextSources,
+      projectContextError,
       baselineEntryName,
       baselineTitle,
       generationMode: options.generationMode,
@@ -302,6 +352,7 @@ async function processCallAsync(
       transcript,
       projectName: effectiveProjectName ?? undefined,
       projectContext: projectContext ?? undefined,
+      projectContextSources,
       baselineTitle: baselineTitle ?? undefined,
       baselinePrd: baselinePrd ?? undefined,
       customerName: options.customerName ?? undefined,
@@ -367,6 +418,8 @@ async function processCallAsync(
             projectName: effectiveProjectName,
             projectPath: options.projectPath,
             projectContext,
+            projectContextSources,
+            projectContextError,
             baselineEntryName,
             baselineTitle,
             generationMode: options.generationMode,
@@ -424,6 +477,8 @@ async function processCallAsync(
           projectName: effectiveProjectName,
           projectPath: options.projectPath,
           projectContext,
+          projectContextSources,
+          projectContextError,
           baselineEntryName,
           baselineTitle,
           generationMode: options.generationMode,
@@ -451,6 +506,8 @@ async function processCallAsync(
         projectName: effectiveProjectName,
         projectPath: options.projectPath,
         projectContext,
+        projectContextSources,
+        projectContextError,
         baselineEntryName,
         baselineTitle,
         generationMode: effectiveGenerationMode,
@@ -483,6 +540,11 @@ async function processCallAsync(
       });
       try {
         const originalContext = [
+          projectContext ? "## 프로젝트 기준 정보\n" : "",
+          projectContext ?? "",
+          projectContextSources.length > 0 ? `\n## 프로젝트 기준 파일\n${projectContextSources.map((source) => `- ${source}`).join("\n")}` : "",
+          options.additionalContext ? `\n## 추가 맥락\n${options.additionalContext}` : "",
+          baselinePrd ? `\n## 기존 기준 문서${baselineTitle ? ` (${baselineTitle})` : ""}\n${baselinePrd}` : "",
           "## 입력 메타",
           buildCallIntakeMetadataMarkdown(options.intake),
           "",
@@ -490,7 +552,7 @@ async function processCallAsync(
           transcript,
           pdfAnalysis ? `\n## PDF 분석\n${pdfAnalysis}` : "",
         ].join("\n");
-        const merged = await mergeDualPrd(primaryPrd, codexPrd, originalContext);
+        const merged = await mergeDualPrd(primaryPrd, codexPrd, originalContext, { cwd: runnerCwd });
         finalPrd = formatPrdMarkdown(merged.mergedPrd);
         diffReport = merged.diffReport;
       } catch (err) {
@@ -520,6 +582,7 @@ async function processCallAsync(
       additionalContext: options.additionalContext,
       intake: options.intake,
       projectContext,
+      projectContextSources,
       baselineTitle,
       baselinePrd,
       pdfAnalysis,
@@ -539,7 +602,11 @@ async function processCallAsync(
       id,
       savedEntryName,
       projectName: effectiveProjectName,
+      projectPath: options.projectPath,
       customerName: options.customerName,
+      projectContext,
+      projectContextSources,
+      projectContextError,
       baselineEntryName,
       baselineTitle,
       callDate: options.callDate,
@@ -566,6 +633,8 @@ async function processCallAsync(
         projectName: effectiveProjectName,
         projectPath: options.projectPath,
         projectContext,
+        projectContextSources,
+        projectContextError,
         baselineEntryName,
         baselineTitle,
         claudePrd,
@@ -603,7 +672,11 @@ async function processCallAsync(
             id,
             savedEntryName,
             projectName: effectiveProjectName,
+            projectPath: options.projectPath,
             customerName: options.customerName,
+            projectContext,
+            projectContextSources,
+            projectContextError,
             baselineEntryName,
             baselineTitle,
             callDate: options.callDate,
@@ -632,7 +705,11 @@ async function processCallAsync(
             id,
             savedEntryName,
             projectName: effectiveProjectName,
+            projectPath: options.projectPath,
             customerName: options.customerName,
+            projectContext,
+            projectContextSources,
+            projectContextError,
             baselineEntryName,
             baselineTitle,
             callDate: options.callDate,
@@ -662,7 +739,11 @@ async function processCallAsync(
     savedEntryName = await saveGeneratedDocsBundle({
       id,
       projectName: effectiveProjectName,
+      projectPath: options.projectPath,
       customerName: options.customerName,
+      projectContext,
+      projectContextSources,
+      projectContextError,
       baselineEntryName,
       baselineTitle,
       callDate: options.callDate,
@@ -686,6 +767,8 @@ async function processCallAsync(
       projectName: effectiveProjectName,
       projectPath: options.projectPath,
       projectContext,
+      projectContextSources,
+      projectContextError,
       baselineEntryName,
       baselineTitle,
       claudePrd,
@@ -702,6 +785,10 @@ async function processCallAsync(
   } catch (err) {
     updateStatus(id, "failed", {
       savedEntryName,
+      projectPath: options.projectPath,
+      projectContext,
+      projectContextSources,
+      projectContextError,
       error: formatKnownCallToPrdRuntimeMessage(getErrorMessage(err, options.locale), options.locale),
     });
   }
@@ -711,7 +798,11 @@ async function persistGeneratedDocsSnapshot(options: {
   id: string;
   savedEntryName: string | null;
   projectName: string | null;
+  projectPath: string | null;
   customerName: string | null;
+  projectContext: string | null;
+  projectContextSources: string[];
+  projectContextError: string | null;
   baselineEntryName: string | null;
   baselineTitle: string | null;
   callDate: string;
@@ -729,7 +820,11 @@ async function persistGeneratedDocsSnapshot(options: {
     return await saveGeneratedDocsBundle({
       id: options.id,
       projectName: options.projectName,
+      projectPath: options.projectPath,
       customerName: options.customerName,
+      projectContext: options.projectContext,
+      projectContextSources: options.projectContextSources,
+      projectContextError: options.projectContextError,
       baselineEntryName: options.baselineEntryName,
       baselineTitle: options.baselineTitle,
       callDate: options.callDate,

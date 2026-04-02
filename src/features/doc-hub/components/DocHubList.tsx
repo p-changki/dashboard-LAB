@@ -19,7 +19,7 @@ const DOC_TYPE_CLASS: Record<DocType, string> = {
   claude: "bg-purple-900/30 text-purple-300",
   codex: "bg-green-900/30 text-green-300",
   gemini: "bg-blue-900/30 text-blue-300",
-  general: "bg-gray-700 text-gray-300",
+  general: "bg-gray-700 text-text-secondary",
 };
 
 export function DocHubList({
@@ -56,7 +56,7 @@ export function DocHubList({
               onClick={() => onToggleFilter(type as DocType)}
               className={[
                 "rounded-full px-2.5 py-1 text-xs font-medium transition",
-                active ? DOC_TYPE_CLASS[type as DocType] : "bg-gray-800 text-gray-500",
+                active ? DOC_TYPE_CLASS[type as DocType] : "bg-gray-800 text-text-muted",
               ].join(" ")}
             >
               {active ? "✓ " : ""}{getDocTypeLabel(type)}
@@ -66,7 +66,7 @@ export function DocHubList({
         <select
           value={sortBy}
           onChange={(event) => setSortBy(event.target.value as "latest" | "oldest" | "name")}
-          className="rounded-full border border-white/10 bg-black/15 px-3 py-1 text-xs text-white"
+          className="rounded-full border border-border-base bg-black/15 px-3 py-1 text-xs text-white"
         >
           <option value="latest">{copy.sortLatest}</option>
           <option value="oldest">{copy.sortOldest}</option>
@@ -88,7 +88,7 @@ export function DocHubList({
                 <span className="text-sm font-medium text-white">
                   {isOpen ? "▼" : "▶"} {projectName}
                 </span>
-                <span className="rounded-full bg-gray-900 px-2.5 py-0.5 text-xs text-gray-400">
+                <span className="rounded-full bg-gray-900 px-2.5 py-0.5 text-xs text-text-muted">
                   {copy.documentCount(projectDocs.length)}
                 </span>
               </button>
@@ -105,7 +105,7 @@ export function DocHubList({
                         <FileTypeIcon extension={doc.fileName.split(".").pop() ?? "md"} />
                         <div>
                           <p className="text-sm text-white">{doc.filePath}</p>
-                          <p className="mt-1 text-xs text-gray-500">
+                          <p className="mt-1 text-xs text-text-muted">
                             {formatDocHubDate(locale, doc.lastModified)}
                           </p>
                         </div>

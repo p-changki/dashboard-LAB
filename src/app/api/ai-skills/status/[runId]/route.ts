@@ -1,4 +1,6 @@
 import { jsonError } from "@/lib/api/error-response";
+import { routeRunIdParamSchema } from "@/lib/api/schemas";
+import { isZodError, parseRouteParams } from "@/lib/api/validation";
 import { getAiSkillApiError } from "@/lib/ai-skills/messages";
 import { getSkillRun } from "@/lib/ai-skills/runner";
 import { readLocaleFromHeaders } from "@/lib/locale";
@@ -11,7 +13,22 @@ export async function GET(
   context: { params: Promise<{ runId: string }> },
 ) {
   const locale = readLocaleFromHeaders(request.headers);
-  const { runId } = await context.params;
+  let runId = "";
+
+  try {
+    ({ runId } = await parseRouteParams(context.params, routeRunIdParamSchema));
+  } catch (error) {
+    if (isZodError(error)) {
+      return jsonError(
+        "INVALID_RUN_ID",
+        locale === "en" ? "The run id is not valid." : "유효하지 않은 실행 ID입니다.",
+        400,
+      );
+    }
+
+    throw error;
+  }
+
   const run = getSkillRun(runId);
 
   if (!run) {

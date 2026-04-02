@@ -9,6 +9,7 @@ export async function mergeDualPrd(
   claudePrd: string,
   codexPrd: string,
   originalContext: string,
+  options?: { cwd?: string },
 ): Promise<MergeResult> {
   const prompt = `당신은 시니어 프로덕트 매니저입니다.
 두 AI가 동일한 원문 입력 내용을 바탕으로 각각 PRD를 작성했습니다.
@@ -30,6 +31,7 @@ ${codexPrd}
 - 한쪽에만 있는 유효한 인사이트는 포함
 - 충돌하는 내용은 원본 입력 내용 기준으로 판단
 - 추측은 "추정:" 접두사
+- 선택된 프로젝트 컨텍스트가 있다면 그 구조와 용어를 유지
 - 기존 PRD 10개 섹션 구조 유지 (입력요약, 니즈분석, 요구사항, PRD, 개발계획, 시퀀스 다이어그램, 우선순위, 리스크, 후속질문, 경쟁사)
 - 시퀀스 다이어그램 섹션은 반드시 mermaid fenced code block으로 유지
 - mermaid 코드는 sequenceDiagram 문법이 깨지지 않게 정리
@@ -47,7 +49,7 @@ ${codexPrd}
 PART 1과 PART 2를 구분자 "---DIFF_SEPARATOR---"로 구분.
 PART 1 먼저, 그 다음 구분자, 그 다음 PART 2.`;
 
-  const result = await runClaudePrd(prompt);
+  const result = await runClaudePrd(prompt, { cwd: options?.cwd });
   const separator = "---DIFF_SEPARATOR---";
   const sepIndex = result.indexOf(separator);
 

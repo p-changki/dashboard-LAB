@@ -40,6 +40,7 @@ export async function fetchGithubTrending(): Promise<TrendingItem[]> {
     const language = sanitizeText(node.querySelector("[itemprop='programmingLanguage']")?.text || "", 20);
     const starTexts = node.querySelectorAll("a.Link--muted").map((item) => sanitizeText(item.text, 20));
     const href = node.querySelector("h2 a")?.getAttribute("href") || "/";
+    const [repoOwner, repoName] = repo.split("/", 2);
 
     return {
       type: "github",
@@ -51,6 +52,8 @@ export async function fetchGithubTrending(): Promise<TrendingItem[]> {
         language,
         stars: parseCompactNumber(starTexts[0]),
         forks: parseCompactNumber(starTexts[1]),
+        repoOwner,
+        repoName,
       },
       publishedAt: new Date().toISOString(),
     } satisfies TrendingItem;

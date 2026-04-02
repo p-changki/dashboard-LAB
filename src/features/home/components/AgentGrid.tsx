@@ -1,8 +1,10 @@
 "use client";
 
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { Badge } from "@/components/ui/Badge";
 import { PinButton } from "@/components/ui/PinButton";
 import { getHomeCopy } from "@/features/home/copy";
+import { HomeEmptyCard } from "@/features/home/components/HomeEmptyCard";
 import type { Agent } from "@/lib/types";
 
 interface AgentGridProps {
@@ -14,24 +16,20 @@ export function AgentGrid({ agents }: AgentGridProps) {
   const copy = getHomeCopy(locale);
 
   if (agents.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-white/10 bg-transparent p-6 text-center text-sm text-gray-500">
-        {copy.noAgents}
-      </div>
-    );
+    return <HomeEmptyCard message={copy.noAgents} />;
   }
 
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       {agents.map((agent) => (
-        <article key={agent.name} className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-5 transition-all duration-[150ms] hover:-translate-y-0.5 hover:border-white/[.14] hover:bg-[#242424]">
+        <article key={agent.name} className="rounded-2xl border border-border-base bg-bg-card p-5 transition-all duration-[150ms] hover:-translate-y-0.5 hover:border-border-hover hover:bg-bg-card-hover">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-sm font-medium text-[#f0f0f0]">{agent.name}</h3>
+            <h3 className="text-sm font-medium text-text-primary">{agent.name}</h3>
             <div className="flex items-center gap-2">
               {agent.model ? (
-                <span className="rounded-full border border-white/12 bg-white/6 px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-white/70">
+                <Badge variant="neutral" size="sm" className="uppercase tracking-[0.18em]">
                   {agent.model}
-                </span>
+                </Badge>
               ) : null}
               <PinButton
                 item={{
@@ -45,7 +43,7 @@ export function AgentGrid({ agents }: AgentGridProps) {
               />
             </div>
           </div>
-          <p className="mt-3 text-sm leading-6 text-[var(--color-text-soft)]">
+          <p className="mt-3 text-sm leading-6 text-text-secondary">
             {agent.description}
           </p>
         </article>

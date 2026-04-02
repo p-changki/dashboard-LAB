@@ -11,6 +11,12 @@ import type {
 
 import { readUtf8 } from "@/lib/parsers/shared";
 
+import {
+  fetchNpmPackageMetadata,
+  fetchNpmSearchResults,
+  getNpmFreshnessScore,
+  getNpmPublishedAt,
+} from "./npm-registry";
 import { buildGoogleTranslateUrl, sanitizeText } from "./sanitizer";
 import { translateTitle } from "./translator";
 
@@ -20,32 +26,32 @@ const FEED_ITEMS_PER_MODEL = 4;
 
 const MODEL_SKILL_QUERIES: Array<{
   model: AiSkillModel;
-  githubQuery: string;
-  npmQuery: string;
+  githubQueries: string[];
+  npmQueries: string[];
   summary: string;
 }> = [
   {
     model: "Claude",
-    githubQuery: "claude code prompt",
-    npmQuery: "claude prompt",
+    githubQueries: ["claude code", "claude agent"],
+    npmQueries: ["claude code", "claude agent", "claude prompt"],
     summary: "Claude Code, CLAUDE.md, 프롬프트 운영 흐름에 맞는 공개 스킬과 도구를 모았습니다.",
   },
   {
     model: "Codex",
-    githubQuery: "codex cli prompt",
-    npmQuery: "codex prompt",
+    githubQueries: ["codex cli", "openai codex"],
+    npmQueries: ["codex cli", "openai codex", "codex prompt"],
     summary: "Codex 기반 코드 작업, 리뷰, 자동화 흐름에 맞는 레포와 패키지를 모았습니다.",
   },
   {
     model: "Gemini",
-    githubQuery: "gemini cli prompt",
-    npmQuery: "gemini prompt",
+    githubQueries: ["gemini cli", "gemini agent"],
+    npmQueries: ["gemini cli", "gemini prompt", "gemini tool"],
     summary: "Gemini CLI와 GEMINI.md 워크플로우에 연결하기 쉬운 공개 스킬 후보입니다.",
   },
   {
     model: "General",
-    githubQuery: "ai agent mcp prompt",
-    npmQuery: "ai agent prompt",
+    githubQueries: ["model context protocol", "ai agent tool"],
+    npmQueries: ["ai agent", "mcp tool", "agent prompt"],
     summary: "모델에 종속되지 않고 재사용하기 좋은 에이전트/프롬프트/도구 계열 후보입니다.",
   },
 ];
@@ -131,9 +137,125 @@ async function fetchGithubModelItems(
   query: (typeof MODEL_SKILL_QUERIES)[number],
   limit: number,
 ): Promise<FeedItem[]> {
+  const searches = await Promise.all(
+    query.githubQueries.flatMap((githubQuery) => [
+      fetchGithubSearchItems(query.model, githubQuery, Math.max(2, limit), "updated"),
+      fetchGithubSearchItems(query.model, githubQuery, Math.max(2, Math.ceil(limit / 2)), "stars"),
+    ]),
+  );
+
+  return dedupeFeedItems(searches.flat())
+    .sort((left, right) => {
+      const scoreDelta = (right.extra?.score ?? 0) - (left.extra?.score ?? 0);
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+
+      return right.publishedTimestamp - left.publishedTimestamp;
+    })
+    .slice(0, limit);
+}
+
+async function fetchNpmModelItems(
+  query: (typeof MODEL_SKILL_QUERIES)[number],
+  limit: number,
+): Promise<FeedItem[]> {
+  const searchGroups = await Promise.all(
+    query.npmQueries.map(async (npmQuery) => ({
+      npmQuery,
+      items: await fetchNpmSearchResults(npmQuery, Math.max(2, limit)),
+    })),
+  );
+
+  const candidates = new Map<
+    string,
+    {
+      item: NpmSearchResult;
+      searchScore: number;
+    }
+  >();
+
+  for (const group of searchGroups) {
+    for (const item of group.items) {
+      const packageName = item.package.name;
+      const searchScore =
+        (item.score?.final ?? 0) *
+        10 *
+        Math.max(0.85, 1 - query.npmQueries.indexOf(group.npmQuery) * 0.08);
+      const existing = candidates.get(packageName);
+
+      if (!existing || searchScore > existing.searchScore) {
+        candidates.set(packageName, {
+          item,
+          searchScore,
+        });
+      }
+    }
+  }
+
+  const enriched = await Promise.all(
+    [...candidates.values()].map(async ({ item, searchScore }) => {
+      const packageName = item.package.name;
+      const npmUrl = item.package.links?.npm || `https://www.npmjs.com/package/${packageName}`;
+      const metadata = await fetchNpmPackageMetadata(packageName);
+      const freshnessScore = getNpmFreshnessScore(metadata);
+      const score = Number((searchScore + freshnessScore).toFixed(2));
+      const publishedAt = getNpmPublishedAt(metadata);
+
+      return {
+        id: `ai-skill:npm:${query.model}:${packageName}`,
+        categoryId: "ai-skill-trends",
+        sourceId: "ai-skills-npm",
+        sourceName: `${query.model} npm Picks`,
+        title: packageName,
+        titleKo: (await translateTitle(packageName, false)) ?? undefined,
+        summary: sanitizeText(item.package.description ?? `${query.model} 관련 npm 스킬/도구 패키지`),
+        link: npmUrl,
+        googleTranslateUrl: buildGoogleTranslateUrl(npmUrl),
+        publishedAt,
+        publishedTimestamp: new Date(publishedAt).getTime(),
+        tags: compactTags([
+          query.model,
+          "npm",
+          ...(item.package.keywords ?? []),
+        ]),
+        extra: {
+          model: query.model,
+          score,
+          skillType: "npm-package",
+          version: metadata?.latestVersion ?? item.package.version,
+          weeklyDownloads: Math.round(searchScore * 1_000),
+          npmPackage: packageName,
+        },
+      } satisfies FeedItem;
+    }),
+  );
+
+  return enriched
+    .sort((left, right) => {
+      const scoreDelta = (right.extra?.score ?? 0) - (left.extra?.score ?? 0);
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+
+      return right.publishedTimestamp - left.publishedTimestamp;
+    })
+    .slice(0, limit);
+}
+
+async function fetchGithubSearchItems(
+  model: AiSkillModel,
+  githubQuery: string,
+  limit: number,
+  strategy: "updated" | "stars",
+): Promise<FeedItem[]> {
   const url = new URL("https://api.github.com/search/repositories");
-  url.searchParams.set("q", query.githubQuery);
-  url.searchParams.set("sort", "stars");
+  const recencyFloor = new Date(Date.now() - 45 * DAY_MS).toISOString().slice(0, 10);
+  url.searchParams.set(
+    "q",
+    strategy === "updated" ? `${githubQuery} pushed:>=${recencyFloor}` : githubQuery,
+  );
+  url.searchParams.set("sort", strategy);
   url.searchParams.set("order", "desc");
   url.searchParams.set("per_page", String(limit));
 
@@ -150,29 +272,44 @@ async function fetchGithubModelItems(
   return Promise.all(
     (payload.items ?? []).map(async (item) => {
       const tags = compactTags([
-        query.model,
+        model,
         item.language ?? "",
         ...(item.topics ?? []),
         "GitHub",
+        strategy === "updated" ? "fresh" : "popular",
       ]);
-
-      const score = item.stargazers_count / 1000 + item.forks_count / 4000 + (item.topics?.length ?? 0) * 0.2;
+      const publishedAt = item.updated_at ?? new Date(Date.now() - 14 * DAY_MS).toISOString();
+      const freshnessScore = Math.max(
+        0,
+        18 - (Date.now() - new Date(publishedAt).getTime()) / DAY_MS,
+      );
+      const popularityScore =
+        item.stargazers_count / 1800 +
+        item.forks_count / 6000 +
+        (item.topics?.length ?? 0) * 0.3;
+      const score = Number(
+        (
+          popularityScore +
+          freshnessScore +
+          (strategy === "updated" ? 3.5 : 0)
+        ).toFixed(2),
+      );
 
       return {
-        id: `ai-skill:github:${query.model}:${item.full_name}`,
+        id: `ai-skill:github:${item.full_name}`,
         categoryId: "ai-skill-trends",
         sourceId: "ai-skills-github",
-        sourceName: `${query.model} GitHub Picks`,
+        sourceName: `${model} GitHub Picks`,
         title: item.full_name,
         titleKo: (await translateTitle(item.full_name, false)) ?? undefined,
-        summary: sanitizeText(item.description ?? `${query.model} 관련 공개 스킬/도구 레포지토리`),
+        summary: sanitizeText(item.description ?? "공개 스킬/도구 레포지토리"),
         link: item.html_url,
         googleTranslateUrl: buildGoogleTranslateUrl(item.html_url),
-        publishedAt: item.updated_at ?? new Date().toISOString(),
-        publishedTimestamp: new Date(item.updated_at ?? new Date().toISOString()).getTime(),
+        publishedAt,
+        publishedTimestamp: new Date(publishedAt).getTime(),
         tags,
         extra: {
-          model: query.model,
+          model,
           score,
           skillType: "github-repo",
           stars: item.stargazers_count,
@@ -180,56 +317,6 @@ async function fetchGithubModelItems(
           language: item.language ?? undefined,
           repoOwner: item.owner?.login ?? undefined,
           repoName: item.name,
-        },
-      } satisfies FeedItem;
-    }),
-  );
-}
-
-async function fetchNpmModelItems(
-  query: (typeof MODEL_SKILL_QUERIES)[number],
-  limit: number,
-): Promise<FeedItem[]> {
-  const url = new URL("https://registry.npmjs.org/-/v1/search");
-  url.searchParams.set("text", query.npmQuery);
-  url.searchParams.set("size", String(limit));
-  url.searchParams.set("popularity", "1");
-
-  const payload = await fetch(url, { cache: "no-store" })
-    .then((response) => response.json() as Promise<{ objects?: NpmSearchResult[] }>)
-    .catch(() => ({ objects: [] as NpmSearchResult[] }));
-
-  return Promise.all(
-    (payload.objects ?? []).map(async (item) => {
-      const packageName = item.package.name;
-      const npmUrl = item.package.links?.npm || `https://www.npmjs.com/package/${packageName}`;
-      const tags = compactTags([
-        query.model,
-        "npm",
-        ...(item.package.keywords ?? []),
-      ]);
-      const score = (item.score?.final ?? 0) * 10;
-
-      return {
-        id: `ai-skill:npm:${query.model}:${packageName}`,
-        categoryId: "ai-skill-trends",
-        sourceId: "ai-skills-npm",
-        sourceName: `${query.model} npm Picks`,
-        title: packageName,
-        titleKo: (await translateTitle(packageName, false)) ?? undefined,
-        summary: sanitizeText(item.package.description ?? `${query.model} 관련 npm 스킬/도구 패키지`),
-        link: npmUrl,
-        googleTranslateUrl: buildGoogleTranslateUrl(npmUrl),
-        publishedAt: new Date().toISOString(),
-        publishedTimestamp: Date.now(),
-        tags,
-        extra: {
-          model: query.model,
-          score,
-          skillType: "npm-package",
-          version: item.package.version,
-          weeklyDownloads: Math.round((item.score?.final ?? 0) * 10_000),
-          npmPackage: packageName,
         },
       } satisfies FeedItem;
     }),

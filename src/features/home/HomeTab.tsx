@@ -4,13 +4,16 @@ import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { Button } from "@/components/ui/Button";
 import { AgentGrid } from "@/features/home/components/AgentGrid";
 import { CommandPalette } from "@/features/home/components/CommandPalette";
+import { HomeEmptyCard } from "@/features/home/components/HomeEmptyCard";
 import { McpPanel } from "@/features/home/components/McpPanel";
 import { PinnedBar } from "@/features/home/components/PinnedBar";
 import { SkillList } from "@/features/home/components/SkillList";
 import { TeamGrid } from "@/features/home/components/TeamGrid";
 import { ToolCard } from "@/features/home/components/ToolCard";
+import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { formatHomeTime, formatTodayWorkSummary, getHomeCopy } from "@/features/home/copy";
 import type { DashboardNavigationMode } from "@/components/layout/TabNav";
 import { CLIENT_STORAGE_KEYS } from "@/lib/client-keys";
@@ -38,6 +41,11 @@ export function HomeTab({
   const safeData = data ?? createEmptyOverviewData();
   const [openSections, setOpenSections] = useState<string[]>(defaultHomeSections(mode));
   const combinedClaudeItems = [...safeData.skills, ...safeData.commands];
+  const readyToolCount = Object.values(safeData.tools).filter(
+    (tool) => tool.exists && tool.version !== "unknown",
+  ).length;
+  const totalSkillCount =
+    combinedClaudeItems.length + safeData.codex.skills.length + safeData.codex.promptSkills.length;
   const quickCommands = [
     ...safeData.commands.slice(0, 4).map((command) => ({
       label: command.name,
@@ -67,13 +75,51 @@ export function HomeTab({
     <div className="flex flex-col gap-8">
       <PinnedBar />
       {loading || error ? (
-        <section className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-4 text-sm">
-          <p className="font-medium text-white">
+        <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/70">
+            {copy.pulse.eyebrow}
+          </div>
+          <p className="mt-4 text-base font-semibold text-white">
             {loading ? copy.loadingOverview : copy.failedOverview}
           </p>
-          {error ? <p className="mt-2 text-[var(--color-muted)]">{error}</p> : null}
+          {error ? <p className="mt-2 text-sm leading-6 text-text-secondary">{error}</p> : null}
         </section>
       ) : null}
+
+      <section className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.12),_transparent_35%),linear-gradient(180deg,_rgba(18,18,18,0.94),_rgba(12,12,12,0.98))] p-6">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] xl:items-start">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">{copy.pulse.eyebrow}</p>
+            <h2 className="mt-3 text-xl font-semibold tracking-tight text-white">{copy.pulse.title}</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-text-secondary">
+              {copy.pulse.description(
+                readyToolCount,
+                Object.keys(safeData.tools).length,
+                safeData.todayWork.length,
+                totalSkillCount,
+              )}
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <PulseBadge>{copy.pulse.readyTools(readyToolCount, Object.keys(safeData.tools).length)}</PulseBadge>
+              <PulseBadge>{copy.pulse.todayWork(safeData.todayWork.length)}</PulseBadge>
+              <PulseBadge>{copy.pulse.skills(totalSkillCount)}</PulseBadge>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <PulseMetric
+              label={copy.pulse.modeTitle}
+              value={isAdvancedMode ? copy.pulse.advancedMode : copy.pulse.coreMode}
+              description={isAdvancedMode ? copy.pulse.advancedHint : copy.pulse.coreHint}
+            />
+            <PulseMetric
+              label={copy.todayWorkPanelTitle}
+              value={copy.todayWorkCount(safeData.todayWork.length)}
+              description={copy.todayWorkPanelDescription}
+            />
+          </div>
+        </div>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-4">
         <StatCard label={copy.stats.agents} value={safeData.stats.totalAgents} accent="purple" />
         <StatCard label={copy.stats.teams} value={safeData.stats.totalTeams} accent="purple" />
@@ -82,15 +128,15 @@ export function HomeTab({
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <ToolCard tool={safeData.tools.claude} accent="#c084fc" />
-        <ToolCard tool={safeData.tools.codex} accent="#34d399" />
-        <ToolCard tool={safeData.tools.gemini} accent="#60a5fa" />
+        <ToolCard tool={safeData.tools.claude} accent="var(--color-accent-claude)" />
+        <ToolCard tool={safeData.tools.codex} accent="var(--color-accent-codex)" />
+        <ToolCard tool={safeData.tools.gemini} accent="var(--color-accent-gemini)" />
       </section>
 
       <section className="rounded-3xl border border-white/8 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.1),_transparent_42%),linear-gradient(180deg,_rgba(20,20,20,0.94),_rgba(14,14,14,0.98))] p-6">
         <p className="text-xs uppercase tracking-[0.24em] text-emerald-200/80">Workspace Flow</p>
         <h2 className="mt-3 text-xl font-semibold tracking-tight text-white">{copy.flowTitle}</h2>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-text-soft)]">
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-text-secondary">
           {copy.flowDescription}
         </p>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
@@ -98,7 +144,7 @@ export function HomeTab({
             <article key={item.label} className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
               <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-200/70">{item.label}</p>
               <p className="mt-2 text-sm font-medium text-white">{item.title}</p>
-              <p className="mt-2 text-xs leading-6 text-[var(--color-text-soft)]">{item.description}</p>
+              <p className="mt-2 text-xs leading-6 text-text-secondary">{item.description}</p>
             </article>
           ))}
         </div>
@@ -121,13 +167,11 @@ export function HomeTab({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-white">{copy.todayWorkPanelTitle}</p>
-              <p className="mt-1 text-xs text-[var(--color-muted)]">
+              <p className="mt-1 text-xs text-text-muted">
                 {copy.todayWorkPanelDescription}
               </p>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs text-white/70">
-              {copy.todayWorkCount(safeData.todayWork.length)}
-            </span>
+            <Badge variant="neutral">{copy.todayWorkCount(safeData.todayWork.length)}</Badge>
           </div>
 
           {safeData.todayWork.length > 0 ? (
@@ -137,26 +181,26 @@ export function HomeTab({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full px-2.5 py-1 text-[11px] ${getTodayWorkBadgeClass(item.source)}`}>
+                        <Badge variant={todayWorkSourceVariant(item.source)} size="sm">
                           {item.badge}
-                        </span>
-                        <span className={`rounded-full px-2.5 py-1 text-[11px] ${getTodayWorkStatusClass(item.status)}`}>
+                        </Badge>
+                        <Badge variant={todayWorkStatusVariant(item.status)} size="sm">
                           {copy.status[item.status as keyof typeof copy.status] ?? item.status}
-                        </span>
+                        </Badge>
                       </div>
                       <p className="mt-3 truncate text-sm font-medium text-white">{item.title}</p>
-                      <p className="mt-1 text-xs leading-6 text-[var(--color-text-soft)]">
+                      <p className="mt-1 text-xs leading-6 text-text-secondary">
                         {formatTodayWorkSummary(locale, item.summary)}
                       </p>
                     </div>
-                    <span className="shrink-0 text-xs text-[var(--color-muted)]">{formatHomeTime(locale, item.createdAt)}</span>
+                    <span className="shrink-0 text-xs text-text-muted">{formatHomeTime(locale, item.createdAt)}</span>
                   </div>
                 </article>
               ))}
             </div>
           ) : (
-            <div className="mt-4 rounded-2xl border border-dashed border-white/8 px-4 py-4 text-sm text-[var(--color-muted)]">
-              {copy.noTodayWork}
+            <div className="mt-4">
+              <HomeEmptyCard message={copy.noTodayWork} />
             </div>
           )}
         </section>
@@ -307,14 +351,15 @@ function HomeSection({
 
   return (
     <section className="space-y-4">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => toggleHomeSection(id, setOpenSections)}
-        className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-[#1e1e1e] px-5 py-4 text-left transition-all duration-[150ms] hover:border-white/[.14] hover:bg-[#242424]"
+        className="flex w-full items-center justify-between rounded-2xl border border-border-base bg-bg-card px-5 py-4 text-left hover:border-border-hover hover:bg-bg-card-hover h-auto"
       >
         <SectionHeader eyebrow={eyebrow} title={title} />
-        <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform duration-[150ms] ${isOpen ? "rotate-180" : ""}`} />
-      </button>
+        <ChevronDown className={`h-5 w-5 text-text-muted transition-transform duration-[150ms] ${isOpen ? "rotate-180" : ""}`} />
+      </Button>
       {isOpen ? children : null}
     </section>
   );
@@ -323,10 +368,10 @@ function HomeSection({
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div className="space-y-1">
-      <p className="text-[10px] uppercase tracking-widest text-gray-600">
+      <p className="text-[10px] uppercase tracking-widest text-text-disabled">
         {eyebrow}
       </p>
-      <h2 className="text-lg font-semibold text-[#f0f0f0]">{title}</h2>
+      <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
     </div>
   );
 }
@@ -339,8 +384,8 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
   };
   return (
     <div className={`rounded-2xl border p-5 transition-all duration-[150ms] hover:-translate-y-0.5 ${accentMap[accent] ?? accentMap.purple}`}>
-      <p className="text-[10px] uppercase tracking-widest text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold tabular-nums text-[#f0f0f0]">{value}</p>
+      <p className="text-[10px] uppercase tracking-widest text-text-muted">{label}</p>
+      <p className="mt-2 text-2xl font-bold tabular-nums text-text-primary">{value}</p>
     </div>
   );
 }
@@ -348,10 +393,32 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
 function SummaryPanel({ title, body }: { title: string; body: string }) {
   return (
     <article className="panel p-6">
-      <p className="text-sm text-[var(--color-muted)]">{title}</p>
-      <p className="mt-4 text-sm leading-7 text-[var(--color-text-soft)]">{body}</p>
+      <p className="text-sm text-text-muted">{title}</p>
+      <p className="mt-4 text-sm leading-7 text-text-secondary">{body}</p>
     </article>
   );
+}
+
+function PulseMetric({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description: string;
+}) {
+  return (
+    <article className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <p className="text-[11px] uppercase tracking-[0.2em] text-text-muted">{label}</p>
+      <p className="mt-3 text-lg font-semibold text-white">{value}</p>
+      <p className="mt-2 text-xs leading-6 text-text-secondary">{description}</p>
+    </article>
+  );
+}
+
+function PulseBadge({ children }: { children: React.ReactNode }) {
+  return <Badge variant="neutral">{children}</Badge>;
 }
 
 function toggleHomeSection(
@@ -374,22 +441,16 @@ function defaultHomeSections(mode: DashboardNavigationMode) {
     : sections.filter((section) => !ADVANCED_HOME_SECTIONS.has(section));
 }
 
-function getTodayWorkBadgeClass(source: OverviewResponse["todayWork"][number]["source"]) {
-  return {
-    "call-to-prd": "border border-purple-500/20 bg-purple-900/30 text-purple-200",
-    "cs-helper": "border border-cyan-500/20 bg-cyan-900/30 text-cyan-200",
-    "ai-skill": "border border-emerald-500/20 bg-emerald-900/30 text-emerald-200",
-  }[source];
+function todayWorkSourceVariant(
+  source: OverviewResponse["todayWork"][number]["source"],
+): BadgeVariant {
+  if (source === "call-to-prd") return "claude";
+  if (source === "cs-helper") return "info";
+  return "success"; // ai-skill
 }
 
-function getTodayWorkStatusClass(status: string) {
-  if (status === "completed") {
-    return "border border-emerald-500/20 bg-emerald-900/20 text-emerald-300";
-  }
-
-  if (status === "failed") {
-    return "border border-rose-500/20 bg-rose-900/20 text-rose-300";
-  }
-
-  return "border border-amber-500/20 bg-amber-900/20 text-amber-200";
+function todayWorkStatusVariant(status: string): BadgeVariant {
+  if (status === "completed") return "success";
+  if (status === "failed") return "error";
+  return "warning";
 }

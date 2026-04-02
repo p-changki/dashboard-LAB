@@ -7,6 +7,8 @@ import {
   isJsonParseError,
   jsonError,
 } from "@/lib/api/error-response";
+import { appLaunchRequestSchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseJsonBody } from "@/lib/api/validation";
 
 const DEFAULT_TERMINAL_TARGET = "__dashboard_lab_default_terminal__";
 const MAC_APP_ROOTS = ["/Applications/", "/System/Applications/"];
@@ -23,12 +25,8 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as { appPath?: string };
-    const appPath = payload.appPath?.trim() ?? "";
-
-    if (!appPath) {
-      return jsonError("INVALID_APP_PATH", "앱 경로가 비어 있습니다.", 400);
-    }
+    const payload = await parseJsonBody(request, appLaunchRequestSchema);
+    const appPath = payload.appPath;
 
     if (appPath === DEFAULT_TERMINAL_TARGET) {
       await launchDefaultTerminal();
@@ -41,6 +39,14 @@ export async function POST(request: Request) {
   } catch (error) {
     if (isJsonParseError(error)) {
       return jsonError("INVALID_BODY", "요청 본문 JSON 형식이 올바르지 않습니다.", 400);
+    }
+
+    if (isZodError(error)) {
+      return jsonError(
+        "INVALID_INPUT",
+        getZodErrorMessage(error, "앱 실행 요청 형식이 올바르지 않습니다."),
+        400,
+      );
     }
 
     if (error instanceof Error && error.message === "INVALID_APP_PATH") {

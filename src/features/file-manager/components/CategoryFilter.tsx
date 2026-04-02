@@ -48,12 +48,12 @@ function Select({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="text-sm text-gray-400">
+    <label className="text-sm text-text-muted">
       <span className="mb-2 block">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-gray-700 bg-gray-900 px-3 py-3 text-sm text-gray-200 outline-none"
+        className="w-full rounded-xl border border-gray-700 bg-gray-900 px-3 py-3 text-sm text-text-secondary outline-none"
       >
         {options.map((option) => (
           <option key={option} value={option}>

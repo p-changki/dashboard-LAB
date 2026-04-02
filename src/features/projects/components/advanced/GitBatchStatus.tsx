@@ -20,13 +20,13 @@ export function GitBatchStatus() {
   }
 
   return (
-    <section className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-5 transition-all duration-[150ms] hover:bg-[#242424]">
-      <p className="text-xs uppercase tracking-[0.24em] text-gray-500">Git Overview</p>
+    <section className="rounded-2xl border border-border-base bg-bg-card p-5 transition-all duration-[150ms] hover:bg-bg-card-hover">
+      <p className="text-xs uppercase tracking-[0.24em] text-text-muted">Git Overview</p>
       <div className="mt-4 grid gap-3 md:grid-cols-4">
         <SummaryChip label="미커밋" value={data.summary.uncommittedCount} tone="text-amber-300" />
         <SummaryChip label="미푸시" value={data.summary.unpushedCount} tone="text-purple-300" />
         <SummaryChip label="클린" value={data.summary.cleanCount} tone="text-green-300" />
-        <SummaryChip label="Git 없음" value={data.summary.noGitCount} tone="text-gray-300" />
+        <SummaryChip label="Git 없음" value={data.summary.noGitCount} tone="text-text-secondary" />
       </div>
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
         <ProjectList title="미커밋 변경" empty="모든 프로젝트가 클린 상태입니다.">
@@ -51,7 +51,7 @@ export function GitBatchStatus() {
         </ProjectList>
         <ProjectList title="클린 프로젝트" empty="클린 프로젝트가 없습니다.">
           {data.clean.slice(0, 8).map((item) => (
-            <div key={`${item.project}-${item.branch}`} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+            <div key={`${item.project}-${item.branch}`} className="rounded-2xl border border-border-base bg-black/20 px-4 py-3">
               <p className="text-sm font-medium text-white">{item.project}</p>
               <p className="mt-1 text-xs text-white/45">{item.branch} · {item.lastCommitDate || "최근 커밋 없음"}</p>
             </div>
@@ -65,8 +65,8 @@ export function GitBatchStatus() {
 
 function SummaryChip({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
-      <p className="text-xs text-gray-500">{label}</p>
+    <div className="rounded-2xl border border-border-base bg-black/20 p-4">
+      <p className="text-xs text-text-muted">{label}</p>
       <p className={`mt-2 text-2xl font-semibold ${tone}`}>{value}</p>
     </div>
   );
@@ -75,10 +75,10 @@ function SummaryChip({ label, value, tone }: { label: string; value: number; ton
 function ProjectList({ title, empty, children }: { title: string; empty: string; children: React.ReactNode }) {
   const count = Array.isArray(children) ? children.length : children ? 1 : 0;
   return (
-    <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
+    <div className="rounded-2xl border border-border-base bg-black/20 p-4">
       <p className="text-sm font-semibold text-white">{title}</p>
       <div className="mt-3 space-y-2">
-        {count === 0 ? <p className="text-sm text-gray-500">{empty}</p> : children}
+        {count === 0 ? <p className="text-sm text-text-muted">{empty}</p> : children}
       </div>
     </div>
   );
@@ -86,7 +86,7 @@ function ProjectList({ title, empty, children }: { title: string; empty: string;
 
 function StatusRow({ title, subtitle, command }: { title: string; subtitle: string; command: string }) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-[#1e1e1e] px-4 py-3">
+    <div className="rounded-2xl border border-border-base bg-bg-card px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-white">{title}</p>

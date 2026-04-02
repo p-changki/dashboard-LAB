@@ -40,7 +40,7 @@ export function ProjectMemo({ projectPath }: ProjectMemoProps) {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="rounded-full border border-gray-700 bg-gray-900 px-3 py-1 text-xs text-gray-300 hover:bg-gray-800"
+        className="rounded-full border border-gray-700 bg-gray-900 px-3 py-1 text-xs text-text-secondary hover:bg-gray-800"
       >
         메모
       </button>
@@ -49,7 +49,7 @@ export function ProjectMemo({ projectPath }: ProjectMemoProps) {
           value={value}
           onChange={(event) => handleSave(event.target.value)}
           placeholder="프로젝트 메모를 입력하세요."
-          className="mt-3 min-h-24 w-full rounded-xl border border-gray-700 bg-gray-900 px-3 py-3 text-sm text-gray-200 outline-none placeholder:text-gray-500"
+          className="mt-3 min-h-24 w-full rounded-xl border border-gray-700 bg-gray-900 px-3 py-3 text-sm text-text-secondary outline-none placeholder:text-text-muted"
         />
       ) : null}
     </div>

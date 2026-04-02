@@ -172,7 +172,7 @@ export function SystemTab() {
             onClick={() => setActive(tab.id)}
             className={[
               "rounded-full px-3 py-2 text-sm transition",
-              active === tab.id ? "bg-blue-900/40 text-blue-300" : "bg-gray-800 text-gray-400",
+              active === tab.id ? "bg-blue-900/40 text-blue-300" : "bg-gray-800 text-text-muted",
             ].join(" ")}
           >
             {tab.label}
@@ -197,7 +197,7 @@ export function SystemTab() {
                 <button
                   type="button"
                   onClick={() => void executeFileActions(actions, true, setResult)}
-                  className="rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                  className="rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-sm text-text-secondary hover:bg-gray-800"
                 >
                   미리보기
                 </button>
@@ -225,7 +225,7 @@ export function SystemTab() {
                 onClick={() => setProcessFilter(item)}
                 className={[
                   "rounded-full px-3 py-2 text-xs transition",
-                  processFilter === item ? "bg-blue-900/40 text-blue-300" : "bg-gray-800 text-gray-400",
+                  processFilter === item ? "bg-blue-900/40 text-blue-300" : "bg-gray-800 text-text-muted",
                 ].join(" ")}
               >
                 {item}
@@ -297,7 +297,7 @@ async function launchApp(appPath: string) {
 
 function TabContentMessage({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5 text-sm text-gray-400">
+    <div className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5 text-sm text-text-muted">
       {message}
     </div>
   );

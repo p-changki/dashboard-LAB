@@ -23,7 +23,7 @@ export function ProjectStats({ data }: ProjectStatsProps) {
 
   return (
     <div className="panel flex flex-col gap-4 p-6 xl:flex-row xl:items-center xl:justify-between">
-      <div className="flex flex-wrap gap-3 text-sm text-[var(--color-text-soft)]">
+      <div className="flex flex-wrap gap-3 text-sm text-text-secondary">
         <span>총 {data.totalProjects}개 프로젝트</span>
         <span>디스크 사용 {data.totalDiskUsage}</span>
         <span>정리 가능 {data.cleanableSize}</span>

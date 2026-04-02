@@ -66,13 +66,13 @@ export const markdownComponents: Components = {
     return <h3 className="mt-6 text-base font-semibold text-white">{children}</h3>;
   },
   p({ children }) {
-    return <p className="my-3 leading-7 text-gray-200">{children}</p>;
+    return <p className="my-3 leading-7 text-text-secondary">{children}</p>;
   },
   ul({ children }) {
-    return <ul className="my-4 list-disc space-y-2 pl-6 text-gray-200 marker:text-gray-500">{children}</ul>;
+    return <ul className="my-4 list-disc space-y-2 pl-6 text-text-secondary marker:text-text-muted">{children}</ul>;
   },
   ol({ children }) {
-    return <ol className="my-4 list-decimal space-y-2 pl-6 text-gray-200 marker:text-gray-500">{children}</ol>;
+    return <ol className="my-4 list-decimal space-y-2 pl-6 text-text-secondary marker:text-text-muted">{children}</ol>;
   },
   li({ children }) {
     return <li className="leading-7">{children}</li>;
@@ -97,14 +97,14 @@ export const markdownComponents: Components = {
   },
   blockquote({ children }) {
     return (
-      <blockquote className="my-5 rounded-r-xl border-l-2 border-purple-400/60 bg-purple-500/[0.06] px-4 py-3 text-gray-200">
+      <blockquote className="my-5 rounded-r-xl border-l-2 border-purple-400/60 bg-purple-500/[0.06] px-4 py-3 text-text-secondary">
         {children}
       </blockquote>
     );
   },
   table({ children }) {
     return (
-      <div className="my-6 overflow-x-auto rounded-2xl border border-white/10 bg-[#151515]">
+      <div className="my-6 overflow-x-auto rounded-2xl border border-border-base bg-bg-surface">
         <table className="min-w-full border-collapse text-left text-sm">{children}</table>
       </div>
     );
@@ -120,16 +120,16 @@ export const markdownComponents: Components = {
   },
   th({ children }) {
     return (
-      <th className="border-b border-white/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">
+      <th className="border-b border-border-base px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
         {children}
       </th>
     );
   },
   td({ children }) {
-    return <td className="px-4 py-3 text-sm leading-6 text-gray-200">{children}</td>;
+    return <td className="px-4 py-3 text-sm leading-6 text-text-secondary">{children}</td>;
   },
   pre({ children }) {
-    return <div className="my-5 overflow-x-auto rounded-2xl border border-white/10 bg-[#151515] p-4">{children}</div>;
+    return <div className="my-5 overflow-x-auto rounded-2xl border border-border-base bg-bg-surface p-4">{children}</div>;
   },
   code(props) {
     const { children, className, ...rest } = props;
@@ -146,7 +146,7 @@ export const markdownComponents: Components = {
         {...rest}
         className={
           isBlock
-            ? `${className ?? ""} block whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-gray-100`
+            ? `${className ?? ""} block whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-text-primary`
             : `${className ?? ""} rounded-md bg-white/8 px-1.5 py-0.5 font-mono text-[0.95em] text-blue-100`
         }
       >
@@ -170,7 +170,7 @@ export function Step({ done, active, label }: { done: boolean; active?: boolean;
       ) : (
         <span className="h-5 w-5 rounded-full border border-white/20" />
       )}
-      <span className={`text-sm ${done ? "text-gray-300" : active ? "text-purple-300" : "text-gray-600"}`}>{label}</span>
+      <span className={`text-sm ${done ? "text-text-secondary" : active ? "text-purple-300" : "text-text-disabled"}`}>{label}</span>
     </div>
   );
 }
@@ -236,7 +236,7 @@ export function hydrateRecordFromSavedBundle(detail: SavedCallBundleDetail, file
     fileSize,
     duration: null,
     projectName: detail.projectName,
-    projectPath: null,
+    projectPath: detail.projectPath,
     customerName: detail.customerName,
     additionalContext: null,
     inputKind: detail.inputKind,
@@ -255,7 +255,9 @@ export function hydrateRecordFromSavedBundle(detail: SavedCallBundleDetail, file
     pdfFileName: null,
     pdfContent: null,
     pdfAnalysis: null,
-    projectContext: null,
+    projectContext: detail.projectContext,
+    projectContextSources: detail.projectContextSources,
+    projectContextError: detail.projectContextError,
     baselineEntryName: detail.baselineEntryName,
     baselineTitle: detail.baselineTitle,
     claudePrd: detail.claudePrd,

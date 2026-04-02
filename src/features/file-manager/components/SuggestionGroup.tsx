@@ -29,15 +29,15 @@ export function SuggestionGroup({ title, suggestions }: SuggestionGroupProps) {
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
       <div className="flex items-center justify-between">
-        <p className="text-lg font-semibold text-gray-100">{title}</p>
+        <p className="text-lg font-semibold text-text-primary">{title}</p>
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-gray-900 px-2.5 py-0.5 text-xs text-gray-400">
+          <span className="rounded-full bg-gray-900 px-2.5 py-0.5 text-xs text-text-muted">
             {suggestions.length}개
           </span>
           <select
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value as "latest" | "oldest" | "size")}
-            className="rounded-full border border-gray-700 bg-gray-950 px-3 py-1 text-xs text-gray-300"
+            className="rounded-full border border-gray-700 bg-gray-950 px-3 py-1 text-xs text-text-secondary"
           >
             <option value="latest">최신순</option>
             <option value="oldest">오래된순</option>

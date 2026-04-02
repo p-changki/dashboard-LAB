@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type {
+  DashboardLabDisconnectableCommand,
   DashboardLabRuntimeSettings,
   DashboardLabRuntimeSettingsPaths,
 } from "@/lib/types";
@@ -17,6 +18,7 @@ const DEFAULT_SETTINGS: DashboardLabRuntimeSettings = {
     csContextsDir: null,
     allowedRoots: [],
   },
+  disabledCommands: [],
 };
 
 export interface DashboardLabRuntimeSecrets {
@@ -129,6 +131,7 @@ function normalizeRuntimeSettings(
       csContextsDir: normalizePath(paths.csContextsDir),
       allowedRoots: normalizePaths(paths.allowedRoots),
     },
+    disabledCommands: normalizeDisabledCommands(value.disabledCommands),
   };
 }
 
@@ -155,6 +158,28 @@ function normalizePaths(value: unknown) {
   }
 
   return [...new Set(value.map(normalizePath).filter((item): item is string => Boolean(item)))];
+}
+
+function normalizeDisabledCommands(value: unknown): DashboardLabDisconnectableCommand[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const allowed = new Set<DashboardLabDisconnectableCommand>([
+    "claude",
+    "codex",
+    "gemini",
+    "gh",
+  ]);
+
+  return [...new Set(
+    value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim().toLowerCase())
+      .filter((item): item is DashboardLabDisconnectableCommand =>
+        allowed.has(item as DashboardLabDisconnectableCommand),
+      ),
+  )];
 }
 
 function normalizeSecret(value: unknown) {

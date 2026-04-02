@@ -6,6 +6,12 @@ import path from "node:path";
 import type { AppLocale } from "@/lib/locale";
 import { DEFAULT_LOCALE } from "@/lib/locale";
 import { getAiSkillApiError } from "@/lib/ai-skills/messages";
+import {
+  checkCommandAvailable,
+  getCommandEnvironment,
+  resolveCommandPath,
+  resolveCommandPathSync,
+} from "@/lib/command-availability";
 import { getRuntimeConfig } from "@/lib/runtime/config";
 import { getSkillTemplates } from "@/lib/ai-skills/templates";
 import { persistJson, readPersistentJson } from "@/lib/storage/persistent-json";
@@ -60,6 +66,9 @@ export async function queueSkillRun(
   locale: AppLocale = DEFAULT_LOCALE,
 ): Promise<SkillRunResponse> {
   const template = await getTemplateOrThrow(request.skillId, locale);
+  if (!(await checkCommandAvailable(template.runner))) {
+    throw new SkillRunnerInputError(`${formatRunnerLabel(template.runner)} is unavailable.`);
+  }
   validateInputs(template, request.inputs, locale);
   const runId = crypto.randomUUID();
   const prompt = buildPrompt(template.promptTemplate, request.inputs);
@@ -125,9 +134,20 @@ export async function runSpawnTask({
   timeoutMs = RUN_TIMEOUT_MS,
   maxOutputBytes = MAX_STDOUT_BYTES,
 }: SpawnTaskOptions): Promise<SpawnTaskResult> {
-  const child = spawn(command, args, {
+  const commandPath = await resolveCommandPath(command);
+
+  if (!commandPath) {
+    return {
+      output: null,
+      error: `${command} is unavailable.`,
+      pid: null,
+      exitCode: null,
+    };
+  }
+
+  const child = spawn(commandPath, args, {
     cwd,
-    env: { ...process.env, TERM: "dumb" },
+    env: getCommandEnvironment({ TERM: "dumb" }),
     stdio: [input ? "pipe" : "ignore", "pipe", "pipe"],
   });
   let stdout = "";
@@ -229,7 +249,18 @@ async function processQueue() {
 
 async function executeRun(run: SkillRun, template: SkillTemplate) {
   const outputPath = template.runner === "codex" ? path.join("/tmp", `dashboard-lab-${run.id}.txt`) : null;
-  const child = spawnRunner(template, run.prompt, run.cwd, outputPath);
+  let child: ChildProcess;
+  try {
+    child = spawnRunner(template, run.prompt, run.cwd, outputPath);
+  } catch (error) {
+    finalizeRun(run.id, {
+      status: "failed",
+      output: null,
+      error: error instanceof Error ? error.message : getAiSkillApiError(DEFAULT_LOCALE, "abnormalExit"),
+    });
+    void processQueue();
+    return;
+  }
   let stdout = "";
   let stderr = "";
   let stdoutBytes = 0;
@@ -238,7 +269,7 @@ async function executeRun(run: SkillRun, template: SkillTemplate) {
   updateRun(run.id, { status: "running", pid: child.pid ?? null });
   const timeout = setTimeout(() => child.kill("SIGTERM"), RUN_TIMEOUT_MS);
 
-  child.stdout.on("data", (chunk: Buffer) => {
+  child.stdout?.on("data", (chunk: Buffer) => {
     stdoutBytes += chunk.byteLength;
     stdout += chunk.toString("utf8");
     if (stdoutBytes > MAX_STDOUT_BYTES) {
@@ -247,7 +278,7 @@ async function executeRun(run: SkillRun, template: SkillTemplate) {
     }
   });
 
-  child.stderr.on("data", (chunk: Buffer) => {
+  child.stderr?.on("data", (chunk: Buffer) => {
     stderr += chunk.toString("utf8");
   });
 
@@ -268,18 +299,32 @@ async function executeRun(run: SkillRun, template: SkillTemplate) {
 
 function spawnRunner(template: SkillTemplate, prompt: string, cwd: string, outputPath: string | null) {
   if (template.runner === "codex" && outputPath) {
-    return spawn("codex", ["exec", "-o", outputPath, prompt], {
+    const commandPath = resolveCommandPathSync("codex");
+    if (!commandPath) {
+      throw new Error("Codex CLI is unavailable.");
+    }
+
+    return spawn(commandPath, ["exec", "--skip-git-repo-check", "-o", outputPath, prompt], {
       cwd,
-      env: { ...process.env, TERM: "dumb" },
+      env: getCommandEnvironment({ TERM: "dumb" }),
       stdio: ["ignore", "pipe", "pipe"],
     });
   }
 
-  return spawn("claude", ["-p", "--output-format", "json"], {
+  const commandPath = resolveCommandPathSync("claude");
+  if (!commandPath) {
+    throw new Error("Claude CLI is unavailable.");
+  }
+
+  return spawn(commandPath, ["-p", "--output-format", "json"], {
     cwd,
-    env: { ...process.env, TERM: "dumb" },
+    env: getCommandEnvironment({ TERM: "dumb" }),
     stdio: ["pipe", "pipe", "pipe"],
   });
+}
+
+function formatRunnerLabel(runner: SkillTemplate["runner"]) {
+  return runner === "codex" ? "Codex CLI" : "Claude CLI";
 }
 
 async function getTemplateOrThrow(skillId: string, locale: AppLocale) {

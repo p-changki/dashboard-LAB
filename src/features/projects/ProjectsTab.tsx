@@ -94,22 +94,22 @@ export function ProjectsTab({ initialData = null, mode = "advanced" }: ProjectsT
       <ProjectGrid data={data} />
       {mode === "advanced" ? (
         <section className="space-y-3">
-          <div className="rounded-2xl border border-dashed border-white/8 bg-[#151515] px-4 py-3 text-sm text-gray-500">
+          <div className="rounded-2xl border border-dashed border-border-base bg-bg-surface px-4 py-3 text-sm text-text-muted">
             추가 진단 섹션은 필요할 때만 열도록 바꿨습니다. 숨겨진 패널은 열기 전까지 API와 무거운 코드 로드를 시작하지 않습니다.
           </div>
           {SECTIONS.map((section) => (
-            <article key={section.id} className="rounded-2xl border border-white/8 bg-[#1e1e1e] transition-all duration-[150ms] hover:bg-[#242424]">
+            <article key={section.id} className="rounded-2xl border border-border-base bg-bg-card transition-all duration-[150ms] hover:bg-bg-card-hover">
               <button
                 type="button"
                 onClick={() => toggleSection(section.id, setOpenSections, setLoadedSections)}
                 className="flex w-full items-center justify-between px-5 py-4 text-left"
               >
                 <div>
-                  <span className="text-lg font-semibold text-gray-100">
+                  <span className="text-lg font-semibold text-text-primary">
                     {openSections.has(section.id) ? "▼" : "▶"} {section.label}
                   </span>
                   {"description" in section ? (
-                    <p className="mt-1 text-sm text-gray-500">{section.description}</p>
+                    <p className="mt-1 text-sm text-text-muted">{section.description}</p>
                   ) : null}
                 </div>
               </button>
@@ -176,15 +176,15 @@ function toggleSection(
 function TabPanelMessage({ title, message }: { title: string; message: string }) {
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-6">
-      <p className="text-sm uppercase tracking-[0.24em] text-gray-500">{title}</p>
-      <p className="mt-4 text-sm text-gray-300">{message}</p>
+      <p className="text-sm uppercase tracking-[0.24em] text-text-muted">{title}</p>
+      <p className="mt-4 text-sm text-text-secondary">{message}</p>
     </section>
   );
 }
 
 function SectionLoading({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5 text-sm text-gray-400">
+    <div className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5 text-sm text-text-muted">
       {message}
     </div>
   );

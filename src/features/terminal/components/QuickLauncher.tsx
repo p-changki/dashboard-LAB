@@ -20,7 +20,7 @@ export function QuickLauncher({ onLaunch }: QuickLauncherProps) {
 
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
-      <p className="text-lg font-semibold text-gray-100">Quick Launcher</p>
+      <p className="text-lg font-semibold text-text-primary">Quick Launcher</p>
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {(projects?.projects ?? []).slice(0, 12).map((project) => (
           <article key={project.path} className="rounded-xl border border-gray-800 bg-gray-900/70 p-4">

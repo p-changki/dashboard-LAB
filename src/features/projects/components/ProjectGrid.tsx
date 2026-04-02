@@ -54,7 +54,7 @@ export function ProjectGrid({ data }: ProjectGridProps) {
       />
       <div className="grid gap-4 xl:grid-cols-2">
         {filteredProjects.length === 0 ? (
-          <div className="panel p-6 text-sm text-[var(--color-text-soft)]">
+          <div className="panel p-6 text-sm text-text-secondary">
             설정 없음
           </div>
         ) : null}

@@ -14,18 +14,18 @@ export function PortUsage() {
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
       <div className="flex items-center justify-between">
-        <p className="text-lg font-semibold text-gray-100">Port Usage</p>
+        <p className="text-lg font-semibold text-text-primary">Port Usage</p>
         <button
           type="button"
           onClick={() => void loadPorts(setData)}
-          className="rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800"
+          className="rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-xs text-text-secondary hover:bg-gray-800"
         >
           새로고침
         </button>
       </div>
       <div className="mt-4 overflow-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="text-gray-500">
+          <thead className="text-text-muted">
             <tr>
               <th className="pb-2">포트</th>
               <th className="pb-2">PID</th>
@@ -35,7 +35,7 @@ export function PortUsage() {
           </thead>
           <tbody>
             {data.ports.map((entry) => (
-              <tr key={`${entry.port}-${entry.pid}`} className="border-t border-gray-800 text-gray-300">
+              <tr key={`${entry.port}-${entry.pid}`} className="border-t border-gray-800 text-text-secondary">
                 <td className="py-3">{entry.port}</td>
                 <td className="py-3">{entry.pid}</td>
                 <td className="py-3">{entry.processName}</td>

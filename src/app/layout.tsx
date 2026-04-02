@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { GlobalSearchModal } from "@/components/global-search/GlobalSearchModal";
 import { LocaleProvider } from "@/components/layout/LocaleProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 import { APP_META } from "@/lib/app-meta";
 import { getCanonicalUrl, getRepositoryUrl, getSiteUrl } from "@/lib/site-config";
 
@@ -118,8 +119,10 @@ export default function RootLayout({
           }}
         />
         <LocaleProvider>
-          {children}
-          <GlobalSearchModal />
+          <ToastProvider>
+            {children}
+            <GlobalSearchModal />
+          </ToastProvider>
         </LocaleProvider>
       </body>
     </html>

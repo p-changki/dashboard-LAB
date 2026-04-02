@@ -21,8 +21,8 @@ export function CsSettingsBar(props: CsSettingsBarProps) {
   const copy = getCsHelperCopy(locale);
 
   return (
-    <section className="panel p-5">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <section className="panel p-5 lg:p-6">
+      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         <SelectField
           label={copy.settings.project}
           value={props.projectId}
@@ -82,12 +82,12 @@ function SelectField({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <label className="block">
-      <p className="mb-2 text-sm text-[var(--color-muted)]">{label}</p>
+    <label className="grid gap-2">
+      <p className="text-xs uppercase tracking-[0.16em] text-text-muted">{label}</p>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
+        className="w-full rounded-2xl border border-border-base bg-black/15 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value} className="bg-gray-950 text-white">

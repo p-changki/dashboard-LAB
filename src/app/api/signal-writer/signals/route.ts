@@ -1,4 +1,6 @@
 import { getSignalWriterSignals } from "@/lib/signal-writer/ranker";
+import { refreshOnlyQuerySchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseSearchParams } from "@/lib/api/validation";
 import { readLocaleFromHeaders } from "@/lib/locale";
 
 export const runtime = "nodejs";
@@ -8,10 +10,21 @@ export async function GET(request: Request) {
   const locale = readLocaleFromHeaders(request.headers);
 
   try {
-    const { searchParams } = new URL(request.url);
-    const forceRefresh = searchParams.get("refresh") === "1";
-    return Response.json(await getSignalWriterSignals(locale, { forceRefresh }));
+    const { refresh } = parseSearchParams(request, refreshOnlyQuerySchema);
+    return Response.json(await getSignalWriterSignals(locale, { forceRefresh: refresh }));
   } catch (error) {
+    if (isZodError(error)) {
+      return Response.json(
+        {
+          error: getZodErrorMessage(
+            error,
+            locale === "en" ? "The signal query is not valid." : "시그널 조회 쿼리 형식이 올바르지 않습니다.",
+          ),
+        },
+        { status: 400 },
+      );
+    }
+
     return Response.json(
       {
         error:

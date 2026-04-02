@@ -18,7 +18,7 @@ export function SearchResultItem({ result, active, onSelect }: SearchResultItemP
         "flex w-full items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-[150ms]",
         active
           ? "border-purple-500/40 bg-purple-500/12 text-white"
-          : "border-white/8 bg-[#1e1e1e] text-white/80 hover:border-white/[.14] hover:bg-[#242424]",
+          : "border-border-base bg-bg-card text-white/80 hover:border-border-hover hover:bg-bg-card-hover",
       ].join(" ")}
     >
       <div className="flex items-center gap-3">

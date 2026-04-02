@@ -198,6 +198,13 @@ export interface BookmarkedItem {
   bookmarkedAt: string;     // ISO 8601
 }
 
+// Stored in localStorage key: "info-hub:signal-writer-picks"
+export interface SignalWriterPickItem {
+  feedItemId: string;
+  feedItem: FeedItem;       // Snapshot at time of selection
+  pickedAt: string;         // ISO 8601
+}
+
 // Stored in localStorage key: "info-hub:read"
 export interface ReadItem {
   feedItemId: string;
@@ -207,6 +214,7 @@ export interface ReadItem {
 // Aggregated localStorage state (in-memory shape)
 export interface InfoHubLocalState {
   bookmarks: Record<string, BookmarkedItem>;  // key: feedItemId
+  signalWriterPicks: Record<string, SignalWriterPickItem>; // key: feedItemId
   readItems: Record<string, ReadItem>;        // key: feedItemId
 }
 

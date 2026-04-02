@@ -1,6 +1,6 @@
 import { pickLocale, type AppLocale } from "@/lib/locale";
-import { getCsChannelLabel, getCsToneLabel } from "@/lib/cs-helper/messages";
-import type { CsChannel, CsTone } from "@/lib/types";
+import { getCsChannelLabel, getCsInputModeLabel, getCsToneLabel } from "@/lib/cs-helper/messages";
+import type { CsChannel, CsInputMode, CsTone } from "@/lib/types";
 
 export function getCsHelperCopy(locale: AppLocale) {
   const labels = pickLocale(locale, {
@@ -28,15 +28,24 @@ export function getCsHelperCopy(locale: AppLocale) {
       ],
       coreModeTitle: "간단 모드 안내",
       coreModeMessage:
-        "처음에는 프로젝트 하나를 고르고 고객 메시지만 입력한 뒤 고객 응답 초안을 먼저 확인하면 됩니다. 내부 분석은 필요할 때만 같이 생성하면 충분합니다.",
+        "처음에는 프로젝트 하나를 고르고 고객 원문이나 상황 요약 중 하나를 입력한 뒤 고객 응답 초안을 먼저 확인하면 됩니다. 내부 분석은 필요할 때만 같이 생성하면 충분합니다.",
       appliedTitle: "반영되었습니다",
       projectRequired: "프로젝트 선택 필요",
       contextReady: "컨텍스트 준비됨",
+      setupTitle: "현재 응답 기준선",
+      setupDescription:
+        "프로젝트, 채널, 톤, 러너 기준을 먼저 확인한 뒤 메시지를 입력하면 응답과 내부 분석 흐름이 덜 흔들립니다.",
       contextInfoTitle: "현재 프로젝트 기준 정보",
+      selectedContextEmpty:
+        "프로젝트를 고르면 이 자리에서 현재 문맥 요약과 경고 사항을 먼저 확인할 수 있습니다.",
       workspaceDescription:
-        "고객 메시지를 입력하면 응답을 생성하고, 내부 분석은 필요할 때만 함께 생성할 수 있습니다. 히스토리를 선택하면 당시 설정과 메시지가 같이 복원됩니다.",
+        "고객 원문이나 상황 요약을 입력하면 응답을 생성하고, 내부 분석은 필요할 때만 함께 생성할 수 있습니다. 히스토리를 선택하면 당시 설정과 입력 내용이 같이 복원됩니다.",
       quickPresetTitle: "빠른 응답 프리셋",
       quickPresetDescription: "자주 오는 문의는 프리셋으로 초안을 넣고 바로 수정할 수 있습니다.",
+      presetCount: (count: number) => `${count}개`,
+      resultWorkspaceTitle: "결과 확인",
+      resultWorkspaceDescription:
+        "응답이 생성되면 고객 응답과 내부 분석을 같은 작업 흐름에서 번갈아 확인할 수 있습니다.",
       replyReady: "고객 응답 준비됨",
       analysisReady: "내부 분석 준비됨",
       analysisLoading: "내부 분석 생성 중",
@@ -95,12 +104,26 @@ export function getCsHelperCopy(locale: AppLocale) {
         tone: "톤",
       },
       input: {
-        title: "고객 메시지",
+        title: "답변 입력",
+        modeLabel: "입력 방식",
+        modes: {
+          customer: {
+            label: "고객 원문",
+            description: "고객이 실제로 보낸 문장을 그대로 붙여 넣고 답변을 만듭니다.",
+          },
+          summary: {
+            label: "상황 요약",
+            description: "내가 정리한 상황 설명을 바탕으로 고객 발송용 답변을 만듭니다.",
+          },
+        },
         basedOn: "기준",
         projectUnselected: "프로젝트 미선택",
         summarySuffix: "설정으로 고객 응답을 생성합니다.",
         clear: "입력 초기화",
-        messagePlaceholder: "고객이 보낸 메시지를 여기에 붙여 넣으세요.",
+        customerPlaceholder: "고객이 보낸 메시지를 여기에 붙여 넣으세요.",
+        summaryPlaceholder: "내가 파악한 상황, 요청 사항, 확인된 사실을 요약해서 입력하세요.",
+        customerTitle: "고객 원문",
+        summaryTitle: "상황 요약",
         additionalPlaceholder: "추가 맥락이 있으면 입력하세요. 예: 결제 이력 확인 완료",
         includeAnalysisTitle: "내부 분석 함께 생성",
         includeAnalysisMessage:
@@ -113,7 +136,7 @@ export function getCsHelperCopy(locale: AppLocale) {
       response: {
         emptyTitle: "아직 생성된 CS 응답이 없습니다.",
         emptyMessage:
-          "프로젝트를 고른 뒤 고객 메시지를 입력하고 응답을 생성하면, 여기서 고객 응답과 내부 분석을 바로 확인할 수 있습니다.",
+          "프로젝트를 고른 뒤 고객 원문이나 상황 요약을 입력하고 응답을 생성하면, 여기서 고객 응답과 내부 분석을 바로 확인할 수 있습니다.",
         title: "AI 응답",
         copy: "응답 복사",
         loading: "응답을 생성하는 중입니다...",
@@ -127,6 +150,7 @@ export function getCsHelperCopy(locale: AppLocale) {
         oldest: "오래된순",
         runner: "AI순",
         empty: "아직 생성 기록이 없습니다.",
+        inputMode: "입력 방식",
         additionalContext: "추가 맥락",
         copy: "복사",
         restore: "다시 보기",
@@ -164,15 +188,24 @@ export function getCsHelperCopy(locale: AppLocale) {
       ],
       coreModeTitle: "Simple mode",
       coreModeMessage:
-        "Start by choosing one project and entering the customer message. Review the reply draft first, then generate the internal analysis only when you need it.",
+        "Start by choosing one project and entering either the original customer message or your own situation summary. Review the reply draft first, then generate the internal analysis only when you need it.",
       appliedTitle: "Applied",
       projectRequired: "Project required",
       contextReady: "Context ready",
+      setupTitle: "Current reply baseline",
+      setupDescription:
+        "Confirm the project, channel, tone, and runner before writing so the reply and analysis stay aligned.",
       contextInfoTitle: "Current project baseline",
+      selectedContextEmpty:
+        "Once you choose a project, its context summary and warnings will show up here first.",
       workspaceDescription:
-        "Enter the customer message to generate a reply. Internal analysis can be added only when needed. If you pick a history item, its original settings and message are restored.",
+        "Enter either the original customer message or your own situation summary to generate a reply. Internal analysis can be added only when needed. If you pick a history item, its original settings and input are restored.",
       quickPresetTitle: "Quick reply presets",
       quickPresetDescription: "Use preset scenarios to drop in a starting draft and adjust it immediately.",
+      presetCount: (count: number) => `${count}`,
+      resultWorkspaceTitle: "Review output",
+      resultWorkspaceDescription:
+        "Once a reply is generated, switch between the customer-facing response and the internal analysis in the same flow.",
       replyReady: "Reply ready",
       analysisReady: "Analysis ready",
       analysisLoading: "Generating analysis",
@@ -231,12 +264,26 @@ export function getCsHelperCopy(locale: AppLocale) {
         tone: "Tone",
       },
       input: {
-        title: "Customer message",
+        title: "Reply input",
+        modeLabel: "Input mode",
+        modes: {
+          customer: {
+            label: "Customer message",
+            description: "Paste the original customer message and draft the reply from it.",
+          },
+          summary: {
+            label: "Situation summary",
+            description: "Write your own summary of the situation and generate the outgoing reply from that summary.",
+          },
+        },
         basedOn: "based on",
         projectUnselected: "No project selected",
         summarySuffix: "settings are applied to the generated customer reply.",
         clear: "Clear input",
-        messagePlaceholder: "Paste the customer's message here.",
+        customerPlaceholder: "Paste the customer's original message here.",
+        summaryPlaceholder: "Write the confirmed situation, customer request, and known facts as a short summary.",
+        customerTitle: "Customer message",
+        summaryTitle: "Situation summary",
         additionalPlaceholder: "Add any extra context here. Example: Payment history already verified.",
         includeAnalysisTitle: "Generate internal analysis too",
         includeAnalysisMessage:
@@ -249,7 +296,7 @@ export function getCsHelperCopy(locale: AppLocale) {
       response: {
         emptyTitle: "No CS response has been generated yet.",
         emptyMessage:
-          "Choose a project, enter the customer message, and generate a reply. You will be able to review both the outgoing reply and the internal analysis here.",
+          "Choose a project, enter either the customer message or your situation summary, and generate a reply. You will be able to review both the outgoing reply and the internal analysis here.",
         title: "AI response",
         copy: "Copy reply",
         loading: "Generating the reply...",
@@ -263,6 +310,7 @@ export function getCsHelperCopy(locale: AppLocale) {
         oldest: "Oldest",
         runner: "By AI",
         empty: "No generated history yet.",
+        inputMode: "Input mode",
         additionalContext: "Additional context",
         copy: "Copy",
         restore: "Restore",
@@ -281,6 +329,7 @@ export function getCsHelperCopy(locale: AppLocale) {
   return {
     ...labels,
     getChannelLabel: (channel: CsChannel) => getCsChannelLabel(channel, locale),
+    getInputModeLabel: (inputMode: CsInputMode) => getCsInputModeLabel(inputMode, locale),
     getToneLabel: (tone: CsTone) => getCsToneLabel(tone, locale),
     formatDate: (value: string) => new Date(value).toLocaleString(locale === "en" ? "en-US" : "ko-KR"),
   };

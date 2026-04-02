@@ -6,6 +6,7 @@ import { useLocale } from "@/components/layout/LocaleProvider";
 import { readCallDocTemplateSets } from "@/lib/call-to-prd/template-sets";
 import type { ProjectSummary } from "@/lib/types";
 import type {
+  CallProjectContextResponse,
   CallRecord,
   CallStatus,
   CallDocTemplateSet,
@@ -17,6 +18,7 @@ import type { CallToPrdProjectsResponse } from "../state";
 import { SAVED_PAGE_SIZE } from "../state";
 
 type UseCallToPrdDataParams = {
+  projectPath: string;
   savedPage: number;
   deferredSavedQuery: string;
   setHistory: (records: CallRecord[]) => void;
@@ -26,11 +28,16 @@ type UseCallToPrdDataParams = {
   setSavedPage: (page: number) => void;
   setProjects: (projects: ProjectSummary[]) => void;
   setCurrentProjectPath: (path: string) => void;
+  setProjectContextStatus: (status: "idle" | "loading" | "ready" | "failed") => void;
+  setProjectContextSummary: (summary: string) => void;
+  setProjectContextSources: (sources: string[]) => void;
+  setProjectContextError: (error: string) => void;
   setTemplateSets: (sets: CallDocTemplateSet[]) => void;
   setCurrent: (record: CallRecord | null) => void;
 };
 
 export function useCallToPrdData({
+  projectPath,
   savedPage,
   deferredSavedQuery,
   setHistory,
@@ -40,6 +47,10 @@ export function useCallToPrdData({
   setSavedPage,
   setProjects,
   setCurrentProjectPath,
+  setProjectContextStatus,
+  setProjectContextSummary,
+  setProjectContextSources,
+  setProjectContextError,
   setTemplateSets,
   setCurrent,
 }: UseCallToPrdDataParams) {
@@ -162,6 +173,87 @@ export function useCallToPrdData({
     void fetchProjects();
     setTemplateSets(readCallDocTemplateSets());
   }, [fetchHistory, fetchProjects, fetchSaved, setTemplateSets]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchProjectContext() {
+      const normalizedPath = projectPath.trim();
+      if (!normalizedPath) {
+        if (!cancelled) {
+          setProjectContextStatus("idle");
+          setProjectContextSummary("");
+          setProjectContextSources([]);
+          setProjectContextError("");
+        }
+        return;
+      }
+
+      if (!cancelled) {
+        setProjectContextStatus("loading");
+        setProjectContextSummary("");
+        setProjectContextSources([]);
+        setProjectContextError("");
+      }
+
+      try {
+        const params = new URLSearchParams({ projectPath: normalizedPath });
+        const response = await fetch(`/api/call-to-prd/project-context?${params.toString()}`, {
+          cache: "no-store",
+          headers: { "x-dashboard-locale": locale },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          if (!cancelled) {
+            setProjectContextStatus("failed");
+            setProjectContextSummary("");
+            setProjectContextSources([]);
+            setProjectContextError(errorData?.error?.message ?? "");
+          }
+          return;
+        }
+
+        const payload: CallProjectContextResponse = await response.json();
+        if (cancelled) {
+          return;
+        }
+
+        if (payload.status === "ready" && payload.summary) {
+          setProjectContextStatus("ready");
+          setProjectContextSummary(payload.summary);
+          setProjectContextSources(payload.sources ?? []);
+          setProjectContextError("");
+          return;
+        }
+
+        setProjectContextStatus("failed");
+        setProjectContextSummary("");
+        setProjectContextSources(payload.sources ?? []);
+        setProjectContextError(payload.error ?? "");
+      } catch {
+        if (!cancelled) {
+          setProjectContextStatus("failed");
+          setProjectContextSummary("");
+          setProjectContextSources([]);
+          setProjectContextError("");
+        }
+      }
+    }
+
+    void fetchProjectContext();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    locale,
+    projectPath,
+    setProjectContextError,
+    setProjectContextSources,
+    setProjectContextStatus,
+    setProjectContextSummary,
+  ]);
 
   useEffect(() => {
     return () => {

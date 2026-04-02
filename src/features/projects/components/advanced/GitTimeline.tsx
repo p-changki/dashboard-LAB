@@ -24,10 +24,10 @@ export function GitTimeline() {
               <span className="rounded-full bg-blue-900/30 px-2.5 py-0.5 text-xs text-blue-300">
                 {commit.projectName}
               </span>
-              <span className="text-xs text-gray-500">{commit.shortHash}</span>
+              <span className="text-xs text-text-muted">{commit.shortHash}</span>
             </div>
             <p className="mt-3 text-sm text-white">{commit.message}</p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-text-muted">
               {commit.author} · {new Date(commit.authoredAt).toLocaleString("ko-KR")}
             </p>
           </article>
@@ -40,8 +40,8 @@ export function GitTimeline() {
 function SectionTitle({ title, meta }: { title: string; meta: string }) {
   return (
     <div className="flex items-center justify-between">
-      <p className="text-lg font-semibold text-gray-100">{title}</p>
-      <span className="rounded-full bg-gray-900 px-2.5 py-0.5 text-xs text-gray-400">
+      <p className="text-lg font-semibold text-text-primary">{title}</p>
+      <span className="rounded-full bg-gray-900 px-2.5 py-0.5 text-xs text-text-muted">
         {meta}
       </span>
     </div>

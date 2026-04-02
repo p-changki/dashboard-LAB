@@ -1,3 +1,9 @@
+import { signalWriterGenerateRequestSchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseJsonBody } from "@/lib/api/validation";
+import {
+  buildSignalWriterTimingRecommendation,
+  loadSignalWriterPerformanceInsights,
+} from "@/lib/signal-writer/analytics";
 import { generateSignalWriterDraft } from "@/lib/signal-writer/generator";
 import { readLocaleFromHeaders } from "@/lib/locale";
 import { persistSignalWriterDraft } from "@/lib/signal-writer/storage";
@@ -10,10 +16,14 @@ export async function POST(request: Request) {
   const locale = readLocaleFromHeaders(request.headers);
 
   try {
-    const payload = (await request.json()) as Partial<SignalWriterGenerateRequest>;
+    const payload = await parseJsonBody(request, signalWriterGenerateRequestSchema);
     const signal = payload.signal;
+    const channel = normalizeChannel(payload.channel);
     const mode = normalizeMode(payload.mode);
     const runner = normalizeRunner(payload.runner);
+    const preferredHook = payload.preferredHook?.trim() || undefined;
+    const researchContext = payload.researchContext;
+    const factCheckContext = payload.factCheckContext;
 
     if (
       !signal ||
@@ -34,7 +44,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const draft = await generateSignalWriterDraft(signal, locale, mode, runner);
+    const performanceInsights = loadSignalWriterPerformanceInsights();
+    const timingRecommendation = buildSignalWriterTimingRecommendation(
+      signal,
+      channel,
+      locale,
+      performanceInsights,
+    );
+
+    const draft = await generateSignalWriterDraft(
+      signal,
+      locale,
+      mode,
+      runner,
+      channel,
+      preferredHook,
+      timingRecommendation,
+      researchContext,
+      factCheckContext,
+    );
     const artifacts = persistSignalWriterDraft(signal, draft);
 
     const response: SignalWriterGenerateResponse = {
@@ -47,6 +75,18 @@ export async function POST(request: Request) {
 
     return Response.json(response);
   } catch (error) {
+    if (isZodError(error)) {
+      return Response.json(
+        {
+          error: getZodErrorMessage(
+            error,
+            locale === "en" ? "A valid signal is required." : "유효한 시그널 정보가 필요합니다.",
+          ),
+        },
+        { status: 400 },
+      );
+    }
+
     return Response.json(
       {
         error:
@@ -69,6 +109,16 @@ function normalizeMode(value: SignalWriterGenerateRequest["mode"]) {
       return value;
     default:
       return "viral";
+  }
+}
+
+function normalizeChannel(value: SignalWriterGenerateRequest["channel"]) {
+  switch (value) {
+    case "x":
+    case "linkedin":
+      return value;
+    default:
+      return "threads";
   }
 }
 

@@ -3,6 +3,8 @@ import {
   isJsonParseError,
   jsonError,
 } from "@/lib/api/error-response";
+import { runtimeInstallRequestSchema } from "@/lib/api/schemas";
+import { getZodErrorMessage, isZodError, parseJsonBody } from "@/lib/api/validation";
 import { readLocaleFromHeaders } from "@/lib/locale";
 import { executeRuntimeInstallTasks } from "@/lib/runtime/installer";
 import { getRuntimeSummary } from "@/lib/runtime/summary";
@@ -15,17 +17,7 @@ export async function POST(request: Request) {
   const locale = readLocaleFromHeaders(request.headers);
 
   try {
-    const payload = (await request.json()) as {
-      taskIds?: string[];
-    };
-
-    if (!Array.isArray(payload?.taskIds) || payload.taskIds.length === 0) {
-      return jsonError(
-        "INVALID_PAYLOAD",
-        "실행할 설치 작업이 비어 있습니다.",
-        400,
-      );
-    }
+    const payload = await parseJsonBody(request, runtimeInstallRequestSchema);
 
     const results = await executeRuntimeInstallTasks(payload.taskIds, locale);
     const response: DashboardLabRuntimeInstallResponse = {
@@ -37,6 +29,14 @@ export async function POST(request: Request) {
   } catch (error) {
     if (isJsonParseError(error)) {
       return jsonError("INVALID_JSON", "JSON 형식이 올바르지 않습니다.", 400);
+    }
+
+    if (isZodError(error)) {
+      return jsonError(
+        "INVALID_INPUT",
+        getZodErrorMessage(error, "런타임 설치 요청 형식이 올바르지 않습니다."),
+        400,
+      );
     }
 
     return jsonError(

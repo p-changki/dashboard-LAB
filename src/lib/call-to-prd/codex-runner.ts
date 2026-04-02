@@ -1,7 +1,10 @@
 import { spawn } from "node:child_process";
 import { readFile, unlink } from "node:fs/promises";
 
-import { checkCommandAvailable } from "@/lib/command-availability";
+import {
+  checkCommandAvailable,
+  getCommandEnvironment,
+} from "@/lib/command-availability";
 
 const TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_LOG_OUTPUT = 16 * 1024;
@@ -18,7 +21,7 @@ export async function runCodexPrd(prompt: string, options?: { cwd?: string }): P
       ["exec", "--skip-git-repo-check", "-c", 'model_reasoning_effort="low"', "-o", outputPath, "--ephemeral", prompt],
       {
       cwd: options?.cwd,
-      env: { ...process.env, TERM: "dumb" },
+      env: getCommandEnvironment({ TERM: "dumb" }),
       },
     );
 

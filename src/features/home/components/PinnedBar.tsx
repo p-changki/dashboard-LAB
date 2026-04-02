@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { Button } from "@/components/ui/Button";
 import { usePinned } from "@/hooks/usePinned";
 import { getHomeCopy } from "@/features/home/copy";
 import { navigateDashboard } from "@/lib/navigation";
@@ -16,13 +17,13 @@ export function PinnedBar() {
   }
 
   return (
-    <section className="rounded-2xl border border-white/8 bg-[#1e1e1e] p-5 transition-all duration-[150ms] hover:bg-[#242424]">
+    <section className="rounded-2xl border border-border-base bg-bg-card p-5 transition-all duration-[150ms] hover:bg-bg-card-hover">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-[var(--color-muted)]">
+          <p className="text-sm uppercase tracking-[0.24em] text-text-muted">
             {copy.pinnedTitle}
           </p>
-          <p className="mt-2 text-sm text-[var(--color-text-soft)]">
+          <p className="mt-2 text-sm text-text-secondary">
             {copy.pinnedDescription}
           </p>
         </div>
@@ -45,21 +46,23 @@ function PinnedChip({ item, onRemove }: { item: PinnedItem; onRemove: () => void
 
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-3 py-2 text-sm">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => handlePinnedClick(item)}
-        className="text-white/85 transition hover:text-white"
+        className="text-white/85 hover:text-white h-auto p-0 rounded-none text-sm font-normal"
       >
         {item.name}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="ghost"
         onClick={onRemove}
-        className="text-xs text-white/45 transition hover:text-white"
         title={copy.removePinned}
+        className="text-white/45 hover:text-white h-auto p-0 rounded-none text-xs font-normal"
       >
         ✕
-      </button>
+      </Button>
     </div>
   );
 }
