@@ -3,6 +3,11 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 
+import {
+  containsCliTranscriptLeakInStrings,
+  isRecord,
+  parseLastJsonObject,
+} from "@/lib/ai/structured-output";
 import { generateOpenAiText, hasOpenAiApiFallback } from "@/lib/ai/openai-responses";
 import { runSpawnTask } from "@/lib/ai-skills/runner";
 import {
@@ -10,6 +15,13 @@ import {
   getCommandEnvironment,
 } from "@/lib/command-availability";
 import type { AppLocale } from "@/lib/locale";
+import {
+  buildSignalWriterCodexArgs,
+  createSignalWriterCodexInvalidOutputError,
+  isSignalWriterCodexOutputError,
+  throwIfSignalWriterCodexOutputCorrupted,
+  unwrapSignalWriterCodexResult,
+} from "@/lib/signal-writer/codex";
 import { loadSignalWriterSourceContext } from "@/lib/signal-writer/source-context";
 import { buildSignalCoverImageUrl, buildSignalVisualStrategy } from "@/lib/signal-writer/visuals";
 import type {
@@ -74,7 +86,10 @@ export async function generateSignalWriterDraft(
 
   if (resolvedRunner !== "template") {
     try {
-      const raw = await runSignalWriterModel(resolvedRunner, prompt);
+      const raw = await runSignalWriterModel(resolvedRunner, prompt, locale);
+      if (resolvedRunner === "codex") {
+        throwIfSignalWriterCodexOutputCorrupted(raw, locale, "draft");
+      }
       const parsed = parseDraftPayload(raw);
       if (parsed) {
         return normalizeDraft(
@@ -90,7 +105,15 @@ export async function generateSignalWriterDraft(
           researchContext,
         );
       }
+
+      if (resolvedRunner === "codex") {
+        throw createSignalWriterCodexInvalidOutputError(locale, "draft");
+      }
     } catch (error) {
+      if (isSignalWriterCodexOutputError(error)) {
+        throw error;
+      }
+
       if (requestedRunner !== "auto") {
         throw error;
       }
@@ -168,6 +191,7 @@ async function resolveSignalWriterRunner(
 async function runSignalWriterModel(
   runner: Exclude<SignalWriterAiRunner, "auto" | "template">,
   prompt: string,
+  locale: AppLocale,
 ) {
   if (runner === "openai") {
     return generateOpenAiText(prompt, { model: "gpt-5-mini", reasoningEffort: "low" });
@@ -181,12 +205,12 @@ async function runSignalWriterModel(
     const outputPath = `/tmp/dashboard-lab-signal-writer-${randomUUID()}.txt`;
     const result = await runSpawnTask({
       command: "codex",
-      args: ["exec", "--skip-git-repo-check", "-o", outputPath, prompt],
+      args: buildSignalWriterCodexArgs(prompt, outputPath, "draft"),
       cwd: process.env.HOME || "/",
       outputPath,
       timeoutMs: SIGNAL_WRITER_TIMEOUT_MS,
     });
-    return unwrapOutput(result.output, result.error);
+    return unwrapSignalWriterCodexResult(result, locale, "draft", "Signal Writer AI response is empty.");
   }
 
   const result = await runSpawnTask({
@@ -505,14 +529,7 @@ function getHashtagGuideKo(channel: SignalWriterTargetChannel) {
 }
 
 function parseDraftPayload(raw: string): DraftPayload | null {
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as Partial<{
+  const parsed = parseLastJsonObject(raw, (value): value is Partial<{
       hook: string;
       hookVariants: Array<{ text?: string; intent?: string }>;
       angle: Partial<SignalWriterAngle>;
@@ -523,48 +540,83 @@ function parseDraftPayload(raw: string): DraftPayload | null {
       hashtags: string[];
       whyNow: string;
       postingTips: string[];
-    }>;
+    }> => {
+      if (!isRecord(value)) {
+        return false;
+      }
 
-    if (
-      typeof parsed.hook !== "string" ||
-      typeof parsed.shortPost !== "string" ||
-      !Array.isArray(parsed.threadPosts)
-    ) {
-      return null;
-    }
+      return (
+        typeof value.hook === "string"
+        && typeof value.shortPost === "string"
+        && Array.isArray(value.threadPosts)
+      );
+    });
 
-    return {
-      hook: parsed.hook,
-      hookVariants: Array.isArray(parsed.hookVariants)
-        ? parsed.hookVariants
-            .map((item) => ({
-              text: typeof item?.text === "string" ? item.text : "",
-              intent: typeof item?.intent === "string" ? item.intent : "",
-            }))
-            .filter((item) => item.text)
-        : [],
-      angle: {
-        label: typeof parsed.angle?.label === "string" ? parsed.angle.label : "",
-        summary: typeof parsed.angle?.summary === "string" ? parsed.angle.summary : "",
-        audience: typeof parsed.angle?.audience === "string" ? parsed.angle.audience : "",
-      },
-      shortPost: parsed.shortPost,
-      threadPosts: parsed.threadPosts.filter((item): item is string => typeof item === "string"),
-      firstComment: typeof parsed.firstComment === "string" ? parsed.firstComment : "",
-      followUpReplies: Array.isArray(parsed.followUpReplies)
-        ? parsed.followUpReplies.filter((item): item is string => typeof item === "string")
-        : [],
-      hashtags: Array.isArray(parsed.hashtags)
-        ? parsed.hashtags.filter((item): item is string => typeof item === "string")
-        : [],
-      whyNow: typeof parsed.whyNow === "string" ? parsed.whyNow : "",
-      postingTips: Array.isArray(parsed.postingTips)
-        ? parsed.postingTips.filter((item): item is string => typeof item === "string")
-        : [],
-    };
-  } catch {
+  if (!parsed) {
     return null;
   }
+
+  const hook = typeof parsed.hook === "string" ? parsed.hook : "";
+  const shortPost = typeof parsed.shortPost === "string" ? parsed.shortPost : "";
+  const hookVariants = Array.isArray(parsed.hookVariants)
+    ? parsed.hookVariants
+        .map((item) => ({
+          text: typeof item?.text === "string" ? item.text : "",
+          intent: typeof item?.intent === "string" ? item.intent : "",
+        }))
+        .filter((item) => item.text)
+    : [];
+  const angle = {
+    label: typeof parsed.angle?.label === "string" ? parsed.angle.label : "",
+    summary: typeof parsed.angle?.summary === "string" ? parsed.angle.summary : "",
+    audience: typeof parsed.angle?.audience === "string" ? parsed.angle.audience : "",
+  };
+  const threadPosts = Array.isArray(parsed.threadPosts)
+    ? parsed.threadPosts.filter((item): item is string => typeof item === "string")
+    : [];
+  const firstComment = typeof parsed.firstComment === "string" ? parsed.firstComment : "";
+  const followUpReplies = Array.isArray(parsed.followUpReplies)
+    ? parsed.followUpReplies.filter((item): item is string => typeof item === "string")
+    : [];
+  const hashtags = Array.isArray(parsed.hashtags)
+    ? parsed.hashtags.filter((item): item is string => typeof item === "string")
+    : [];
+  const whyNow = typeof parsed.whyNow === "string" ? parsed.whyNow : "";
+  const postingTips = Array.isArray(parsed.postingTips)
+    ? parsed.postingTips.filter((item): item is string => typeof item === "string")
+    : [];
+
+  if (
+    containsCliTranscriptLeakInStrings([
+      hook,
+      shortPost,
+      angle.label,
+      angle.summary,
+      angle.audience,
+      firstComment,
+      whyNow,
+      ...threadPosts,
+      ...followUpReplies,
+      ...hashtags,
+      ...postingTips,
+      ...hookVariants.flatMap((item) => [item.text, item.intent || ""]),
+    ])
+  ) {
+    return null;
+  }
+
+  return {
+    hook,
+    hookVariants,
+    angle,
+    shortPost,
+    threadPosts,
+    firstComment,
+    followUpReplies,
+    hashtags,
+    whyNow,
+    postingTips,
+  };
 }
 
 function buildTemplateDraft(

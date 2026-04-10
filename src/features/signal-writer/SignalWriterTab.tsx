@@ -42,8 +42,11 @@ import {
   subscribeSignalWriterPicks,
 } from "@/lib/info-hub/local-state";
 import type {
+  DashboardLabRuntimeRunnerHealthEntry,
   DashboardLabRuntimeSummaryResponse,
   SignalWriterAiRunner,
+  SignalWriterActionErrorCode,
+  SignalWriterApiErrorResponse,
   SignalWriterDraft,
   SignalWriterDraftMode,
   SignalWriterFactCheckContext,
@@ -88,6 +91,11 @@ type TrendBoardReviewState = {
   reviewed: boolean;
   note: string;
 };
+type SignalWriterActionError = {
+  code: SignalWriterActionErrorCode;
+  message: string;
+};
+type SignalWriterRunnerHealthMap = Partial<Record<"claude" | "codex" | "gemini", DashboardLabRuntimeRunnerHealthEntry>>;
 
 const MIN_GENERATE_DELAY_MS = 2200;
 const AUTO_SIGNAL_APPEND_LIMIT = 5;
@@ -108,12 +116,14 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
   const [runnerAvailability, setRunnerAvailability] = useState<SignalWriterRunnerAvailability>(
     getDefaultSignalWriterRunnerAvailability(),
   );
+  const [runnerHealth, setRunnerHealth] = useState<SignalWriterRunnerHealthMap>({});
   const [draft, setDraft] = useState<SignalWriterDraft | null>(null);
   const [step, setStep] = useState<SignalWriterStep>("select");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState<SignalWriterActionError | null>(null);
   const [stageIndex, setStageIndex] = useState(0);
   const [performanceForm, setPerformanceForm] = useState<SignalWriterPerformanceForm>(
     createDefaultPerformanceForm(),
@@ -292,7 +302,7 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
   }, [autoRefreshIntervalMs, autoRefreshMode, entryMode, locale, selectedBoardId]);
 
   useEffect(() => {
-    void loadRunnerAvailability(locale, setRunnerAvailability);
+    void loadRunnerAvailability(locale, setRunnerAvailability, setRunnerHealth);
   }, [locale]);
 
   useEffect(() => {
@@ -324,6 +334,7 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
 
   async function handleRefresh() {
     setRefreshing(true);
+    setActionError(null);
     try {
       if (entryMode === "board") {
         await loadTrendBoard(
@@ -353,12 +364,18 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
   async function handleGenerate(
     preferredHook?: string,
     factCheckContext?: SignalWriterFactCheckContext,
+    overrideRunner?: SignalWriterAiRunner,
   ) {
     if (!selectedSignal) {
       return;
     }
 
+    const effectiveRunner = overrideRunner ?? selectedRunner;
+    if (overrideRunner) {
+      setSelectedRunner(overrideRunner);
+    }
     setError("");
+    setActionError(null);
     setFactCheckError("");
     setStep("generate");
     setGenerating(true);
@@ -377,7 +394,7 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
           signal: selectedSignal,
           channel: selectedChannel,
           mode: selectedMode,
-          runner: selectedRunner,
+          runner: effectiveRunner,
           preferredHook,
           researchContext: selectedResearch
             ? {
@@ -394,12 +411,20 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
         }),
       });
 
-      const payload = (await response.json()) as Partial<SignalWriterGenerateResponse> & {
-        error?: string;
-      };
+      const payload = (await response.json()) as Partial<SignalWriterGenerateResponse> & SignalWriterApiErrorResponse;
 
       if (!response.ok || !payload.draft) {
-        throw new Error(payload.error || copy.loadError);
+        const message = payload.error || copy.loadError;
+        if (payload.errorCode) {
+          setActionError({
+            code: payload.errorCode,
+            message,
+          });
+          setStep("select");
+          return;
+        }
+
+        throw new Error(message);
       }
 
       const remaining = MIN_GENERATE_DELAY_MS - (Date.now() - startedAt);
@@ -412,6 +437,7 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
       setPerformanceEntry(null);
       setPerformanceCount(0);
       setPerformanceError("");
+      setActionError(null);
       setDraft(payload.draft);
       setStep("result");
     } catch (nextError) {
@@ -422,12 +448,17 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
     }
   }
 
-  async function handleGenerateBoard() {
+  async function handleGenerateBoard(overrideRunner?: SignalWriterAiRunner) {
     if (!preparedBoard || preparedBoard.items.length === 0 || !boardReadyToGenerate) {
       return;
     }
 
+    const effectiveRunner = overrideRunner ?? selectedRunner;
+    if (overrideRunner) {
+      setSelectedRunner(overrideRunner);
+    }
     setError("");
+    setActionError(null);
     setBoardError("");
     setStep("generate");
     setGenerating(true);
@@ -445,16 +476,24 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
         body: JSON.stringify({
           board: preparedBoard,
           channel: selectedChannel,
-          runner: selectedRunner,
+          runner: effectiveRunner,
         }),
       });
 
-      const payload = (await response.json()) as Partial<SignalWriterTrendBoardGenerateResponse> & {
-        error?: string;
-      };
+      const payload = (await response.json()) as Partial<SignalWriterTrendBoardGenerateResponse> & SignalWriterApiErrorResponse;
 
       if (!response.ok || !payload.draft) {
-        throw new Error(payload.error || copy.boards.loadError);
+        const message = payload.error || copy.boards.loadError;
+        if (payload.errorCode) {
+          setActionError({
+            code: payload.errorCode,
+            message,
+          });
+          setStep("select");
+          return;
+        }
+
+        throw new Error(message);
       }
 
       const remaining = MIN_GENERATE_DELAY_MS - (Date.now() - startedAt);
@@ -464,6 +503,7 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
 
       setStageIndex(copy.generate.stages.length - 1);
       setGeneratedBoard(preparedBoard);
+      setActionError(null);
       setBoardDraft(payload.draft);
       setStep("result");
     } catch (nextError) {
@@ -472,6 +512,15 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
     } finally {
       setGenerating(false);
     }
+  }
+
+  function handleRetryCurrentAction(overrideRunner?: SignalWriterAiRunner) {
+    if (entryMode === "board") {
+      void handleGenerateBoard(overrideRunner);
+      return;
+    }
+
+    void handleGenerate(undefined, undefined, overrideRunner);
   }
 
   async function handleSavePerformance() {
@@ -721,7 +770,16 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
         })}
       </div>
 
-      {error ? (
+      {actionError ? (
+        <SignalWriterActionErrorBanner
+          error={actionError}
+          copy={copy.actionError}
+          canUseClaude={runnerAvailability.claude}
+          onRetry={() => handleRetryCurrentAction()}
+          onSwitchToClaude={() => handleRetryCurrentAction("claude")}
+          onSwitchToTemplate={() => handleRetryCurrentAction("template")}
+        />
+      ) : error ? (
         <ErrorCard
           title="Signal Writer"
           message={error}
@@ -758,6 +816,7 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
                       variant="ghost"
                       onClick={() => {
                         setEntryMode(modeKey);
+                        setActionError(null);
                         setError("");
                         setStep("select");
                       }}
@@ -1243,6 +1302,7 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
                       const active = selectedRunner === runnerKey;
                       const runnerCopy = copy.runners[runnerKey];
                       const available = runnerAvailability[runnerKey];
+                      const health = runnerKey === "codex" ? runnerHealth.codex ?? null : null;
 
                       return (
                         <Button
@@ -1264,6 +1324,12 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
                             {recommendation?.runner === runnerKey ? (
                               <Badge variant="warning" size="sm">{copy.runners.recommended}</Badge>
                             ) : null}
+                            {health?.status === "warn" ? (
+                              <Badge variant="warning" size="sm">{copy.runners.healthWarn}</Badge>
+                            ) : null}
+                            {health?.status === "fail" ? (
+                              <Badge variant="error" size="sm">{copy.runners.healthFail}</Badge>
+                            ) : null}
                             {active ? (
                               <Badge variant="neutral" size="sm">{copy.runners.selected}</Badge>
                             ) : null}
@@ -1276,6 +1342,37 @@ export function SignalWriterTab({ mode = "core" }: { mode?: DashboardNavigationM
                       );
                     })}
                   </div>
+                  {selectedRunner === "codex" && runnerHealth.codex && runnerHealth.codex.status !== "pass" ? (
+                    <div
+                      className={[
+                        "mt-4 rounded-2xl border px-4 py-4",
+                        runnerHealth.codex.status === "fail"
+                          ? "border-rose-500/30 bg-rose-950/30"
+                          : "border-amber-400/20 bg-amber-400/10",
+                      ].join(" ")}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-white">{copy.runners.healthTitle}</p>
+                        <Badge
+                          variant={runnerHealth.codex.status === "fail" ? "error" : "warning"}
+                          size="sm"
+                        >
+                          {runnerHealth.codex.status === "fail"
+                            ? copy.runners.healthFail
+                            : copy.runners.healthWarn}
+                        </Badge>
+                      </div>
+                      <p className="mt-3 text-sm leading-6 text-text-secondary">{runnerHealth.codex.detail}</p>
+                      <div className="mt-3 flex flex-wrap gap-4 text-xs text-text-muted">
+                        <span>{copy.runners.healthRecentIssues}: {runnerHealth.codex.recentIssueCount}</span>
+                        {runnerHealth.codex.lastIssueAt ? (
+                          <span>
+                            {copy.runners.healthLastIssue}: {formatTimestamp(runnerHealth.codex.lastIssueAt, locale)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                 </section>
 	              </div>
 	            </>
@@ -2676,6 +2773,7 @@ function TrendBoardResultView({
 async function loadRunnerAvailability(
   locale: "ko" | "en",
   setRunnerAvailability: (value: SignalWriterRunnerAvailability) => void,
+  setRunnerHealth: (value: SignalWriterRunnerHealthMap) => void,
 ) {
   try {
     const response = await fetch("/api/system/runtime", {
@@ -2691,6 +2789,7 @@ async function loadRunnerAvailability(
 
     const payload = (await response.json()) as Partial<DashboardLabRuntimeSummaryResponse>;
     const checks = new Map((payload.checks ?? []).map((item) => [item.id, item.status]));
+    const codexHealth = payload.runnerHealth?.codex;
 
     setRunnerAvailability({
       auto: true,
@@ -2700,6 +2799,7 @@ async function loadRunnerAvailability(
       openai: Boolean(payload.integrations?.openaiConfigured),
       template: true,
     });
+    setRunnerHealth(codexHealth ? { codex: codexHealth } : {});
   } catch {
     // Keep default availability when runtime diagnostics are unavailable.
   }
@@ -2722,6 +2822,71 @@ function ResultBlock({
       </div>
       <div className="mt-4">{children}</div>
     </article>
+  );
+}
+
+function SignalWriterActionErrorBanner({
+  error,
+  copy,
+  canUseClaude,
+  onRetry,
+  onSwitchToClaude,
+  onSwitchToTemplate,
+}: {
+  error: SignalWriterActionError;
+  copy: {
+    title: string;
+    description: string;
+    retry: string;
+    switchClaude: string;
+    switchTemplate: string;
+  };
+  canUseClaude: boolean;
+  onRetry: () => void;
+  onSwitchToClaude: () => void;
+  onSwitchToTemplate: () => void;
+}) {
+  return (
+    <section className="rounded-3xl border border-amber-400/30 bg-amber-500/[0.08] p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="warning" size="sm">Codex</Badge>
+            <p className="text-sm font-medium text-amber-100">{copy.title}</p>
+          </div>
+          <p className="text-sm leading-6 text-white/90">{error.message}</p>
+          <p className="text-sm leading-6 text-text-secondary">{copy.description}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onRetry}
+            className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 text-amber-100 hover:bg-amber-400/15"
+          >
+            {copy.retry}
+          </Button>
+          {canUseClaude ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onSwitchToClaude}
+              className="rounded-2xl border border-border-base bg-white/5 px-4 text-white/90 hover:bg-white/10"
+            >
+              {copy.switchClaude}
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onSwitchToTemplate}
+            className="rounded-2xl border border-border-base bg-white/5 px-4 text-white/90 hover:bg-white/10"
+          >
+            {copy.switchTemplate}
+          </Button>
+        </div>
+      </div>
+    </section>
   );
 }
 

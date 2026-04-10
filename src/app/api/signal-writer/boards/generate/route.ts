@@ -1,8 +1,13 @@
 import { signalWriterTrendBoardGenerateRequestSchema } from "@/lib/api/schemas";
 import { getZodErrorMessage, isZodError, parseJsonBody } from "@/lib/api/validation";
 import { readLocaleFromHeaders } from "@/lib/locale";
+import {
+  getSignalWriterCodexOutputErrorFromMessage,
+  isSignalWriterCodexOutputError,
+} from "@/lib/signal-writer/codex";
 import { generateSignalWriterTrendBoardDraft } from "@/lib/signal-writer/trend-board-generator";
 import type {
+  SignalWriterApiErrorResponse,
   SignalWriterTrendBoardGenerateRequest,
   SignalWriterTrendBoardGenerateResponse,
 } from "@/lib/types";
@@ -34,6 +39,32 @@ export async function POST(request: Request) {
         },
         { status: 400 },
       );
+    }
+
+    if (isSignalWriterCodexOutputError(error)) {
+      const response: SignalWriterApiErrorResponse = {
+        error: error.message,
+        errorCode: error.code,
+      };
+
+      return Response.json(response, { status: 502 });
+    }
+
+    if (error instanceof Error) {
+      const transcriptError = getSignalWriterCodexOutputErrorFromMessage(
+        error.message,
+        locale,
+        "trend-board",
+      );
+
+      if (transcriptError) {
+        const response: SignalWriterApiErrorResponse = {
+          error: transcriptError.message,
+          errorCode: transcriptError.code,
+        };
+
+        return Response.json(response, { status: 502 });
+      }
     }
 
     return Response.json(

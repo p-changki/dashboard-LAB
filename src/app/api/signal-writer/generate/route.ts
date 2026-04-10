@@ -4,10 +4,18 @@ import {
   buildSignalWriterTimingRecommendation,
   loadSignalWriterPerformanceInsights,
 } from "@/lib/signal-writer/analytics";
+import {
+  getSignalWriterCodexOutputErrorFromMessage,
+  isSignalWriterCodexOutputError,
+} from "@/lib/signal-writer/codex";
 import { generateSignalWriterDraft } from "@/lib/signal-writer/generator";
 import { readLocaleFromHeaders } from "@/lib/locale";
 import { persistSignalWriterDraft } from "@/lib/signal-writer/storage";
-import type { SignalWriterGenerateRequest, SignalWriterGenerateResponse } from "@/lib/types";
+import type {
+  SignalWriterApiErrorResponse,
+  SignalWriterGenerateRequest,
+  SignalWriterGenerateResponse,
+} from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,6 +93,28 @@ export async function POST(request: Request) {
         },
         { status: 400 },
       );
+    }
+
+    if (isSignalWriterCodexOutputError(error)) {
+      const response: SignalWriterApiErrorResponse = {
+        error: error.message,
+        errorCode: error.code,
+      };
+
+      return Response.json(response, { status: 502 });
+    }
+
+    if (error instanceof Error) {
+      const transcriptError = getSignalWriterCodexOutputErrorFromMessage(error.message, locale, "draft");
+
+      if (transcriptError) {
+        const response: SignalWriterApiErrorResponse = {
+          error: transcriptError.message,
+          errorCode: transcriptError.code,
+        };
+
+        return Response.json(response, { status: 502 });
+      }
     }
 
     return Response.json(

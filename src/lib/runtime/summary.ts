@@ -21,6 +21,7 @@ import {
   getRuntimeCheckRemedy,
   isDesktopRuntime,
 } from "@/lib/runtime/installer";
+import { getSignalWriterCodexRunnerHealth } from "@/lib/signal-writer/runner-health";
 import { hasOpenAiApiKey, readRuntimeSettings } from "@/lib/runtime/settings";
 import type {
   DashboardLabRuntimeCheck,
@@ -74,6 +75,9 @@ export function getRuntimeSummary(
     },
     integrations: {
       openaiConfigured: diagnostics.openaiConfigured,
+    },
+    runnerHealth: {
+      codex: getSignalWriterCodexRunnerHealth(locale),
     },
     checks: diagnostics.checks,
     workflows: diagnostics.workflows,

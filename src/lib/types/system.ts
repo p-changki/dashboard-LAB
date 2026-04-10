@@ -121,6 +121,21 @@ export interface DashboardLabRuntimeIntegrations {
   openaiConfigured: boolean;
 }
 
+export type DashboardLabRuntimeRunnerHealthRunner =
+  | "claude"
+  | "codex"
+  | "gemini";
+
+export interface DashboardLabRuntimeRunnerHealthEntry {
+  runner: DashboardLabRuntimeRunnerHealthRunner;
+  status: RuntimeCheckStatus;
+  detail: string;
+  recentIssueCount: number;
+  lastIssueAt: string | null;
+  lastIssueScope: string | null;
+  lastIssueReason: string | null;
+}
+
 export type DashboardLabDisconnectableCommand =
   | "claude"
   | "codex"
@@ -189,6 +204,7 @@ export interface DashboardLabRuntimeSummaryResponse {
     projectsRootCandidates: DashboardLabRuntimePathCandidate[];
   };
   integrations: DashboardLabRuntimeIntegrations;
+  runnerHealth?: Partial<Record<DashboardLabRuntimeRunnerHealthRunner, DashboardLabRuntimeRunnerHealthEntry>>;
   checks: DashboardLabRuntimeCheck[];
   workflows: DashboardLabRuntimeWorkflow[];
 }

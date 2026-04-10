@@ -3,6 +3,11 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 
+import {
+  containsCliTranscriptLeakInStrings,
+  isRecord,
+  parseLastJsonObject,
+} from "@/lib/ai/structured-output";
 import { generateOpenAiText, hasOpenAiApiFallback } from "@/lib/ai/openai-responses";
 import { runSpawnTask } from "@/lib/ai-skills/runner";
 import {
@@ -10,6 +15,13 @@ import {
   getCommandEnvironment,
 } from "@/lib/command-availability";
 import type { AppLocale } from "@/lib/locale";
+import {
+  buildSignalWriterCodexArgs,
+  createSignalWriterCodexInvalidOutputError,
+  isSignalWriterCodexOutputError,
+  throwIfSignalWriterCodexOutputCorrupted,
+  unwrapSignalWriterCodexResult,
+} from "@/lib/signal-writer/codex";
 import type {
   SignalWriterAiRunner,
   SignalWriterTargetChannel,
@@ -44,13 +56,24 @@ export async function generateSignalWriterTrendBoardDraft(
 
   if (resolvedRunner !== "template") {
     try {
-      const raw = await runTrendBoardModel(resolvedRunner, prompt);
+      const raw = await runTrendBoardModel(resolvedRunner, prompt, locale);
+      if (resolvedRunner === "codex") {
+        throwIfSignalWriterCodexOutputCorrupted(raw, locale, "trend-board");
+      }
       const parsed = parseTrendBoardPayload(raw);
 
       if (parsed) {
         return normalizeTrendBoardDraft(board, locale, channel, generatedAt, resolvedRunner, parsed);
       }
+
+      if (resolvedRunner === "codex") {
+        throw createSignalWriterCodexInvalidOutputError(locale, "trend-board");
+      }
     } catch (error) {
+      if (isSignalWriterCodexOutputError(error)) {
+        throw error;
+      }
+
       if (requestedRunner !== "auto") {
         throw error;
       }
@@ -124,6 +147,7 @@ async function resolveTrendBoardRunner(
 async function runTrendBoardModel(
   runner: Exclude<SignalWriterAiRunner, "auto" | "template">,
   prompt: string,
+  locale: AppLocale,
 ) {
   if (runner === "openai") {
     return generateOpenAiText(prompt, { model: "gpt-5-mini", reasoningEffort: "low" });
@@ -137,12 +161,17 @@ async function runTrendBoardModel(
     const outputPath = `/tmp/dashboard-lab-trend-board-${randomUUID()}.txt`;
     const result = await runSpawnTask({
       command: "codex",
-      args: ["exec", "--skip-git-repo-check", "-o", outputPath, prompt],
+      args: buildSignalWriterCodexArgs(prompt, outputPath, "trend-board"),
       cwd: process.env.HOME || "/",
       outputPath,
       timeoutMs: SIGNAL_WRITER_TIMEOUT_MS,
     });
-    return unwrapOutput(result.output, result.error);
+    return unwrapSignalWriterCodexResult(
+      result,
+      locale,
+      "trend-board",
+      "Trend Board AI response is empty.",
+    );
   }
 
   const result = await runSpawnTask({
@@ -298,39 +327,64 @@ function buildTrendBoardPrompt(
 }
 
 function parseTrendBoardPayload(raw: string): TrendBoardDraftPayload | null {
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as Partial<TrendBoardDraftPayload>;
-    if (
-      typeof parsed.title !== "string" ||
-      typeof parsed.boardSummary !== "string" ||
-      typeof parsed.hook !== "string" ||
-      typeof parsed.shortPost !== "string" ||
-      !Array.isArray(parsed.threadPosts)
-    ) {
-      return null;
+  const parsed = parseLastJsonObject(raw, (value): value is Partial<TrendBoardDraftPayload> => {
+    if (!isRecord(value)) {
+      return false;
     }
 
-    return {
-      title: parsed.title,
-      boardSummary: parsed.boardSummary,
-      hook: parsed.hook,
-      shortPost: parsed.shortPost,
-      threadPosts: normalizeStringArray(parsed.threadPosts),
-      firstComment: typeof parsed.firstComment === "string" ? parsed.firstComment : "",
-      followUpReplies: normalizeStringArray(parsed.followUpReplies),
-      hashtags: normalizeTags(parsed.hashtags),
-      whyNow: typeof parsed.whyNow === "string" ? parsed.whyNow : "",
-      postingTips: normalizeStringArray(parsed.postingTips),
-    };
-  } catch {
+    return (
+      typeof value.title === "string"
+      && typeof value.boardSummary === "string"
+      && typeof value.hook === "string"
+      && typeof value.shortPost === "string"
+      && Array.isArray(value.threadPosts)
+    );
+  });
+
+  if (!parsed) {
     return null;
   }
+
+  const title = typeof parsed.title === "string" ? parsed.title : "";
+  const boardSummary = typeof parsed.boardSummary === "string" ? parsed.boardSummary : "";
+  const hook = typeof parsed.hook === "string" ? parsed.hook : "";
+  const shortPost = typeof parsed.shortPost === "string" ? parsed.shortPost : "";
+  const threadPosts = normalizeStringArray(parsed.threadPosts);
+  const firstComment = typeof parsed.firstComment === "string" ? parsed.firstComment : "";
+  const followUpReplies = normalizeStringArray(parsed.followUpReplies);
+  const hashtags = normalizeTags(parsed.hashtags);
+  const whyNow = typeof parsed.whyNow === "string" ? parsed.whyNow : "";
+  const postingTips = normalizeStringArray(parsed.postingTips);
+
+  if (
+    containsCliTranscriptLeakInStrings([
+      title,
+      boardSummary,
+      hook,
+      shortPost,
+      firstComment,
+      whyNow,
+      ...threadPosts,
+      ...followUpReplies,
+      ...hashtags,
+      ...postingTips,
+    ])
+  ) {
+    return null;
+  }
+
+  return {
+    title,
+    boardSummary,
+    hook,
+    shortPost,
+    threadPosts,
+    firstComment,
+    followUpReplies,
+    hashtags,
+    whyNow,
+    postingTips,
+  };
 }
 
 function normalizeTrendBoardDraft(

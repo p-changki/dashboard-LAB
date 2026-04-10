@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "keyPoints", "hooks", "angles", "questions", "watchouts", "scores"],
+  "properties": {
+    "summary": { "type": "string", "minLength": 1 },
+    "keyPoints": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "hooks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "angles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "summary", "audience"],
+        "properties": {
+          "label": { "type": "string", "minLength": 1 },
+          "summary": { "type": "string", "minLength": 1 },
+          "audience": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "questions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "watchouts": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["heat", "novelty", "debate", "practical"],
+      "properties": {
+        "heat": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "novelty": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "debate": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "practical": { "type": "integer", "minimum": 0, "maximum": 10 }
+      }
+    }
+  }
+}

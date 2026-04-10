@@ -2,9 +2,18 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
+import {
+  containsCliTranscriptLeakInStrings,
+  isRecord,
+  parseLastJsonObject,
+} from "@/lib/ai/structured-output";
+import { runSpawnTask } from "@/lib/ai-skills/runner";
 import { checkCommandAvailable } from "@/lib/command-availability";
 import type { AppLocale } from "@/lib/locale";
-import { runSpawnTask } from "@/lib/ai-skills/runner";
+import {
+  buildSignalWriterCodexArgs,
+  unwrapSignalWriterCodexResult,
+} from "@/lib/signal-writer/codex";
 import { loadSignalWriterSourceContext } from "@/lib/signal-writer/source-context";
 import type {
   SignalWriterAiRunner,
@@ -97,13 +106,23 @@ async function runResearchModel(
       }
 
       const outputPath = `/tmp/dashboard-lab-signal-writer-research-${randomUUID()}.txt`;
-      return runSpawnTask({
+      const result = await runSpawnTask({
         command: "codex",
-        args: ["exec", "--skip-git-repo-check", "-o", outputPath, prompt],
+        args: buildSignalWriterCodexArgs(prompt, outputPath, "research"),
         cwd: process.env.HOME || "/",
         outputPath,
         timeoutMs: RESEARCH_TIMEOUT_MS,
       });
+      return {
+        ...result,
+        output: unwrapSignalWriterCodexResult(
+          result,
+          locale,
+          "research",
+          "The research output is empty.",
+        ),
+        error: null,
+      };
     })();
 
     if (raw.error || !raw.output) {
@@ -239,14 +258,7 @@ function buildResearchPrompt(
 }
 
 function parseResearchPayload(raw: string): ResearchPayload | null {
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as Partial<{
+  const parsed = parseLastJsonObject(raw, (value): value is Partial<{
       summary: string;
       keyPoints: string[];
       hooks: string[];
@@ -254,35 +266,58 @@ function parseResearchPayload(raw: string): ResearchPayload | null {
       questions: string[];
       watchouts: string[];
       scores: Partial<Record<"heat" | "novelty" | "debate" | "practical", number>>;
-    }>;
+    }> => {
+      if (!isRecord(value)) {
+        return false;
+      }
 
-    if (typeof parsed.summary !== "string" || !parsed.scores) {
-      return null;
-    }
+      return typeof value.summary === "string" && isRecord(value.scores);
+    });
 
-    return {
-      summary: parsed.summary,
-      keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints.filter(isString) : [],
-      hooks: Array.isArray(parsed.hooks) ? parsed.hooks.filter(isString) : [],
-      angles: Array.isArray(parsed.angles)
-        ? parsed.angles.map((angle) => ({
-            label: typeof angle?.label === "string" ? angle.label : "",
-            summary: typeof angle?.summary === "string" ? angle.summary : "",
-            audience: typeof angle?.audience === "string" ? angle.audience : "",
-          }))
-        : [],
-      questions: Array.isArray(parsed.questions) ? parsed.questions.filter(isString) : [],
-      watchouts: Array.isArray(parsed.watchouts) ? parsed.watchouts.filter(isString) : [],
-      scores: {
-        heat: Number(parsed.scores.heat ?? 0),
-        novelty: Number(parsed.scores.novelty ?? 0),
-        debate: Number(parsed.scores.debate ?? 0),
-        practical: Number(parsed.scores.practical ?? 0),
-      },
-    };
-  } catch {
+  if (!parsed) {
     return null;
   }
+
+  const summary = typeof parsed.summary === "string" ? parsed.summary : "";
+  const keyPoints = Array.isArray(parsed.keyPoints) ? parsed.keyPoints.filter(isString) : [];
+  const hooks = Array.isArray(parsed.hooks) ? parsed.hooks.filter(isString) : [];
+  const angles = Array.isArray(parsed.angles)
+    ? parsed.angles.map((angle) => ({
+        label: typeof angle?.label === "string" ? angle.label : "",
+        summary: typeof angle?.summary === "string" ? angle.summary : "",
+        audience: typeof angle?.audience === "string" ? angle.audience : "",
+      }))
+    : [];
+  const questions = Array.isArray(parsed.questions) ? parsed.questions.filter(isString) : [];
+  const watchouts = Array.isArray(parsed.watchouts) ? parsed.watchouts.filter(isString) : [];
+
+  if (
+    containsCliTranscriptLeakInStrings([
+      summary,
+      ...keyPoints,
+      ...hooks,
+      ...questions,
+      ...watchouts,
+      ...angles.flatMap((angle) => [angle.label, angle.summary, angle.audience]),
+    ])
+  ) {
+    return null;
+  }
+
+  return {
+    summary,
+    keyPoints,
+    hooks,
+    angles,
+    questions,
+    watchouts,
+    scores: {
+      heat: Number(parsed.scores?.heat ?? 0),
+      novelty: Number(parsed.scores?.novelty ?? 0),
+      debate: Number(parsed.scores?.debate ?? 0),
+      practical: Number(parsed.scores?.practical ?? 0),
+    },
+  };
 }
 
 function buildFallbackResearchModelResult(

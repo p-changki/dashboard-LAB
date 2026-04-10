@@ -276,6 +276,15 @@ export interface SignalWriterGenerateRequest {
   factCheckContext?: SignalWriterFactCheckContext;
 }
 
+export type SignalWriterActionErrorCode =
+  | "codex_output_corrupted"
+  | "codex_output_invalid";
+
+export interface SignalWriterApiErrorResponse {
+  error: string;
+  errorCode?: SignalWriterActionErrorCode;
+}
+
 export interface SignalWriterGenerateResponse {
   draft: SignalWriterDraft;
 }

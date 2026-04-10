@@ -108,7 +108,7 @@ It is useful when you need fast, context-aware support writing without manually 
 Recommended for most users:
 
 1. Open [Releases](https://github.com/p-changki/dashboard-LAB/releases)
-2. Download the latest macOS build asset such as `dashboard-LAB-0.1.14-arm64.dmg` or `dashboard-LAB-0.1.14-arm64-mac.zip`
+2. Download the latest macOS build asset such as `dashboard-LAB-0.1.15-arm64.dmg` or `dashboard-LAB-0.1.15-arm64-mac.zip`
 3. Open the app package and run it
 
 If you are running from the source repository instead:
@@ -142,7 +142,7 @@ pnpm launch
 If you just want to try the app on macOS:
 
 1. Open [Releases](https://github.com/p-changki/dashboard-LAB/releases).
-2. Download a macOS build asset such as `dashboard-LAB-0.1.14-arm64.dmg`.
+2. Download a macOS build asset such as `dashboard-LAB-0.1.15-arm64.dmg`.
 3. Open the downloaded app package and launch it.
 
 If you downloaded the source code instead of a release build:

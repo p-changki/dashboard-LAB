@@ -3,6 +3,11 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 
+import {
+  containsCliTranscriptLeakInStrings,
+  isRecord,
+  parseLastJsonObject,
+} from "@/lib/ai/structured-output";
 import { generateOpenAiText, hasOpenAiApiFallback } from "@/lib/ai/openai-responses";
 import { runSpawnTask } from "@/lib/ai-skills/runner";
 import {
@@ -10,6 +15,10 @@ import {
   getCommandEnvironment,
 } from "@/lib/command-availability";
 import type { AppLocale } from "@/lib/locale";
+import {
+  buildSignalWriterCodexArgs,
+  unwrapSignalWriterCodexResult,
+} from "@/lib/signal-writer/codex";
 import { loadSignalWriterSourceContext } from "@/lib/signal-writer/source-context";
 import type {
   SignalWriterFactCheckFinding,
@@ -47,7 +56,7 @@ export async function runSignalWriterFactCheck(
   const createdAt = new Date().toISOString();
   const sourceContext = await loadSignalWriterSourceContext(signal);
   const prompt = buildFactCheckPrompt(signal, draft, locale, sourceContext);
-  const raw = await runFactCheckModel(runner, prompt);
+  const raw = await runFactCheckModel(runner, prompt, locale);
   const parsed = parseFactCheckPayload(raw);
 
   if (!parsed) {
@@ -101,6 +110,7 @@ async function resolveFactCheckRunner(runner: SignalWriterFactCheckRunner) {
 async function runFactCheckModel(
   runner: SignalWriterFactCheckRunner,
   prompt: string,
+  locale: AppLocale,
 ) {
   if (runner === "openai") {
     return generateOpenAiText(prompt, { model: "gpt-5-mini", reasoningEffort: "medium" });
@@ -114,12 +124,17 @@ async function runFactCheckModel(
     const outputPath = `/tmp/dashboard-lab-signal-writer-fact-check-${randomUUID()}.txt`;
     const result = await runSpawnTask({
       command: "codex",
-      args: ["exec", "--skip-git-repo-check", "-o", outputPath, prompt],
+      args: buildSignalWriterCodexArgs(prompt, outputPath, "fact-check"),
       cwd: process.env.HOME || "/",
       outputPath,
       timeoutMs: FACT_CHECK_TIMEOUT_MS,
     });
-    return unwrapOutput(result.output, result.error);
+    return unwrapSignalWriterCodexResult(
+      result,
+      locale,
+      "fact-check",
+      "Signal Writer fact-check response is empty.",
+    );
   }
 
   const result = await runSpawnTask({
@@ -282,35 +297,52 @@ function buildFactCheckPrompt(
 }
 
 function parseFactCheckPayload(raw: string): FactCheckPayload | null {
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-
-  if (start === -1 || end === -1 || end <= start) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as Partial<FactCheckPayload>;
-
-    if (
-      typeof parsed.summary !== "string" ||
-      typeof parsed.rewriteBrief !== "string" ||
-      typeof parsed.confidence !== "number" ||
-      !Array.isArray(parsed.findings)
-    ) {
-      return null;
+  const parsed = parseLastJsonObject(raw, (value): value is Partial<FactCheckPayload> => {
+    if (!isRecord(value)) {
+      return false;
     }
 
-    return {
-      verdict: typeof parsed.verdict === "string" ? parsed.verdict : "mixed",
-      confidence: parsed.confidence,
-      summary: parsed.summary,
-      findings: parsed.findings,
-      rewriteBrief: parsed.rewriteBrief,
-    };
-  } catch {
+    return (
+      typeof value.summary === "string"
+      && typeof value.rewriteBrief === "string"
+      && typeof value.confidence === "number"
+      && Array.isArray(value.findings)
+    );
+  });
+
+  if (!parsed) {
     return null;
   }
+
+  const summary = typeof parsed.summary === "string" ? parsed.summary : "";
+  const rewriteBrief = typeof parsed.rewriteBrief === "string" ? parsed.rewriteBrief : "";
+  const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0;
+  const findings = (Array.isArray(parsed.findings) ? parsed.findings : [])
+    .filter(isRecord)
+    .map((item) => ({
+      claim: typeof item.claim === "string" ? item.claim : "",
+      status: typeof item.status === "string" ? item.status : "",
+      reason: typeof item.reason === "string" ? item.reason : "",
+      suggestedFix: typeof item.suggestedFix === "string" ? item.suggestedFix : "",
+    }));
+
+  if (
+    containsCliTranscriptLeakInStrings([
+      summary,
+      rewriteBrief,
+      ...findings.flatMap((item) => [item.claim, item.reason, item.suggestedFix]),
+    ])
+  ) {
+    return null;
+  }
+
+  return {
+    verdict: typeof parsed.verdict === "string" ? parsed.verdict : "mixed",
+    confidence,
+    summary,
+    findings,
+    rewriteBrief,
+  };
 }
 
 function normalizeFindings(findings: FactCheckPayload["findings"]): SignalWriterFactCheckFinding[] {
