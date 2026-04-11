@@ -87,7 +87,7 @@
   "build": {
     "appId": "lab.dashboard.desktop",
     "productName": "dashboard-LAB",
-    "asar": false,
+    "asar": true,
     "npmRebuild": false,
     "directories": {
       "output": "release",
@@ -107,7 +107,12 @@
       "package.json",
       "next.config.ts",
       "postcss.config.mjs",
-      "tsconfig.json"
+      "!**/*.map",
+      "!.next/cache/**/*",
+      "!src/**/*",
+      "!scripts/**/*",
+      "!tsconfig.json",
+      "!.git/**/*"
     ],
     "mac": {
       "icon": "build-resources/icon.icns",
