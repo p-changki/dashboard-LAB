@@ -8,6 +8,7 @@ import {
   checkCommandAvailable,
   getCommandEnvironment,
 } from "@/lib/command-availability";
+import { buildDashboardLabCodexExecArgs } from "@/lib/codex-cli";
 import type {
   CreateMeetingHubMeetingInput,
   MeetingHubAiRunner,
@@ -110,7 +111,7 @@ async function runMeetingHubModel(
     const outputPath = `/tmp/dashboard-lab-meeting-hub-${crypto.randomUUID()}.txt`;
     const result = await runSpawnTask({
       command: "codex",
-      args: ["exec", "--skip-git-repo-check", "-o", outputPath, prompt],
+      args: buildDashboardLabCodexExecArgs(prompt, { outputPath }),
       cwd: process.env.HOME || "/",
       outputPath,
       timeoutMs: PROMPT_TIMEOUT_MS,

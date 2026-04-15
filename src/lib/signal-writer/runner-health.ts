@@ -107,8 +107,8 @@ function buildCodexHealthDetail(
 ) {
   if (!lastIssue || status === "pass") {
     return pickLocale(locale, {
-      ko: "최근 24시간 동안 Signal Writer에서 Codex 구조화 출력 이상이 감지되지 않았습니다.",
-      en: "No Codex structured-output issues were detected in Signal Writer during the last 24 hours.",
+      ko: "최근 24시간 동안 Signal Writer의 Codex 출력 이슈가 없었습니다.",
+      en: "No Codex output issues were detected in Signal Writer during the last 24 hours.",
     });
   }
 
@@ -117,14 +117,14 @@ function buildCodexHealthDetail(
 
   if (status === "fail") {
     return pickLocale(locale, {
-      ko: `최근 24시간 동안 Signal Writer의 Codex 출력 이상이 ${recentIssueCount}회 감지되었습니다. 마지막 감지: ${scopeLabel} · ${reasonLabel}.`,
-      en: `${recentIssueCount} Codex output issues were detected in Signal Writer during the last 24 hours. Last issue: ${scopeLabel} · ${reasonLabel}.`,
+      ko: `최근 24시간 동안 Signal Writer의 Codex 출력 이슈가 ${recentIssueCount}회 있었고, 최근 2시간 안에도 반복되었습니다. 마지막 이슈: ${scopeLabel} · ${reasonLabel}. Codex로 계속 진행되지 않으면 Claude나 템플릿으로 전환하세요.`,
+      en: `${recentIssueCount} Codex output issues were detected in Signal Writer during the last 24 hours, including repeated issues within the last 2 hours. Last issue: ${scopeLabel} · ${reasonLabel}. If Codex keeps failing, switch to Claude or Template.`,
     });
   }
 
   return pickLocale(locale, {
-    ko: `최근 24시간 동안 Signal Writer의 Codex 출력 이상이 ${recentIssueCount}회 감지되었습니다. 마지막 감지: ${scopeLabel} · ${reasonLabel}.`,
-    en: `${recentIssueCount} Codex output issue${recentIssueCount > 1 ? "s were" : " was"} detected in Signal Writer during the last 24 hours. Last issue: ${scopeLabel} · ${reasonLabel}.`,
+    ko: `현재 장애 표시가 아니라 최근 24시간 이력입니다. 최근 24시간 동안 Signal Writer의 Codex 출력 이슈가 ${recentIssueCount}회 있었고, 마지막 이슈는 ${scopeLabel} · ${reasonLabel}였습니다. 한 번 더 시도해도 되고, 반복되면 Claude나 템플릿으로 전환하세요.`,
+    en: `This is a recent 24-hour history warning, not necessarily a current outage. ${recentIssueCount} Codex output issue${recentIssueCount > 1 ? "s were" : " was"} detected in Signal Writer during the last 24 hours. Last issue: ${scopeLabel} · ${reasonLabel}. You can retry once, and switch to Claude or Template if it repeats.`,
   });
 }
 
@@ -147,7 +147,7 @@ function formatScope(locale: AppLocale, scope: SignalWriterCodexHealthScope) {
 
 function formatReason(locale: AppLocale, reason: SignalWriterCodexHealthReason) {
   return pickLocale(locale, {
-    ko: reason === "corrupted" ? "CLI transcript 오염" : "구조화 응답 invalid",
-    en: reason === "corrupted" ? "CLI transcript leak" : "Invalid structured response",
+    ko: reason === "corrupted" ? "세션 로그 섞임" : "구조화 응답 형식 불일치",
+    en: reason === "corrupted" ? "Session logs mixed into output" : "Structured response format mismatch",
   });
 }

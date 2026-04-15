@@ -1,4 +1,5 @@
 import { checkCommandAvailable } from "@/lib/command-availability";
+import { buildDashboardLabCodexExecArgs } from "@/lib/codex-cli";
 import { generateOpenAiText, hasOpenAiApiFallback } from "@/lib/ai/openai-responses";
 import { persistJson, readPersistentJson } from "@/lib/storage/persistent-json";
 import { runSpawnTask } from "@/lib/ai-skills/runner";
@@ -135,7 +136,7 @@ async function runCsModel(runner: CsAiRunner, prompt: string, locale: AppLocale)
     const outputPath = `/tmp/dashboard-lab-cs-${crypto.randomUUID()}.txt`;
     const result = await runSpawnTask({
       command: "codex",
-      args: ["exec", "--skip-git-repo-check", "-o", outputPath, prompt],
+      args: buildDashboardLabCodexExecArgs(prompt, { outputPath }),
       cwd: process.env.HOME || "/",
       outputPath,
       timeoutMs: CS_TIMEOUT_MS,

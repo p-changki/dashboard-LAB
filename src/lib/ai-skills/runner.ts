@@ -12,6 +12,7 @@ import {
   resolveCommandPath,
   resolveCommandPathSync,
 } from "@/lib/command-availability";
+import { buildDashboardLabCodexExecArgs } from "@/lib/codex-cli";
 import { getRuntimeConfig } from "@/lib/runtime/config";
 import { getSkillTemplates } from "@/lib/ai-skills/templates";
 import { persistJson, readPersistentJson } from "@/lib/storage/persistent-json";
@@ -304,7 +305,7 @@ function spawnRunner(template: SkillTemplate, prompt: string, cwd: string, outpu
       throw new Error("Codex CLI is unavailable.");
     }
 
-    return spawn(commandPath, ["exec", "--skip-git-repo-check", "-o", outputPath, prompt], {
+    return spawn(commandPath, buildDashboardLabCodexExecArgs(prompt, { outputPath }), {
       cwd,
       env: getCommandEnvironment({ TERM: "dumb" }),
       stdio: ["ignore", "pipe", "pipe"],

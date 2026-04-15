@@ -5,6 +5,7 @@ import {
   checkCommandAvailable,
   getCommandEnvironment,
 } from "@/lib/command-availability";
+import { buildDashboardLabCodexExecArgs } from "@/lib/codex-cli";
 
 const TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_LOG_OUTPUT = 16 * 1024;
@@ -18,7 +19,7 @@ export async function runCodexPrd(prompt: string, options?: { cwd?: string }): P
 
     const proc = spawn(
       "codex",
-      ["exec", "--skip-git-repo-check", "-c", 'model_reasoning_effort="low"', "-o", outputPath, "--ephemeral", prompt],
+      buildDashboardLabCodexExecArgs(prompt, { outputPath }),
       {
       cwd: options?.cwd,
       env: getCommandEnvironment({ TERM: "dumb" }),

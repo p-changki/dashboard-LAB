@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import { containsCliTranscriptLeak } from "@/lib/ai/structured-output";
+import { buildDashboardLabCodexExecArgs } from "@/lib/codex-cli";
 import type { SpawnTaskResult } from "@/lib/ai-skills/runner";
 import type { AppLocale } from "@/lib/locale";
 import { recordSignalWriterCodexHealthEvent } from "@/lib/signal-writer/runner-health";
@@ -20,16 +21,10 @@ export function buildSignalWriterCodexArgs(
   outputPath: string,
   schemaName: SignalWriterSchemaName,
 ) {
-  return [
-    "exec",
-    "--skip-git-repo-check",
-    "--ephemeral",
-    "--output-schema",
-    getSignalWriterSchemaPath(schemaName),
-    "-o",
+  return buildDashboardLabCodexExecArgs(prompt, {
     outputPath,
-    prompt,
-  ];
+    outputSchemaPath: getSignalWriterSchemaPath(schemaName),
+  });
 }
 
 export class SignalWriterCodexOutputError extends Error {
@@ -146,15 +141,15 @@ function getSignalWriterCodexOutputMessage(
 
   if (locale === "en") {
     if (reason === "corrupted") {
-      return `Codex output was mixed with CLI session logs, so the ${label} could not be generated safely. Please retry or switch runners.`;
+      return `Codex response for the ${label} included session logs, so it was not saved. Try again once, or switch runners if it repeats.`;
     }
 
-    return `Codex returned an invalid structured response, so the ${label} could not be generated safely. Please retry or switch runners.`;
+    return `Codex did not return a valid structured response for the ${label}, so it was not saved. Try again once, or switch runners if it repeats.`;
   }
 
   if (reason === "corrupted") {
-    return `Codex 출력에 CLI 세션 로그가 섞여 ${label}을 안전하게 만들 수 없었습니다. 다시 시도하거나 다른 러너로 전환하세요.`;
+    return `Codex 응답에 세션 로그가 섞여 ${label}을 저장하지 않았습니다. 한 번 더 시도하고, 반복되면 다른 러너로 전환하세요.`;
   }
 
-  return `Codex가 구조화된 응답을 올바르게 반환하지 않아 ${label}을 안전하게 만들 수 없었습니다. 다시 시도하거나 다른 러너로 전환하세요.`;
+  return `Codex가 ${label}용 구조화 응답을 올바르게 반환하지 못해 저장하지 않았습니다. 한 번 더 시도하고, 반복되면 다른 러너로 전환하세요.`;
 }
