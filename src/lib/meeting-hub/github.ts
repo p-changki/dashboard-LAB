@@ -2,7 +2,7 @@ import "server-only";
 
 import { spawn } from "node:child_process";
 
-import { checkCommandAvailable } from "@/lib/command-availability";
+import { checkCommandAvailable, getCommandEnvironment } from "@/lib/command-availability";
 import type {
   MeetingHubActionItem,
   MeetingHubGithubBoardCard,
@@ -463,7 +463,7 @@ function runGhJson(args: string[]) {
   return new Promise<string>((resolve, reject) => {
     const proc = spawn("gh", args, {
       cwd: process.env.HOME || "/",
-      env: { ...process.env, TERM: "dumb" },
+      env: getCommandEnvironment({ TERM: "dumb" }),
     });
 
     let stdout = "";
