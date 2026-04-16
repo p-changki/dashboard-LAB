@@ -322,6 +322,7 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
           renderedNextActionContent={workspace.renderedNextActionContent}
           handleRetryRecord={actions.handleRetryRecord}
           handleGenerateNextAction={(actionType) => void actions.handleGenerateNextAction(actionType)}
+          regenerateSection={(sectionId, hint) => actions.regenerateSection(sectionId, hint)}
           downloadCurrentMarkdown={actions.downloadCurrentMarkdown}
           downloadNextActionMarkdown={() => actions.downloadNextActionMarkdown(workspace.activeNextActionResult)}
         />

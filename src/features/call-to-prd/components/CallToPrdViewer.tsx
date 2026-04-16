@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { ChevronDown, Download, FileText, FolderOpen } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -7,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { ErrorCard } from "@/components/ui/ErrorCard";
 import { CALL_DOC_DEFINITIONS, type CallDocType } from "@/lib/call-to-prd/document-config";
+import { splitMarkdownIntoSections } from "@/lib/call-to-prd/prd-markdown-formatter";
 import type {
   CallNextActionResponse,
   CallNextActionType,
@@ -30,6 +32,7 @@ import {
   getCallToPrdCopy,
   formatCallToPrdWarningMessage,
 } from "@/features/call-to-prd/copy";
+import { CallToPrdViewerCard } from "@/features/call-to-prd/components/CallToPrdViewerCard";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -79,6 +82,7 @@ export interface CallToPrdViewerProps {
   // Handlers
   handleRetryRecord: (record: CallRecord) => void;
   handleGenerateNextAction: (actionType: CallNextActionType) => void;
+  regenerateSection: (sectionId: string, hint?: string) => Promise<void>;
   downloadCurrentMarkdown: () => void;
   downloadNextActionMarkdown: () => void;
 }
@@ -90,6 +94,7 @@ export interface CallToPrdViewerProps {
 export function CallToPrdViewer(props: CallToPrdViewerProps) {
   const { locale } = useLocale();
   const copy = getCallToPrdCopy(locale);
+  const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
   const {
     current,
     displayRecord,
@@ -123,6 +128,7 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
     renderedNextActionContent,
     handleRetryRecord,
     handleGenerateNextAction,
+    regenerateSection,
     downloadCurrentMarkdown,
     downloadNextActionMarkdown,
   } = props;
@@ -135,6 +141,12 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
       : current?.status === "failed"
         ? "border-rose-500/20 bg-rose-950/20 text-rose-200"
         : "border-cyan-500/20 bg-cyan-950/20 text-cyan-200";
+  const docSections = useMemo(
+    () => splitMarkdownIntoSections(selectedDocContent),
+    [selectedDocContent],
+  );
+  const canRegenerateSections = Boolean(displayRecord?.savedEntryName)
+    && (activeDocType !== "prd" || prdView === "merged");
 
   return (
     <div className="space-y-5">
@@ -310,11 +322,33 @@ export function CallToPrdViewer(props: CallToPrdViewerProps) {
                 </button>
 
                 {docContentOpen ? (
-                  <div className="max-w-none rounded-[28px] border border-border-base bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] px-6 py-6 text-[15px] shadow-[0_20px_60px_rgba(0,0,0,0.25)] md:px-8 md:py-8">
-                    <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
-                      {renderedDocContent}
-                    </ReactMarkdown>
-                  </div>
+                  docSections.length > 1 ? (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-border-base bg-bg-surface px-4 py-3 text-sm leading-6 text-text-secondary">
+                        <p className="font-medium text-white">{copy.viewer.sectionCardsTitle}</p>
+                        <p className="mt-1 text-xs leading-6 text-text-muted">{copy.viewer.sectionCardsDescription}</p>
+                      </div>
+                      {docSections.map((section) => (
+                        <CallToPrdViewerCard
+                          key={section.id}
+                          section={section}
+                          loading={regeneratingSectionId === section.id}
+                          canRegenerate={canRegenerateSections}
+                          onRegenerate={async (hint) => {
+                            setRegeneratingSectionId(section.id);
+                            await regenerateSection(section.id, hint);
+                            setRegeneratingSectionId(null);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="max-w-none rounded-[28px] border border-border-base bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] px-6 py-6 text-[15px] shadow-[0_20px_60px_rgba(0,0,0,0.25)] md:px-8 md:py-8">
+                      <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
+                        {renderedDocContent}
+                      </ReactMarkdown>
+                    </div>
+                  )
                 ) : null}
               </div>
             </div>

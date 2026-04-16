@@ -537,6 +537,13 @@ export const callNextActionRequestSchema = z.object({
   ).default([]),
 });
 
+export const callSectionRegenerateRequestSchema = z.object({
+  bundleId: safeRelativePathString,
+  docType: z.enum(CALL_DOC_TYPES),
+  sectionId: nonEmptyString,
+  hint: optionalTrimmedString,
+});
+
 export const callHistoryDeleteSchema = z.object({
   id: nonEmptyString,
 });

@@ -29,6 +29,12 @@ const SUBSECTION_TITLES = [
   "추천 기술 스택",
 ] as const;
 
+export interface PrdSection {
+  id: string;
+  title: string;
+  content: string;
+}
+
 function isTableLine(line: string) {
   return /^\|.*\|$/.test(line);
 }
@@ -148,4 +154,77 @@ export function formatPrdMarkdown(markdown: string): string {
   }
 
   return addStructuralSpacing(markdown.replace(/\r\n?/g, "\n"));
+}
+
+export function splitMarkdownIntoSections(markdown: string): PrdSection[] {
+  const formatted = formatPrdMarkdown(markdown).trim();
+  if (!formatted) {
+    return [];
+  }
+
+  const lines = formatted.split("\n");
+  const sections: Array<{ title: string; lines: string[] }> = [];
+  let preface: string[] = [];
+  let current: { title: string; lines: string[] } | null = null;
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^##\s+(.+)$/);
+    if (headingMatch) {
+      if (current) {
+        sections.push(current);
+      }
+
+      current = { title: headingMatch[1].trim(), lines: [] };
+      if (preface.length > 0) {
+        current.lines.push(preface.join("\n").trim());
+        preface = [];
+      }
+      continue;
+    }
+
+    if (current) {
+      current.lines.push(line);
+    } else {
+      preface.push(line);
+    }
+  }
+
+  if (current) {
+    sections.push(current);
+  }
+
+  if (sections.length === 0) {
+    return [{ id: "section-1", title: "Document", content: formatted }];
+  }
+
+  const idCounts = new Map<string, number>();
+
+  return sections.map((section, index) => {
+    const baseId = slugifySectionTitle(section.title) || `section-${index + 1}`;
+    const nextCount = (idCounts.get(baseId) ?? 0) + 1;
+    idCounts.set(baseId, nextCount);
+
+    return {
+      id: nextCount === 1 ? baseId : `${baseId}-${nextCount}`,
+      title: section.title,
+      content: section.lines.join("\n").trim(),
+    };
+  });
+}
+
+export function joinSectionsIntoMarkdown(sections: PrdSection[]): string {
+  return sections
+    .map((section) => [`## ${section.title}`, section.content.trim()].filter(Boolean).join("\n\n"))
+    .join("\n\n")
+    .trim();
+}
+
+function slugifySectionTitle(title: string) {
+  return title
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 }

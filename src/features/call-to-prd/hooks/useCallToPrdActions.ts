@@ -8,6 +8,7 @@ import {
   saveCallDocTemplateSet,
 } from "@/lib/call-to-prd/template-sets";
 import { CALL_DOC_PRESET_DEFINITIONS, sortCallDocTypes, type CallDocPreset, type CallDocType } from "@/lib/call-to-prd/document-config";
+import { joinSectionsIntoMarkdown, splitMarkdownIntoSections } from "@/lib/call-to-prd/prd-markdown-formatter";
 import type { ProjectSummary } from "@/lib/types";
 import type {
   CallDocTemplateSet,
@@ -350,6 +351,57 @@ export function useCallToPrdActions({
     }
   }
 
+  async function regenerateSection(sectionId: string, hint?: string) {
+    if (!displayRecord?.savedEntryName) {
+      setFeedbackMessage(copy.hooks.sectionRegenerateFailed);
+      return;
+    }
+
+    const currentSections = splitMarkdownIntoSections(selectedDocContent);
+    const currentSection = currentSections.find((section) => section.id === sectionId);
+    if (!currentSection) {
+      setFeedbackMessage(copy.hooks.sectionRegenerateFailed);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/call-to-prd/sections/regenerate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-dashboard-locale": locale,
+        },
+        body: JSON.stringify({
+          bundleId: displayRecord.savedEntryName,
+          docType: activeDocType,
+          sectionId,
+          hint: hint?.trim() ? hint.trim() : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        setFeedbackMessage(formatCallToPrdApiError(errorData?.error, locale, copy.hooks.sectionRegenerateFailed));
+        return;
+      }
+
+      const result = await response.json() as { section: { id: string; title: string; content: string } };
+      const updatedSections = currentSections.map((section) => (
+        section.id === result.section.id ? result.section : section
+      ));
+      const nextMarkdown = joinSectionsIntoMarkdown(updatedSections);
+
+      setCurrent((record) => updateRecordDocMarkdown(record, displayRecord.id, activeDocType, nextMarkdown));
+      setSelectedHistory((record) => updateRecordDocMarkdown(record, displayRecord.id, activeDocType, nextMarkdown));
+      setHistory((records) => records.map((record) => (
+        updateRecordDocMarkdown(record, displayRecord.id, activeDocType, nextMarkdown) ?? record
+      )));
+      setFeedbackMessage(copy.hooks.sectionRegenerated(result.section.title));
+    } catch {
+      setFeedbackMessage(copy.hooks.sectionRegenerateFailed);
+    }
+  }
+
   function downloadNextActionMarkdown(activeNextActionResult: CallNextActionResponse | null) {
     if (!activeNextActionResult?.markdown) {
       return;
@@ -583,6 +635,7 @@ export function useCallToPrdActions({
   return {
     handleSubmit,
     handleGenerateNextAction,
+    regenerateSection,
     downloadNextActionMarkdown,
     applyPreset,
     toggleDocType,
@@ -595,5 +648,24 @@ export function useCallToPrdActions({
     handleDeleteHistoryRecord,
     handleRetryRecord,
     downloadCurrentMarkdown,
+  };
+}
+
+function updateRecordDocMarkdown(
+  record: CallRecord | null,
+  recordId: string,
+  docType: CallDocType,
+  markdown: string,
+) {
+  if (!record || record.id !== recordId) {
+    return record;
+  }
+
+  return {
+    ...record,
+    prdMarkdown: docType === "prd" ? markdown : record.prdMarkdown,
+    generatedDocs: record.generatedDocs.map((doc) => (
+      doc.type === docType ? { ...doc, markdown } : doc
+    )),
   };
 }

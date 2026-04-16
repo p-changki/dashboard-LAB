@@ -17,6 +17,13 @@ interface PrdPromptOptions {
   pdfFileName?: string;
 }
 
+interface SectionRegeneratePromptOptions {
+  title: string;
+  content: string;
+  context: string;
+  hint?: string;
+}
+
 export function buildCallToPrdPrompt(options: PrdPromptOptions): string {
   const {
     transcript,
@@ -134,4 +141,32 @@ Phase별 태스크 + 난이도(low/medium/high) + 추천 기술 스택
 - 프로젝트 컨텍스트가 제공된 경우, 현재 프로젝트의 구조를 직접 확인한 것처럼 근거 중심으로 작성할 것
 - 기존 기준 문서가 제공된 경우, 바뀌지 않은 범위는 유지하고 변경 요청 중심으로 정리할 것
 - 언급되지 않은 내용 만들지 말 것`;
+}
+
+export function buildSectionRegeneratePrompt(options: SectionRegeneratePromptOptions): string {
+  return `당신은 기존 문서의 한 섹션만 다시 다듬는 시니어 프로덕트 매니저입니다.
+
+## 작업 대상 섹션
+제목: ${options.title}
+
+## 현재 섹션 본문
+${options.content || "(현재 본문 없음)"}
+
+## 문서 전체 컨텍스트
+${options.context}
+
+${options.hint?.trim() ? `## 수정 힌트
+${options.hint.trim()}
+` : ""}
+
+## 작성 규칙
+- 반드시 "${options.title}" 섹션의 본문만 다시 작성
+- \`## ${options.title}\` 같은 최상위 제목은 다시 쓰지 말 것
+- 필요한 경우 \`###\` 소제목, bullet list, 표, mermaid code block은 유지 가능
+- 기존 문서 컨텍스트와 충돌하지 않게 수정
+- 추정 내용은 "추정:" 접두사 사용
+- 한국어, 마크다운, 실행 가능한 수준으로 작성
+- 불필요한 인사말, 설명문, 코드 펜스 외 텍스트 금지
+
+본문만 출력하세요.`;
 }
