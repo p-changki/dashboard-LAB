@@ -4,6 +4,8 @@ import path from "node:path";
 import {
   buildGeneratedDocTitle,
   CALL_DOC_DEFINITIONS,
+  normalizeCallDocPreset,
+  normalizeSelectedDocTypes,
   type CallDocPreset,
   type CallDocType,
 } from "@/lib/call-to-prd/document-config";
@@ -492,6 +494,8 @@ async function loadBundleSummary(entryName: string): Promise<SavedCallBundleInde
     generationMode: manifest.generationMode ?? "dual",
     baselineEntryName: manifest.baselineEntryName ?? null,
     baselineTitle: manifest.baselineTitle ?? null,
+    generationPreset: normalizeCallDocPreset(manifest.generationPreset),
+    selectedDocTypes: normalizeSelectedDocTypes(manifest.selectedDocTypes ?? [], manifest.generationPreset),
   };
 }
 
@@ -565,8 +569,8 @@ async function loadBundleDetail(entryName: string): Promise<SavedCallBundleDetai
     reproducibility: intake.reproducibility,
     currentWorkaround: intake.currentWorkaround,
     separateExternalDocs: intake.separateExternalDocs,
-    generationPreset: manifest.generationPreset,
-    selectedDocTypes: manifest.selectedDocTypes,
+    generationPreset: normalizeCallDocPreset(manifest.generationPreset),
+    selectedDocTypes: normalizeSelectedDocTypes(manifest.selectedDocTypes ?? [], manifest.generationPreset),
     generatedDocs,
     nextActions: nextActions.filter((item): item is SavedNextActionDraft => item !== null),
     prdMarkdown,

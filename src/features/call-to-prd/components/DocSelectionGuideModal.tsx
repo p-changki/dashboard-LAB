@@ -5,6 +5,7 @@ import { BookOpenText, Check, Sparkles, Target, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { useLocale } from "@/components/layout/LocaleProvider";
+import { CALL_DOC_PRESET_DEFINITIONS } from "@/lib/call-to-prd/document-config";
 import type { CallDocPreset, CallDocType } from "@/lib/call-to-prd/document-config";
 import { getCallDocDescription, getCallDocLabel, getCallDocShortLabel, getCallPresetLabel, getCallToPrdCopy } from "@/features/call-to-prd/copy";
 
@@ -116,17 +117,7 @@ export function DocSelectionGuideModal({ onApplyPreset, onClose, open }: DocSele
                       </div>
 
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {(
-                          {
-                            core: ["prd", "open-questions", "acceptance-criteria", "user-flow"],
-                            "issue-analysis": ["prd", "problem-statement", "client-brief", "open-questions"],
-                            "client-share": ["prd", "client-brief", "open-questions"],
-                            "dev-handoff": ["prd", "open-questions", "acceptance-criteria", "user-flow", "api-contract", "data-schema"],
-                            "change-request": ["prd", "open-questions", "change-request-diff", "task-breakdown"],
-                            "ai-quality": ["prd", "open-questions", "acceptance-criteria", "user-flow", "prompt-spec", "evaluation-plan"],
-                            release: ["prd", "acceptance-criteria", "qa-checklist", "release-runbook"],
-                          } as const
-                        )[presetId].map((docType) => (
+                        {CALL_DOC_PRESET_DEFINITIONS[presetId].docTypes.map((docType) => (
                           <span key={docType} className="rounded-full bg-white/8 px-2.5 py-1 text-xs text-text-secondary">
                             {getCallDocShortLabel(docType, locale)}
                           </span>

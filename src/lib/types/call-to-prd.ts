@@ -105,6 +105,8 @@ export interface SavedCallBundleIndexItem {
   projectName: string | null;
   customerName: string | null;
   generationMode: CallGenerationMode;
+  generationPreset?: CallDocPreset;
+  selectedDocTypes?: CallDocType[];
   baselineEntryName?: string | null;
   baselineTitle?: string | null;
 }

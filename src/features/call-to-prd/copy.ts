@@ -177,6 +177,13 @@ const presetCopy: Record<CallDocPreset, {
   label: { ko: string; en: string };
   description: { ko: string; en: string };
 }> = {
+  quick: {
+    label: { ko: "빠른 PRD", en: "Quick PRD" },
+    description: {
+      ko: "주제 한 줄로 PRD 1장만 빠르게 생성",
+      en: "Generate a single PRD fast from a one-line topic.",
+    },
+  },
   core: {
     label: { ko: "핵심 세트", en: "Core Set" },
     description: {
@@ -184,35 +191,35 @@ const presetCopy: Record<CallDocPreset, {
       en: "PRD, open questions, acceptance criteria, and user flow.",
     },
   },
-  "issue-analysis": {
+  voc: {
     label: { ko: "VOC / 문제 분석", en: "VOC / Issue Analysis" },
     description: {
       ko: "PRD, 문제정의서, 고객 전달용 기획안, 미확정 사항",
       en: "PRD, problem statement, client brief, and open questions.",
     },
   },
-  "client-share": {
+  customer: {
     label: { ko: "고객 공유", en: "Client Share" },
     description: {
       ko: "PRD, 고객 전달용 기획안, 미확정 사항",
       en: "PRD, client brief, and open questions.",
     },
   },
-  "dev-handoff": {
+  handoff: {
     label: { ko: "개발 핸드오프", en: "Dev Handoff" },
     description: {
       ko: "핵심 세트 + API 계약서 + 데이터 스키마",
       en: "Core set plus API contract and data schema.",
     },
   },
-  "change-request": {
+  change: {
     label: { ko: "변경 요청 대응", en: "Change Request" },
     description: {
       ko: "PRD, 미확정 사항, 변경요청 Diff, 개발 태스크 분해",
       en: "PRD, open questions, diff, and task breakdown.",
     },
   },
-  "ai-quality": {
+  "ai-review": {
     label: { ko: "AI 검수 세트", en: "AI Quality Set" },
     description: {
       ko: "핵심 세트 + Prompt Spec + 평가 계획",
@@ -369,6 +376,16 @@ const tabCopy = {
       viewer: "결과 뷰어",
       history: "히스토리",
     },
+    intakeModes: {
+      quick: {
+        label: "빠른 작성",
+        description: "주제 한 줄로 PRD 1장",
+      },
+      pro: {
+        label: "정밀 모드",
+        description: "메타데이터와 문서 세트까지 설정",
+      },
+    },
   },
   en: {
     heroEyebrow: "Call → PRD",
@@ -396,6 +413,16 @@ const tabCopy = {
       intake: "New Doc",
       viewer: "Viewer",
       history: "History",
+    },
+    intakeModes: {
+      quick: {
+        label: "Quick",
+        description: "One-line topic to one PRD",
+      },
+      pro: {
+        label: "Pro",
+        description: "Configure metadata and doc sets",
+      },
     },
   },
 };
@@ -425,6 +452,28 @@ const baseCopy = {
       coreModeMessage:
         "처음에는 텍스트 직접 입력으로 시작하는 편이 가장 단순합니다. 회의 메모나 고객 이슈 설명을 붙여넣고 프로젝트만 선택한 뒤 문서 생성 시작을 누르면 됩니다.",
       feedbackTitle: "반영되었습니다",
+      quickBadge: "빠른 작성",
+      quickTitle: "한 줄 입력으로 PRD 1장을 바로 만듭니다.",
+      quickDescription:
+        "회의 메모, 고객 요청, 운영 이슈를 한두 문장으로 적으면 PRD 초안을 먼저 만듭니다. 세부 메타데이터와 추가 문서가 필요하면 정밀 모드로 전환하면 됩니다.",
+      quickTopicLabel: "주제 / 요청 요약",
+      quickTopicPlaceholder: "예: 결제 실패 VOC를 정리해서 원인 가설과 대응 방향이 포함된 PRD 초안을 만들어줘",
+      quickTopicHint: "통화 전체를 붙일 필요는 없습니다. 지금 정리하고 싶은 이슈나 목표만 한 줄로 적어도 시작할 수 있습니다.",
+      quickProjectLabel: "프로젝트 기준선",
+      quickProjectDescription: "프로젝트는 선택 사항이지만, 선택하면 실제 코드베이스와 문서를 읽어 PRD 문맥을 보강합니다.",
+      quickProjectPlaceholder: "프로젝트 선택 안 함 (현재 워크스페이스 우선)",
+      quickProjectStatus: "현재 기준선",
+      quickProjectOptional: "프로젝트 미선택",
+      quickCurrentWorkspace: "현재 작업중인 워크스페이스를 자동 기준선으로 사용합니다.",
+      quickContextHint: "프로젝트를 선택하면 읽은 기준 파일과 요약이 여기에 표시됩니다.",
+      quickOutputBadge: "생성 결과",
+      quickOutputTitle: "Quick 모드는 PRD 1장에 집중합니다.",
+      quickPresetTitle: "프리셋",
+      quickModeTitle: "생성 엔진",
+      quickDeliverableTitle: "산출물",
+      quickDeliverableValue: "PRD 1장",
+      quickSubmit: "빠르게 PRD 생성",
+      quickSubmitHint: "현재 AI 모드는 유지한 채 Quick preset과 PRD 단일 출력만 적용합니다.",
       fileMode: "녹음 파일",
       textMode: "내용 직접 입력",
       filePlaceholder: "녹음 파일을 드래그하거나 클릭 (.m4a .mp3 .wav .webm, 최대 50MB)",
@@ -608,6 +657,28 @@ const baseCopy = {
       coreModeMessage:
         "Starting with direct text input is the simplest path. Paste meeting notes or a customer issue, choose a project, and start generating docs.",
       feedbackTitle: "Applied",
+      quickBadge: "Quick mode",
+      quickTitle: "Turn a one-line topic into a PRD immediately.",
+      quickDescription:
+        "Write one or two sentences about the meeting note, customer request, or ops issue and start with a PRD draft first. Switch to Pro mode when you need metadata and extra working docs.",
+      quickTopicLabel: "Topic / request summary",
+      quickTopicPlaceholder: "Example: Draft a PRD for payment-failure VOC with root-cause hypotheses and response direction",
+      quickTopicHint: "You do not need the full transcript. A short topic or issue summary is enough to start.",
+      quickProjectLabel: "Project baseline",
+      quickProjectDescription: "Project selection is optional, but when selected the actual codebase and docs are used as the PRD baseline.",
+      quickProjectPlaceholder: "No project selected (prefer current workspace)",
+      quickProjectStatus: "Current baseline",
+      quickProjectOptional: "No project selected",
+      quickCurrentWorkspace: "The current workspace is being used as the automatic baseline.",
+      quickContextHint: "When a project is selected, the scanned baseline files and summary appear here.",
+      quickOutputBadge: "Output",
+      quickOutputTitle: "Quick mode focuses on a single PRD.",
+      quickPresetTitle: "Preset",
+      quickModeTitle: "Generation engine",
+      quickDeliverableTitle: "Deliverable",
+      quickDeliverableValue: "One PRD",
+      quickSubmit: "Generate PRD quickly",
+      quickSubmitHint: "Keeps your current AI mode and applies only the Quick preset with PRD output.",
       fileMode: "Audio file",
       textMode: "Direct text",
       filePlaceholder: "Drag or click to upload audio (.m4a .mp3 .wav .webm, up to 50MB)",
@@ -783,7 +854,7 @@ const presetGuide = {
         "AI 품질 검수 기준까지 같이 정리해야 할 때",
       ],
     },
-    "issue-analysis": {
+    voc: {
       summary: "고객 불만, VOC, 내부 회의 이슈를 문제정의와 고객 공유 문서로 빠르게 정리할 때 적합합니다.",
       useWhen: [
         "고객 컴플레인을 제품 문제로 정리하고 대응 방향을 먼저 맞춰야 할 때",
@@ -794,7 +865,7 @@ const presetGuide = {
         "이미 구현 범위가 확정돼 개발 태스크와 API 설계가 더 중요한 단계일 때",
       ],
     },
-    "client-share": {
+    customer: {
       summary: "고객에게 현재 이해한 범위와 개발 방향을 빠르게 공유할 때 적합한 세트입니다.",
       useWhen: [
         "통화나 미팅 직후 고객에게 정리본을 바로 보내고 싶을 때",
@@ -805,7 +876,7 @@ const presetGuide = {
         "바로 개발 팀이 구현을 시작해야 해서 API, 스키마, 태스크 분해까지 필요한 때",
       ],
     },
-    "dev-handoff": {
+    handoff: {
       summary: "기획에서 개발 전달로 넘어가는 시점에 가장 적합한 세트입니다.",
       useWhen: [
         "프론트/백엔드가 바로 구현 범위를 잡아야 할 때",
@@ -816,7 +887,7 @@ const presetGuide = {
         "아직 요구사항 자체가 많이 흔들리는 초기 탐색 단계일 때",
       ],
     },
-    "change-request": {
+    change: {
       summary: "운영 중 추가 요청이 들어왔을 때 변경점과 구현 작업을 함께 정리하는 세트입니다.",
       useWhen: [
         "기존 기능 위에 고객 추가 요청이 들어와 무엇이 달라지는지 먼저 정리해야 할 때",
@@ -827,7 +898,7 @@ const presetGuide = {
         "완전히 신규 기능이라 기존 기준선과의 비교가 큰 의미가 없을 때",
       ],
     },
-    "ai-quality": {
+    "ai-review": {
       summary: "AI 생성 품질, 프롬프트, 평가 기준이 중요한 기능에 맞는 세트입니다.",
       useWhen: [
         "LLM 출력 품질을 반복 검증해야 하는 기능일 때",
@@ -863,7 +934,7 @@ const presetGuide = {
         "You also need AI quality criteria and evaluation guidance right away.",
       ],
     },
-    "issue-analysis": {
+    voc: {
       summary: "Useful when turning complaints, VOC, or internal issues into a clear problem statement and share doc.",
       useWhen: [
         "You need to frame a customer complaint as a product problem before agreeing on a response.",
@@ -874,7 +945,7 @@ const presetGuide = {
         "Implementation scope is already fixed and dev task breakdown matters more than analysis.",
       ],
     },
-    "client-share": {
+    customer: {
       summary: "Best when you need to quickly share the current understanding and direction with a client.",
       useWhen: [
         "You want to send a summary right after a call or meeting.",
@@ -885,7 +956,7 @@ const presetGuide = {
         "The dev team needs implementation docs, APIs, schemas, and task breakdown immediately.",
       ],
     },
-    "dev-handoff": {
+    handoff: {
       summary: "Best set when moving from planning into direct implementation.",
       useWhen: [
         "Frontend and backend need to define execution scope right away.",
@@ -896,7 +967,7 @@ const presetGuide = {
         "Requirements are still highly unstable and exploratory.",
       ],
     },
-    "change-request": {
+    change: {
       summary: "Best for incremental requests where the delta from the current baseline matters.",
       useWhen: [
         "An additional request landed on top of an existing feature and you need to map what changed.",
@@ -907,7 +978,7 @@ const presetGuide = {
         "This is a brand-new feature and baseline comparison adds little value.",
       ],
     },
-    "ai-quality": {
+    "ai-review": {
       summary: "Best for features where AI quality, prompts, and evaluation criteria are critical.",
       useWhen: [
         "You need repeatable validation of LLM output quality.",
@@ -970,23 +1041,23 @@ const docGuideCopy = {
 const scenarioGuideCopy = {
   ko: [
     { title: "첫 고객 미팅 직후 핵심 정리", description: "요구사항은 잡혔지만 기술 설계는 아직 열려 있는 상태", preset: "core" },
-    { title: "고객 컴플레인이나 VOC를 문제 문서로 전환", description: "불만 원문을 바로 문제정의, PRD, 고객 공유 문서까지 연결해야 하는 상태", preset: "issue-analysis" },
-    { title: "개발 착수 전에 FE/BE 전달", description: "구현 범위와 API/데이터 계약을 같이 넘겨야 하는 상태", preset: "dev-handoff" },
-    { title: "고객에게 방향성과 범위를 빠르게 공유", description: "비개발자도 이해할 수 있는 정리본으로 범위와 진행 방식을 먼저 맞춰야 하는 상태", preset: "client-share" },
-    { title: "운영 중 고객 추가 기능 요청 대응", description: "기존 기준선 대비 변경점과 구현 태스크를 같이 정리해야 하는 상태", preset: "change-request" },
-    { title: "AI 생성 품질 검수 체계 만들기", description: "프롬프트와 평가 기준이 없으면 기능 품질을 관리하기 어려운 상태", preset: "ai-quality" },
+    { title: "고객 컴플레인이나 VOC를 문제 문서로 전환", description: "불만 원문을 바로 문제정의, PRD, 고객 공유 문서까지 연결해야 하는 상태", preset: "voc" },
+    { title: "개발 착수 전에 FE/BE 전달", description: "구현 범위와 API/데이터 계약을 같이 넘겨야 하는 상태", preset: "handoff" },
+    { title: "고객에게 방향성과 범위를 빠르게 공유", description: "비개발자도 이해할 수 있는 정리본으로 범위와 진행 방식을 먼저 맞춰야 하는 상태", preset: "customer" },
+    { title: "운영 중 고객 추가 기능 요청 대응", description: "기존 기준선 대비 변경점과 구현 태스크를 같이 정리해야 하는 상태", preset: "change" },
+    { title: "AI 생성 품질 검수 체계 만들기", description: "프롬프트와 평가 기준이 없으면 기능 품질을 관리하기 어려운 상태", preset: "ai-review" },
     { title: "출시 직전 QA와 운영 준비", description: "배포 순서, 체크리스트, 롤백 기준까지 필요한 상태", preset: "release" },
-    { title: "개발 핸드오프 + AI 검수 기준 둘 다 필요", description: "AI 기능이 핵심이라 계약과 평가 기준을 동시에 잡아야 하는 상태", preset: "dev-handoff", extras: ["prompt-spec", "evaluation-plan"] },
+    { title: "개발 핸드오프 + AI 검수 기준 둘 다 필요", description: "AI 기능이 핵심이라 계약과 평가 기준을 동시에 잡아야 하는 상태", preset: "handoff", extras: ["prompt-spec", "evaluation-plan"] },
   ],
   en: [
     { title: "Capture the essentials after a first client meeting", description: "Requirements are visible, but technical design is still open.", preset: "core" },
-    { title: "Turn complaints or VOC into a problem document", description: "You need to continue from the raw complaint into a problem statement, PRD, and client share doc.", preset: "issue-analysis" },
-    { title: "Hand off to FE/BE before implementation starts", description: "You need to pass scope and API/data contracts together.", preset: "dev-handoff" },
-    { title: "Share direction and scope quickly with a client", description: "You need a non-technical summary to align on scope and delivery approach.", preset: "client-share" },
-    { title: "Respond to an added feature request in production", description: "You need to organize both the diff from baseline and the implementation tasks.", preset: "change-request" },
-    { title: "Create an AI quality review framework", description: "Prompt and evaluation criteria are required to manage output quality.", preset: "ai-quality" },
+    { title: "Turn complaints or VOC into a problem document", description: "You need to continue from the raw complaint into a problem statement, PRD, and client share doc.", preset: "voc" },
+    { title: "Hand off to FE/BE before implementation starts", description: "You need to pass scope and API/data contracts together.", preset: "handoff" },
+    { title: "Share direction and scope quickly with a client", description: "You need a non-technical summary to align on scope and delivery approach.", preset: "customer" },
+    { title: "Respond to an added feature request in production", description: "You need to organize both the diff from baseline and the implementation tasks.", preset: "change" },
+    { title: "Create an AI quality review framework", description: "Prompt and evaluation criteria are required to manage output quality.", preset: "ai-review" },
     { title: "Prepare QA and operations right before launch", description: "You need deployment steps, a checklist, and rollback criteria.", preset: "release" },
-    { title: "Need both dev handoff and AI quality criteria", description: "The feature is AI-heavy, so contracts and evaluation criteria must be defined together.", preset: "dev-handoff", extras: ["prompt-spec", "evaluation-plan"] },
+    { title: "Need both dev handoff and AI quality criteria", description: "The feature is AI-heavy, so contracts and evaluation criteria must be defined together.", preset: "handoff", extras: ["prompt-spec", "evaluation-plan"] },
   ],
 } as const;
 

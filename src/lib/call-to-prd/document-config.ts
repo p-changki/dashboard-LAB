@@ -18,17 +18,29 @@ export const CALL_DOC_TYPES = [
 export type CallDocType = (typeof CALL_DOC_TYPES)[number];
 
 export const CALL_DOC_PRESETS = [
+  "quick",
   "core",
-  "issue-analysis",
-  "client-share",
-  "dev-handoff",
-  "change-request",
-  "ai-quality",
+  "voc",
+  "customer",
+  "handoff",
+  "change",
+  "ai-review",
   "release",
   "custom",
 ] as const;
 
 export type CallDocPreset = (typeof CALL_DOC_PRESETS)[number];
+
+const LEGACY_CALL_DOC_PRESET_ALIASES = {
+  "issue-analysis": "voc",
+  "client-share": "customer",
+  "dev-handoff": "handoff",
+  "change-request": "change",
+  "ai-quality": "ai-review",
+} as const satisfies Record<string, Exclude<CallDocPreset, "custom">>;
+
+export const PRIMARY_PRESETS: CallDocPreset[] = ["quick", "customer", "handoff"];
+export const ADVANCED_PRESETS: CallDocPreset[] = ["core", "voc", "change", "ai-review", "release", "custom"];
 
 export interface CallDocDefinition {
   type: CallDocType;
@@ -144,32 +156,37 @@ export const CALL_DOC_PRESET_DEFINITIONS: Record<Exclude<CallDocPreset, "custom"
   description: string;
   docTypes: CallDocType[];
 }> = {
+  quick: {
+    label: "빠른 PRD",
+    description: "PRD 1장만 빠르게 생성",
+    docTypes: ["prd"],
+  },
   core: {
     label: "핵심 세트",
     description: "PRD, 미확정 사항, Acceptance Criteria, 유저 플로우",
     docTypes: ["prd", "open-questions", "acceptance-criteria", "user-flow"],
   },
-  "issue-analysis": {
+  voc: {
     label: "VOC / 문제 분석",
     description: "PRD, 문제정의서, 고객 전달용 기획안, 미확정 사항",
     docTypes: ["prd", "problem-statement", "client-brief", "open-questions"],
   },
-  "client-share": {
+  customer: {
     label: "고객 공유",
     description: "PRD, 고객 전달용 기획안, 미확정 사항",
     docTypes: ["prd", "client-brief", "open-questions"],
   },
-  "dev-handoff": {
+  handoff: {
     label: "개발 핸드오프",
     description: "핵심 세트 + API 계약서 + 데이터 스키마",
     docTypes: ["prd", "open-questions", "acceptance-criteria", "user-flow", "api-contract", "data-schema"],
   },
-  "change-request": {
+  change: {
     label: "변경 요청 대응",
     description: "PRD, 미확정 사항, 변경요청 Diff, 개발 태스크 분해",
     docTypes: ["prd", "open-questions", "change-request-diff", "task-breakdown"],
   },
-  "ai-quality": {
+  "ai-review": {
     label: "AI 검수 세트",
     description: "핵심 세트 + Prompt Spec + 평가 계획",
     docTypes: ["prd", "open-questions", "acceptance-criteria", "user-flow", "prompt-spec", "evaluation-plan"],
@@ -189,6 +206,24 @@ export function isCallDocPreset(value: string): value is CallDocPreset {
   return CALL_DOC_PRESETS.includes(value as CallDocPreset);
 }
 
+export function normalizeCallDocPreset(value: string | null | undefined): CallDocPreset {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return "core";
+  }
+
+  if (isCallDocPreset(trimmed)) {
+    return trimmed;
+  }
+
+  if (trimmed in LEGACY_CALL_DOC_PRESET_ALIASES) {
+    return LEGACY_CALL_DOC_PRESET_ALIASES[trimmed as keyof typeof LEGACY_CALL_DOC_PRESET_ALIASES];
+  }
+
+  return "core";
+}
+
 export function sortCallDocTypes(docTypes: readonly CallDocType[]): CallDocType[] {
   const seen = new Set<CallDocType>();
   const normalized = docTypes.includes("prd") ? [...docTypes] : ["prd", ...docTypes];
@@ -206,9 +241,10 @@ export function sortCallDocTypes(docTypes: readonly CallDocType[]): CallDocType[
 }
 
 export function resolvePresetDocTypes(preset: string | null | undefined): CallDocType[] {
-  if (preset && preset !== "custom" && preset in CALL_DOC_PRESET_DEFINITIONS) {
-    const resolvedPreset = preset as Exclude<CallDocPreset, "custom">;
-    return CALL_DOC_PRESET_DEFINITIONS[resolvedPreset].docTypes;
+  const normalizedPreset = normalizeCallDocPreset(preset);
+
+  if (normalizedPreset !== "custom") {
+    return CALL_DOC_PRESET_DEFINITIONS[normalizedPreset].docTypes;
   }
 
   return CALL_DOC_PRESET_DEFINITIONS.core.docTypes;

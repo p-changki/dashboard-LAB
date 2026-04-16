@@ -2,6 +2,7 @@ import type { DashboardNavigationMode } from "@/components/layout/TabNav";
 import type { ProjectsLiteResponse } from "@/lib/types";
 
 export type InputMode = "file" | "text";
+export type IntakeMode = "quick" | "pro";
 export type SubTab = "intake" | "viewer" | "history";
 
 export const SAVED_PAGE_SIZE = 6;

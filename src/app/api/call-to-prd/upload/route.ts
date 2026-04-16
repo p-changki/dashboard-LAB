@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { createRecord, updateStatus } from "@/lib/call-to-prd/call-store";
 import {
   buildGeneratedDocTitle,
-  isCallDocPreset,
+  normalizeCallDocPreset,
   normalizeSelectedDocTypes,
   type CallDocPreset,
 } from "@/lib/call-to-prd/document-config";
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const rawGenerationMode = (formData.get("generationMode") as string) || "claude";
     const generationMode: CallGenerationMode = isCallGenerationMode(rawGenerationMode) ? rawGenerationMode : "claude";
     const rawGenerationPreset = (formData.get("generationPreset") as string) || "core";
-    const generationPreset: CallDocPreset = isCallDocPreset(rawGenerationPreset) ? rawGenerationPreset : "core";
+    const generationPreset: CallDocPreset = normalizeCallDocPreset(rawGenerationPreset);
     const intake = normalizeCallIntakeMetadata({
       inputKind: (formData.get("inputKind") as string) || undefined,
       severity: (formData.get("severity") as string) || undefined,

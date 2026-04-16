@@ -1,4 +1,8 @@
 import { persistJson, readPersistentJson } from "@/lib/storage/persistent-json";
+import {
+  normalizeCallDocPreset,
+  normalizeSelectedDocTypes,
+} from "@/lib/call-to-prd/document-config";
 import { normalizeCallIntakeMetadata } from "@/lib/call-to-prd/intake-config";
 import type { CallRecord, CallStatus } from "@/lib/types/call-to-prd";
 
@@ -103,6 +107,8 @@ function recoverRecord(record: CallRecord): CallRecord {
     ...record,
     additionalContext: record.additionalContext ?? null,
     projectPath: record.projectPath ?? null,
+    generationPreset: normalizeCallDocPreset(record.generationPreset),
+    selectedDocTypes: normalizeSelectedDocTypes(record.selectedDocTypes ?? [], record.generationPreset),
     inputKind: intake.inputKind,
     severity: intake.severity,
     customerImpact: intake.customerImpact,

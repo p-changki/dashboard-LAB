@@ -31,12 +31,19 @@ import {
 } from "@/features/call-to-prd/components/CallToPrdMarkdown";
 import { getCallToPrdCopy } from "@/features/call-to-prd/copy";
 
-import type { InputMode, SubTab } from "../state";
+import type { InputMode, IntakeMode, SubTab } from "../state";
+
+const INTAKE_MODE_STORAGE_KEY = "call-to-prd:intake-mode";
+
+function isIntakeMode(value: string): value is IntakeMode {
+  return value === "quick" || value === "pro";
+}
 
 export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = "advanced") {
   const { locale } = useLocale();
   const copy = getCallToPrdCopy(locale);
   const [subTab, setSubTab] = useState<SubTab>("intake");
+  const [intakeMode, setIntakeMode] = useState<IntakeMode>("quick");
   const [mode, setMode] = useState<InputMode>("file");
   const [file, setFile] = useState<File | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -192,6 +199,25 @@ export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = 
   );
 
   useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(INTAKE_MODE_STORAGE_KEY);
+      if (raw && isIntakeMode(raw)) {
+        setIntakeMode(raw);
+      }
+    } catch {
+      setIntakeMode("quick");
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(INTAKE_MODE_STORAGE_KEY, intakeMode);
+    } catch {
+      // Ignore persistence failures and keep the in-memory mode.
+    }
+  }, [intakeMode]);
+
+  useEffect(() => {
     setPrdView("merged");
     setActiveDocType("prd");
     setDocResultsOpen(true);
@@ -250,6 +276,8 @@ export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = 
     isCoreMode,
     subTab,
     setSubTab,
+    intakeMode,
+    setIntakeMode,
     mode,
     setMode,
     file,

@@ -3,9 +3,11 @@
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { AppConfirmModal } from "@/components/modals/AppConfirmModal";
 import { AppPromptModal } from "@/components/modals/AppPromptModal";
+import { DEFAULT_CALL_INTAKE_METADATA } from "@/lib/call-to-prd/intake-config";
 import { DocSelectionGuideModal } from "@/features/call-to-prd/components/DocSelectionGuideModal";
 import { CallToPrdHistory } from "@/features/call-to-prd/components/CallToPrdHistory";
 import { CallToPrdIntake } from "@/features/call-to-prd/components/CallToPrdIntake";
+import { CallToPrdQuickIntake } from "@/features/call-to-prd/components/CallToPrdQuickIntake";
 import { CallToPrdViewer } from "@/features/call-to-prd/components/CallToPrdViewer";
 import { getCallToPrdCopy } from "@/features/call-to-prd/copy";
 import { useCallToPrdActions } from "@/features/call-to-prd/hooks/useCallToPrdActions";
@@ -66,6 +68,7 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
     selectedDocContent: workspace.selectedDocContent,
     projects: workspace.projects,
     setSubTab: workspace.setSubTab,
+    setIntakeMode: workspace.setIntakeMode,
     setSelectedHistory: workspace.setSelectedHistory,
     setSelectedSaved: workspace.setSelectedSaved,
     setCurrent: workspace.setCurrent,
@@ -103,6 +106,29 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
     fetchSaved: data.fetchSaved,
     startPolling: data.startPolling,
   });
+  const quickProjectPath = workspace.projectPath || workspace.currentProjectPath;
+  const quickProject = workspace.projects.find((project) => project.path === quickProjectPath) ?? null;
+
+  function handleQuickSubmit() {
+    void actions.handleSubmit({
+      mode: "text",
+      directText: workspace.directText,
+      projectPath: quickProjectPath,
+      projectName: quickProject?.name ?? workspace.projectName,
+      customerName: "",
+      additionalContext: "",
+      inputKind: DEFAULT_CALL_INTAKE_METADATA.inputKind,
+      severity: DEFAULT_CALL_INTAKE_METADATA.severity,
+      customerImpact: DEFAULT_CALL_INTAKE_METADATA.customerImpact,
+      urgency: DEFAULT_CALL_INTAKE_METADATA.urgency,
+      reproducibility: DEFAULT_CALL_INTAKE_METADATA.reproducibility,
+      currentWorkaround: "",
+      separateExternalDocs: DEFAULT_CALL_INTAKE_METADATA.separateExternalDocs,
+      baselineEntryName: "",
+      generationPreset: "quick",
+      selectedDocTypes: ["prd"],
+    });
+  }
 
   return (
     <div className="space-y-5">
@@ -148,72 +174,118 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
       </div>
 
       {workspace.subTab === "intake" ? (
-        <CallToPrdIntake
-          isCoreMode={workspace.isCoreMode}
-          feedbackMessage={workspace.feedbackMessage}
-          mode={workspace.mode}
-          setMode={workspace.setMode}
-          file={workspace.file}
-          setFile={workspace.setFile}
-          pdfFile={workspace.pdfFile}
-          setPdfFile={workspace.setPdfFile}
-          directText={workspace.directText}
-          setDirectText={workspace.setDirectText}
-          projectPath={workspace.projectPath}
-          projectName={workspace.projectName}
-          setProjectName={workspace.setProjectName}
-          projectContextStatus={workspace.projectContextStatus}
-          projectContextSummary={workspace.projectContextSummary}
-          projectContextSources={workspace.projectContextSources}
-          projectContextError={workspace.projectContextError}
-          customerName={workspace.customerName}
-          setCustomerName={workspace.setCustomerName}
-          additionalContext={workspace.additionalContext}
-          setAdditionalContext={workspace.setAdditionalContext}
-          projects={workspace.projects}
-          currentProjectPath={workspace.currentProjectPath}
-          selectedProject={workspace.selectedProject}
-          handleProjectSelect={actions.handleProjectSelect}
-          inputKind={workspace.inputKind}
-          setInputKind={workspace.setInputKind}
-          severity={workspace.severity}
-          setSeverity={workspace.setSeverity}
-          customerImpact={workspace.customerImpact}
-          setCustomerImpact={workspace.setCustomerImpact}
-          urgency={workspace.urgency}
-          setUrgency={workspace.setUrgency}
-          reproducibility={workspace.reproducibility}
-          setReproducibility={workspace.setReproducibility}
-          currentWorkaround={workspace.currentWorkaround}
-          setCurrentWorkaround={workspace.setCurrentWorkaround}
-          separateExternalDocs={workspace.separateExternalDocs}
-          setSeparateExternalDocs={workspace.setSeparateExternalDocs}
-          needsChangeBaseline={workspace.needsChangeBaseline}
-          baselineEntryName={workspace.baselineEntryName}
-          setBaselineEntryName={workspace.setBaselineEntryName}
-          savedBundles={workspace.savedBundles}
-          activeQueue={workspace.activeQueue}
-          recentQueue={workspace.recentQueue}
-          setSelectedHistory={workspace.setSelectedHistory}
-          setSelectedSaved={workspace.setSelectedSaved}
-          handleRetryRecord={actions.handleRetryRecord}
-          handleDeleteHistoryRecord={(id) => void actions.handleDeleteHistoryRecord(id)}
-          availableTemplateSets={workspace.availableTemplateSets}
-          applyTemplateSet={actions.applyTemplateSet}
-          handleSaveTemplateSet={actions.handleSaveTemplateSet}
-          handleDeleteTemplateSet={actions.handleDeleteTemplateSet}
-          generationMode={workspace.generationMode}
-          setGenerationMode={workspace.setGenerationMode}
-          generationPreset={workspace.generationPreset}
-          applyPreset={actions.applyPreset}
-          selectedDocTypes={workspace.selectedDocTypes}
-          toggleDocType={actions.toggleDocType}
-          setGuideOpen={workspace.setGuideOpen}
-          handleSubmit={() => void actions.handleSubmit()}
-          displayRecord={workspace.displayRecord}
-          history={workspace.history}
-          savedTotalCount={workspace.savedTotalCount}
-        />
+        <section className="rounded-3xl border border-border-base bg-white/[0.03] p-2">
+          <div className="grid gap-2 md:grid-cols-2">
+            {(["quick", "pro"] as const).map((mode) => {
+              const active = workspace.intakeMode === mode;
+              const modeCopy = copy.tab.intakeModes[mode];
+
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => workspace.setIntakeMode(mode)}
+                  className={`rounded-[22px] border px-4 py-4 text-left transition-all ${
+                    active
+                      ? "border-cyan-400/25 bg-cyan-400/[0.08] text-white"
+                      : "border-border-base bg-black/10 text-text-secondary hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <p className="text-sm font-semibold">{modeCopy.label}</p>
+                  <p className="mt-1 text-xs leading-6 opacity-80">{modeCopy.description}</p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {workspace.subTab === "intake" ? (
+        workspace.intakeMode === "quick" ? (
+          <CallToPrdQuickIntake
+            feedbackMessage={workspace.feedbackMessage}
+            directText={workspace.directText}
+            setDirectText={workspace.setDirectText}
+            projectPath={quickProjectPath}
+            projects={workspace.projects}
+            currentProjectPath={workspace.currentProjectPath}
+            selectedProject={quickProject}
+            projectContextStatus={workspace.projectContextStatus}
+            projectContextSummary={workspace.projectContextSummary}
+            projectContextSources={workspace.projectContextSources}
+            projectContextError={workspace.projectContextError}
+            generationMode={workspace.generationMode}
+            handleProjectSelect={actions.handleProjectSelect}
+            handleSubmit={handleQuickSubmit}
+          />
+        ) : (
+          <CallToPrdIntake
+            isCoreMode={workspace.isCoreMode}
+            feedbackMessage={workspace.feedbackMessage}
+            mode={workspace.mode}
+            setMode={workspace.setMode}
+            file={workspace.file}
+            setFile={workspace.setFile}
+            pdfFile={workspace.pdfFile}
+            setPdfFile={workspace.setPdfFile}
+            directText={workspace.directText}
+            setDirectText={workspace.setDirectText}
+            projectPath={workspace.projectPath}
+            projectName={workspace.projectName}
+            setProjectName={workspace.setProjectName}
+            projectContextStatus={workspace.projectContextStatus}
+            projectContextSummary={workspace.projectContextSummary}
+            projectContextSources={workspace.projectContextSources}
+            projectContextError={workspace.projectContextError}
+            customerName={workspace.customerName}
+            setCustomerName={workspace.setCustomerName}
+            additionalContext={workspace.additionalContext}
+            setAdditionalContext={workspace.setAdditionalContext}
+            projects={workspace.projects}
+            currentProjectPath={workspace.currentProjectPath}
+            selectedProject={workspace.selectedProject}
+            handleProjectSelect={actions.handleProjectSelect}
+            inputKind={workspace.inputKind}
+            setInputKind={workspace.setInputKind}
+            severity={workspace.severity}
+            setSeverity={workspace.setSeverity}
+            customerImpact={workspace.customerImpact}
+            setCustomerImpact={workspace.setCustomerImpact}
+            urgency={workspace.urgency}
+            setUrgency={workspace.setUrgency}
+            reproducibility={workspace.reproducibility}
+            setReproducibility={workspace.setReproducibility}
+            currentWorkaround={workspace.currentWorkaround}
+            setCurrentWorkaround={workspace.setCurrentWorkaround}
+            separateExternalDocs={workspace.separateExternalDocs}
+            setSeparateExternalDocs={workspace.setSeparateExternalDocs}
+            needsChangeBaseline={workspace.needsChangeBaseline}
+            baselineEntryName={workspace.baselineEntryName}
+            setBaselineEntryName={workspace.setBaselineEntryName}
+            savedBundles={workspace.savedBundles}
+            activeQueue={workspace.activeQueue}
+            recentQueue={workspace.recentQueue}
+            setSelectedHistory={workspace.setSelectedHistory}
+            setSelectedSaved={workspace.setSelectedSaved}
+            handleRetryRecord={actions.handleRetryRecord}
+            handleDeleteHistoryRecord={(id) => void actions.handleDeleteHistoryRecord(id)}
+            availableTemplateSets={workspace.availableTemplateSets}
+            applyTemplateSet={actions.applyTemplateSet}
+            handleSaveTemplateSet={actions.handleSaveTemplateSet}
+            handleDeleteTemplateSet={actions.handleDeleteTemplateSet}
+            generationMode={workspace.generationMode}
+            setGenerationMode={workspace.setGenerationMode}
+            generationPreset={workspace.generationPreset}
+            applyPreset={actions.applyPreset}
+            selectedDocTypes={workspace.selectedDocTypes}
+            toggleDocType={actions.toggleDocType}
+            setGuideOpen={workspace.setGuideOpen}
+            handleSubmit={() => void actions.handleSubmit()}
+            displayRecord={workspace.displayRecord}
+            history={workspace.history}
+            savedTotalCount={workspace.savedTotalCount}
+          />
+        )
       ) : null}
 
       {workspace.subTab === "viewer" ? (

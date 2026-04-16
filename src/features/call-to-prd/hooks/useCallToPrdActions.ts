@@ -28,7 +28,29 @@ import {
   getCallToPrdCopy,
 } from "@/features/call-to-prd/copy";
 
-import type { InputMode, SubTab } from "../state";
+import type { InputMode, IntakeMode, SubTab } from "../state";
+
+type SubmitOverrides = {
+  mode?: InputMode;
+  file?: File | null;
+  pdfFile?: File | null;
+  directText?: string;
+  projectName?: string;
+  projectPath?: string;
+  customerName?: string;
+  additionalContext?: string;
+  inputKind?: CallRecord["inputKind"];
+  severity?: CallRecord["severity"];
+  customerImpact?: CallRecord["customerImpact"];
+  urgency?: CallRecord["urgency"];
+  reproducibility?: CallRecord["reproducibility"];
+  currentWorkaround?: string;
+  separateExternalDocs?: boolean;
+  baselineEntryName?: string;
+  generationMode?: CallGenerationMode;
+  generationPreset?: CallDocPreset;
+  selectedDocTypes?: CallDocType[];
+};
 
 type UseCallToPrdActionsParams = {
   mode: InputMode;
@@ -61,6 +83,7 @@ type UseCallToPrdActionsParams = {
   selectedDocContent: string;
   projects: ProjectSummary[];
   setSubTab: (value: SubTab) => void;
+  setIntakeMode: (value: IntakeMode) => void;
   setSelectedHistory: Dispatch<SetStateAction<CallRecord | null>>;
   setSelectedSaved: (saved: string | null) => void;
   setCurrent: Dispatch<SetStateAction<CallRecord | null>>;
@@ -132,6 +155,7 @@ export function useCallToPrdActions({
   selectedDocContent,
   projects,
   setSubTab,
+  setIntakeMode,
   setSelectedHistory,
   setSelectedSaved,
   setCurrent,
@@ -172,8 +196,28 @@ export function useCallToPrdActions({
   const { locale } = useLocale();
   const copy = getCallToPrdCopy(locale);
 
-  async function handleSubmit() {
-    if (!projectPath.trim()) {
+  async function handleSubmit(overrides: SubmitOverrides = {}) {
+    const resolvedMode = overrides.mode ?? mode;
+    const resolvedFile = overrides.file ?? file;
+    const resolvedPdfFile = overrides.pdfFile ?? pdfFile;
+    const resolvedDirectText = overrides.directText ?? directText;
+    const resolvedProjectName = overrides.projectName ?? projectName;
+    const resolvedProjectPath = overrides.projectPath ?? projectPath;
+    const resolvedCustomerName = overrides.customerName ?? customerName;
+    const resolvedAdditionalContext = overrides.additionalContext ?? additionalContext;
+    const resolvedInputKind = overrides.inputKind ?? inputKind;
+    const resolvedSeverity = overrides.severity ?? severity;
+    const resolvedCustomerImpact = overrides.customerImpact ?? customerImpact;
+    const resolvedUrgency = overrides.urgency ?? urgency;
+    const resolvedReproducibility = overrides.reproducibility ?? reproducibility;
+    const resolvedCurrentWorkaround = overrides.currentWorkaround ?? currentWorkaround;
+    const resolvedSeparateExternalDocs = overrides.separateExternalDocs ?? separateExternalDocs;
+    const resolvedBaselineEntryName = overrides.baselineEntryName ?? baselineEntryName;
+    const resolvedGenerationMode = overrides.generationMode ?? generationMode;
+    const resolvedGenerationPreset = overrides.generationPreset ?? generationPreset;
+    const resolvedSelectedDocTypes = sortCallDocTypes(overrides.selectedDocTypes ?? selectedDocTypes);
+
+    if (!resolvedProjectPath.trim()) {
       setFeedbackMessage(copy.hooks.projectRequired);
       return;
     }
@@ -184,30 +228,32 @@ export function useCallToPrdActions({
     }
 
     const formData = new FormData();
-    if (mode === "file" && file) {
-      formData.append("file", file);
-    } else if (mode === "text" && directText.trim()) {
-      formData.append("directTranscript", directText);
+    if (resolvedMode === "file" && resolvedFile) {
+      formData.append("file", resolvedFile);
+    } else if (resolvedMode === "text" && resolvedDirectText.trim()) {
+      formData.append("directTranscript", resolvedDirectText);
     } else {
       setFeedbackMessage(copy.hooks.submitMissingInput);
       return;
     }
-    if (pdfFile) formData.append("pdfFile", pdfFile);
-    if (projectName) formData.append("projectName", projectName);
-    if (projectPath) formData.append("projectPath", projectPath);
-    if (customerName) formData.append("customerName", customerName);
-    if (additionalContext) formData.append("additionalContext", additionalContext);
-    formData.append("inputKind", inputKind);
-    formData.append("severity", severity);
-    formData.append("customerImpact", customerImpact);
-    formData.append("urgency", urgency);
-    formData.append("reproducibility", reproducibility);
-    if (currentWorkaround.trim()) formData.append("currentWorkaround", currentWorkaround.trim());
-    formData.append("separateExternalDocs", String(separateExternalDocs));
-    if (baselineEntryName) formData.append("baselineEntryName", baselineEntryName);
-    formData.append("generationMode", generationMode);
-    formData.append("generationPreset", generationPreset);
-    selectedDocTypes.forEach((docType) => formData.append("selectedDocTypes", docType));
+    if (resolvedPdfFile) formData.append("pdfFile", resolvedPdfFile);
+    if (resolvedProjectName) formData.append("projectName", resolvedProjectName);
+    formData.append("projectPath", resolvedProjectPath);
+    if (resolvedCustomerName) formData.append("customerName", resolvedCustomerName);
+    if (resolvedAdditionalContext) formData.append("additionalContext", resolvedAdditionalContext);
+    formData.append("inputKind", resolvedInputKind);
+    formData.append("severity", resolvedSeverity);
+    formData.append("customerImpact", resolvedCustomerImpact);
+    formData.append("urgency", resolvedUrgency);
+    formData.append("reproducibility", resolvedReproducibility);
+    if (resolvedCurrentWorkaround.trim()) {
+      formData.append("currentWorkaround", resolvedCurrentWorkaround.trim());
+    }
+    formData.append("separateExternalDocs", String(resolvedSeparateExternalDocs));
+    if (resolvedBaselineEntryName) formData.append("baselineEntryName", resolvedBaselineEntryName);
+    formData.append("generationMode", resolvedGenerationMode);
+    formData.append("generationPreset", resolvedGenerationPreset);
+    resolvedSelectedDocTypes.forEach((docType) => formData.append("selectedDocTypes", docType));
 
     setSelectedHistory(null);
     setSelectedSaved(null);
@@ -365,6 +411,7 @@ export function useCallToPrdActions({
   }
 
   function applyTemplateSet(templateSet: CallDocTemplateSet) {
+    setIntakeMode("pro");
     setGenerationMode(templateSet.generationMode);
     setGenerationPreset(templateSet.generationPreset);
     setSelectedDocTypes(sortCallDocTypes(templateSet.selectedDocTypes));
@@ -478,6 +525,7 @@ export function useCallToPrdActions({
   }
 
   function handleRetryRecord(record: CallRecord) {
+    setIntakeMode(record.generationPreset === "quick" ? "quick" : "pro");
     setProjectName(record.projectName ?? "");
     setProjectPath(record.projectPath ?? "");
     setCustomerName(record.customerName ?? "");

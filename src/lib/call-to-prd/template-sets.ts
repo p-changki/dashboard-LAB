@@ -1,6 +1,11 @@
 "use client";
 
-import type { CallDocPreset, CallDocType } from "@/lib/call-to-prd/document-config";
+import {
+  normalizeCallDocPreset,
+  normalizeSelectedDocTypes,
+  type CallDocPreset,
+  type CallDocType,
+} from "@/lib/call-to-prd/document-config";
 import type { CallDocTemplateSet, CallGenerationMode } from "@/lib/types/call-to-prd";
 
 const STORAGE_KEY = "call-to-prd:template-sets";
@@ -26,6 +31,8 @@ export function readCallDocTemplateSets(): CallDocTemplateSet[] {
     return items.map((item) => ({
       ...item,
       generationMode: item.generationMode ?? "claude",
+      generationPreset: normalizeCallDocPreset(item.generationPreset),
+      selectedDocTypes: normalizeSelectedDocTypes(item.selectedDocTypes ?? [], item.generationPreset),
     }));
   } catch {
     return [];
