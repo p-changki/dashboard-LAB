@@ -59,7 +59,10 @@ const DOCUMENT_GUIDES: Record<Exclude<CallDocType, "prd">, string> = {
 - ## Mermaid 플로우
 
 ## 작성 지침
-- Mermaid 플로우는 반드시 \`\`\`mermaid / flowchart TD / \`\`\` 형식 사용
+- "## Mermaid 플로우" 섹션에는 반드시 \`\`\`mermaid fenced code block 포함
+- 핵심 흐름이 화면 상태 전환 중심이면 \`stateDiagram-v2\`, 의사결정 분기 중심이면 \`flowchart TD\` 사용
+- 분기/예외 흐름은 별도 노드 또는 상태로 분리
+- 확인 안 된 단계는 노드 라벨에 "(추정)" 접미사
 - 사용자가 어떤 순서로 어떤 결과를 보는지 단계별로 작성
 - 관리자/운영자/시스템 이벤트가 있으면 분리해서 표현`,
   "client-brief": `## 필수 구성
@@ -87,11 +90,15 @@ const DOCUMENT_GUIDES: Record<Exclude<CallDocType, "prd">, string> = {
 - ### QA / 운영
 - ## 선행조건 및 병렬 처리 가능 범위
 - ## 추천 구현 순서
+- ## Mermaid 일정 초안
 
 ## 작성 지침
 - 각 작업은 바로 티켓으로 옮길 수 있을 정도로 구체적으로 작성
 - 작업마다 목표, 산출물, 의존성을 bullet로 정리
-- 병렬 가능한 작업과 순차 작업을 분리`,
+- 병렬 가능한 작업과 순차 작업을 분리
+- "## Mermaid 일정 초안" 섹션에는 반드시 \`\`\`mermaid fenced code block으로 \`gantt\` 다이어그램 포함
+- \`dateFormat YYYY-MM-DD\`를 선언하고, 실제 일정이 미확정이면 상대 기간(예: 1d, 3d) 중심으로 작성
+- 섹션은 FE / BE / QA / Release 등 역할 기준으로 나누고, 의존성은 \`after taskId\` 문법 사용`,
   "change-request-diff": `## 필수 구성
 - ## 현재 기준선 요약
 - ## 추가되는 범위
@@ -121,11 +128,16 @@ const DOCUMENT_GUIDES: Record<Exclude<CallDocType, "prd">, string> = {
 - ## 상태값 및 enum
 - ## 관계 및 저장 규칙
 - ## 데이터 무결성/감사 로그 고려사항
+- ## Mermaid ER 다이어그램
 
 ## 작성 지침
 - 테이블과 bullet list를 혼합해도 되지만 읽기 쉬워야 함
 - 필드명은 영어 또는 snake_case/camelCase 중 하나로 일관되게 제안
-- 상태 전이와 필수/선택 여부를 명확히 표시`,
+- 상태 전이와 필수/선택 여부를 명확히 표시
+- "## Mermaid ER 다이어그램" 섹션에는 반드시 \`\`\`mermaid fenced code block으로 \`erDiagram\` 포함
+- 엔티티명은 PascalCase 사용, 주요 필드는 2~4개만 간결하게 표기
+- 확인되지 않은 엔티티는 이름에 "_Proposed" 접미사 사용
+- 관계선은 실제 카디널리티가 불확실하면 "추정:" 설명을 텍스트로 함께 남길 것`,
   "prompt-spec": `## 필수 구성
 - ## 적용 대상
 - ## 입력 변수
@@ -203,7 +215,12 @@ function buildSupportingDocumentPrompt(options: SupportingDocumentOptions): stri
       ? `- 문제 현상, 영향, 원인 가설, 대응 방향을 분리해서 정리
 - 사실과 추정을 혼합하지 말고, 추정은 반드시 "추정:"으로 표기
 - 해결 방안을 쓰더라도 문제 정의가 먼저 읽히게 작성`
-    : `- 장황한 배경 설명보다 실무자가 바로 쓸 수 있는 정보 위주로 작성`;
+      : `- 장황한 배경 설명보다 실무자가 바로 쓸 수 있는 정보 위주로 작성`;
+  const diagramGuide = type === "user-flow" || type === "data-schema" || type === "task-breakdown"
+    ? `- Mermaid 다이어그램은 반드시 \`\`\`mermaid fenced code block\`\`\`만 사용
+- Mermaid 블록 바깥에 문법 설명용 pseudo code를 섞지 말 것
+- 다이어그램이 추정을 포함하면 텍스트 또는 노드 라벨에 "추정:" 또는 "(추정)"으로 표시`
+    : "";
 
   return `당신은 시니어 프로덕트 매니저이자 테크니컬 라이터입니다.
 아래 작업 기준 요약을 바탕으로 "${definition.label}" 문서를 작성해주세요.
@@ -222,6 +239,7 @@ ${workingContext}
 - raw HTML 금지
 - 불확실한 내용은 "추정:" 접두사로 명시
 ${audienceGuide}
+${diagramGuide}
 - 문단 사이 공백을 충분히 두어 읽기 쉽게 작성
 
 ${DOCUMENT_GUIDES[type]}
