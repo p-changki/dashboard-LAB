@@ -131,6 +131,20 @@ pnpm launch
 
 Windows와 Linux 데스크톱 타깃은 아직 experimental 상태입니다.
 
+**Arch Linux (AUR)**
+
+Arch Linux 및 Arch 기반 배포판(CachyOS 등) 사용자는 [AUR](https://aur.archlinux.org/packages/dashboard-lab-bin)을 통해 미리 빌드된 패키지를 설치할 수 있습니다:
+
+```bash
+yay -S dashboard-lab-bin
+# 또는
+paru -S dashboard-lab-bin
+```
+
+**소스 코드 기반 실행**
+
+그 외 Linux 배포판이거나 Windows 환경일 경우 다음 명령어를 사용합니다:
+
 ```bash
 pnpm install
 pnpm doctor
