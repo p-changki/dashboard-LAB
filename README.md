@@ -225,6 +225,14 @@ pnpm rebuild electron node-pty
 - `Homebrew is required`: install Homebrew from <https://brew.sh> and run the launcher again.
 - `ffmpeg` missing: only needed for audio conversion. Run `brew install ffmpeg` on macOS if you want voice workflows.
 - `whisper` or `whisper-cli` missing: only needed for transcription. Run `brew install whisper-cpp` on macOS if you want voice workflows.
+- Packaged desktop app cannot find `ggml-base.bin`: create the desktop model link once so Call → PRD can reuse the local model file.
+
+```bash
+mkdir -p "$HOME/Library/Application Support/dashboard-lab/models"
+ln -sf "/Users/changkipark/Desktop/dashboard-LAB/models/ggml-base.bin" \
+  "$HOME/Library/Application Support/dashboard-lab/models/ggml-base.bin"
+```
+
 - Browser did not open automatically: run `pnpm launch` and open the local URL shown in the terminal.
 - PRD generation is unavailable: make sure `claude` or `codex` CLI is installed, or save an OpenAI API key during onboarding.
 
