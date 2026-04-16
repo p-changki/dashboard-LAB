@@ -111,6 +111,10 @@ export function CallToPrdIntakeStepDocs({
           </div>
         </div>
 
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs uppercase tracking-[0.18em] text-text-muted">{copy.intake.primaryPresetsTitle}</p>
+          <span className="rounded-full bg-white/8 px-2 py-0.5 text-[11px] text-text-muted">{PRIMARY_PRESETS.length}</span>
+        </div>
         <div className="grid gap-3 md:grid-cols-3">
           {PRIMARY_PRESETS.map((preset) => (
             <PresetCard
@@ -125,7 +129,10 @@ export function CallToPrdIntakeStepDocs({
 
         {showAdvancedPresets ? (
           <div className="space-y-3 rounded-2xl border border-border-base bg-bg-surface p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-text-muted">{copy.intake.advancedPresetsShow}</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-text-muted">{copy.intake.advancedPresetsTitle}</p>
+              <span className="rounded-full bg-white/8 px-2 py-0.5 text-[11px] text-text-muted">{ADVANCED_PRESETS.length}</span>
+            </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {ADVANCED_PRESETS.map((preset) => (
                 <PresetCard
