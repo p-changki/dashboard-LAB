@@ -112,8 +112,10 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
   const quickProject = workspace.projects.find((project) => project.path === quickProjectPath) ?? null;
 
   function handleQuickSubmit() {
+    const quickMode = workspace.file ? "file" : "text";
     void actions.handleSubmit({
-      mode: "text",
+      mode: quickMode,
+      file: workspace.file,
       directText: workspace.directText,
       projectPath: quickProjectPath,
       projectName: quickProject?.name ?? workspace.projectName,
@@ -191,12 +193,17 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
 
                 return (
                   <button
-                    key={mode}
-                    type="button"
-                    onClick={() => workspace.setIntakeMode(mode)}
-                    className={`rounded-[22px] border px-4 py-4 text-left transition-all ${
-                      active
-                        ? "border-cyan-400/25 bg-cyan-400/[0.08] text-white"
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    workspace.setIntakeMode(mode);
+                    if (mode === "quick" && !workspace.file) {
+                      workspace.setMode("text");
+                    }
+                  }}
+                  className={`rounded-[22px] border px-4 py-4 text-left transition-all ${
+                    active
+                      ? "border-cyan-400/25 bg-cyan-400/[0.08] text-white"
                         : "border-border-base bg-black/10 text-text-secondary hover:bg-white/[0.04]"
                     }`}
                   >
@@ -214,6 +221,10 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
         workspace.intakeMode === "quick" ? (
           <CallToPrdQuickIntake
             feedbackMessage={workspace.feedbackMessage}
+            mode={workspace.mode}
+            setMode={workspace.setMode}
+            file={workspace.file}
+            setFile={workspace.setFile}
             directText={workspace.directText}
             setDirectText={workspace.setDirectText}
             projectPath={quickProjectPath}
@@ -227,6 +238,12 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
             generationMode={workspace.generationMode}
             handleProjectSelect={actions.handleProjectSelect}
             handleSubmit={handleQuickSubmit}
+            activeQueue={workspace.activeQueue}
+            recentQueue={workspace.recentQueue}
+            setSelectedHistory={workspace.setSelectedHistory}
+            setSelectedSaved={workspace.setSelectedSaved}
+            handleRetryRecord={actions.handleRetryRecord}
+            handleDeleteHistoryRecord={(id) => void actions.handleDeleteHistoryRecord(id)}
           />
         ) : (
           <CallToPrdIntake

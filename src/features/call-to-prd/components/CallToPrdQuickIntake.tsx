@@ -1,16 +1,23 @@
 "use client";
 
-import { ArrowRight, FileText, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, FileAudio, FileText, Sparkles, Upload, Wand2 } from "lucide-react";
 
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { Badge } from "@/components/ui/Badge";
 import { NoticeBanner } from "@/components/ui/NoticeBanner";
+import { CallToPrdIntakeQueuePanel } from "@/features/call-to-prd/components/CallToPrdIntakeQueuePanel";
 import { getCallGenerationModeLabel, getCallPresetLabel, getCallToPrdCopy } from "@/features/call-to-prd/copy";
 import type { ProjectSummary } from "@/lib/types";
-import type { CallGenerationMode } from "@/lib/types/call-to-prd";
+import type { CallGenerationMode, CallRecord } from "@/lib/types/call-to-prd";
+
+type QuickInputMode = "file" | "text";
 
 interface CallToPrdQuickIntakeProps {
   feedbackMessage: string;
+  mode: QuickInputMode;
+  setMode: (value: QuickInputMode) => void;
+  file: File | null;
+  setFile: (value: File | null) => void;
   directText: string;
   setDirectText: (value: string) => void;
   projectPath: string;
@@ -24,10 +31,20 @@ interface CallToPrdQuickIntakeProps {
   generationMode: CallGenerationMode;
   handleProjectSelect: (path: string) => void;
   handleSubmit: () => void;
+  activeQueue: CallRecord[];
+  recentQueue: CallRecord[];
+  setSelectedHistory: (record: CallRecord | null) => void;
+  setSelectedSaved: (saved: string | null) => void;
+  handleRetryRecord: (record: CallRecord) => void;
+  handleDeleteHistoryRecord: (id: string) => void;
 }
 
 export function CallToPrdQuickIntake({
   feedbackMessage,
+  mode,
+  setMode,
+  file,
+  setFile,
   directText,
   setDirectText,
   projectPath,
@@ -41,11 +58,17 @@ export function CallToPrdQuickIntake({
   generationMode,
   handleProjectSelect,
   handleSubmit,
+  activeQueue,
+  recentQueue,
+  setSelectedHistory,
+  setSelectedSaved,
+  handleRetryRecord,
+  handleDeleteHistoryRecord,
 }: CallToPrdQuickIntakeProps) {
   const { locale } = useLocale();
   const copy = getCallToPrdCopy(locale);
-  const hasTopic = Boolean(directText.trim());
-  const canSubmit = hasTopic && Boolean(projectPath) && projectContextStatus === "ready";
+  const hasInput = Boolean(file) || Boolean(directText.trim());
+  const canSubmit = hasInput && Boolean(projectPath) && projectContextStatus === "ready";
   const projectStatusLabel = !projectPath
     ? copy.intake.quickProjectOptional
     : projectContextStatus === "ready"
@@ -81,17 +104,69 @@ export function CallToPrdQuickIntake({
           <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">{copy.intake.quickDescription}</p>
 
           <div className="mt-6 space-y-3">
-            <label className="block text-xs font-medium uppercase tracking-[0.18em] text-cyan-200/80">
-              {copy.intake.quickTopicLabel}
-            </label>
-            <textarea
-              value={directText}
-              onChange={(event) => setDirectText(event.target.value)}
-              rows={6}
-              placeholder={copy.intake.quickTopicPlaceholder}
-              className="min-h-[172px] w-full rounded-3xl border border-border-base bg-black/20 px-5 py-4 text-sm leading-7 text-white outline-none transition-colors duration-[150ms] placeholder:text-text-muted focus:border-cyan-400/40 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-bg-page)]"
-            />
-            <p className="text-sm leading-6 text-text-muted">{copy.intake.quickTopicHint}</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setMode("text")}
+                className={`rounded-full px-4 py-2 text-sm transition-all ${
+                  mode === "text"
+                    ? "border border-cyan-400/30 bg-cyan-400/[0.12] text-white"
+                    : "border border-border-base bg-black/10 text-text-secondary hover:bg-white/[0.04]"
+                }`}
+              >
+                <FileText className="mr-2 inline h-4 w-4" />
+                {copy.intake.textMode}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("file")}
+                className={`rounded-full px-4 py-2 text-sm transition-all ${
+                  mode === "file"
+                    ? "border border-cyan-400/30 bg-cyan-400/[0.12] text-white"
+                    : "border border-border-base bg-black/10 text-text-secondary hover:bg-white/[0.04]"
+                }`}
+              >
+                <FileAudio className="mr-2 inline h-4 w-4" />
+                {copy.intake.fileMode}
+              </button>
+            </div>
+
+            {mode === "file" ? (
+              <label className="flex min-h-[172px] cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-white/12 bg-black/20 p-8 text-center transition-all hover:border-cyan-400/30 hover:bg-white/[0.04]">
+                <Upload className="h-8 w-8 text-text-muted" />
+                <div className="space-y-1">
+                  <p className="text-sm text-white">{file ? file.name : copy.intake.filePlaceholder}</p>
+                  <p className="text-xs leading-6 text-text-muted">{copy.intake.quickVoiceHint}</p>
+                </div>
+                <input
+                  type="file"
+                  accept=".m4a,.mp3,.wav,.webm"
+                  className="hidden"
+                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                />
+              </label>
+            ) : (
+              <>
+                <label className="block text-xs font-medium uppercase tracking-[0.18em] text-cyan-200/80">
+                  {copy.intake.quickTopicLabel}
+                </label>
+                <textarea
+                  value={directText}
+                  onChange={(event) => setDirectText(event.target.value)}
+                  rows={6}
+                  placeholder={copy.intake.quickTopicPlaceholder}
+                  className="min-h-[172px] w-full rounded-3xl border border-border-base bg-black/20 px-5 py-4 text-sm leading-7 text-white outline-none transition-colors duration-[150ms] placeholder:text-text-muted focus:border-cyan-400/40 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-bg-page)]"
+                />
+                <p className="text-sm leading-6 text-text-muted">{copy.intake.quickTopicHint}</p>
+              </>
+            )}
+
+            {file ? (
+              <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.05] px-4 py-3 text-sm leading-6 text-cyan-100">
+                {copy.intake.quickVoiceSelected(file.name)}
+                {directText.trim() ? ` ${copy.intake.quickInputPriorityHint}` : ""}
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
@@ -188,6 +263,15 @@ export function CallToPrdQuickIntake({
           <p className="mt-3 text-sm leading-6 text-text-muted">{copy.intake.quickSubmitHint}</p>
         </aside>
       </section>
+
+      <CallToPrdIntakeQueuePanel
+        activeQueue={activeQueue}
+        recentQueue={recentQueue}
+        setSelectedHistory={setSelectedHistory}
+        setSelectedSaved={setSelectedSaved}
+        handleRetryRecord={handleRetryRecord}
+        handleDeleteHistoryRecord={handleDeleteHistoryRecord}
+      />
     </div>
   );
 }
