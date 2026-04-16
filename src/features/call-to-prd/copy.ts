@@ -521,6 +521,16 @@ const baseCopy = {
       saveCurrentConfig: "현재 구성 저장",
       noTemplateSets: "저장된 템플릿 세트가 없습니다. 자주 쓰는 문서 구성을 저장해 두면 운영 기능 추가나 AI 검수 요청에 바로 재사용할 수 있습니다.",
       applyThisConfig: "이 구성 적용",
+      advancedPresetsShow: "고급 프리셋 보기",
+      advancedPresetsHide: "고급 프리셋 숨기기",
+      wizardBack: "이전",
+      wizardNext: "다음",
+      wizardStepLabel: "단계",
+      wizardSteps: [
+        { title: "입력 소스", description: "음성 파일, PDF, 직접 입력 메모와 프로젝트 기준선을 준비합니다." },
+        { title: "문서 구성", description: "프리셋과 문서 조합을 정하고 템플릿 세트를 바로 적용합니다." },
+        { title: "세부 맥락", description: "프리셋에 따라 필요한 메타데이터만 좁혀서 확인합니다." },
+      ],
       generationTitle: "문서 생성 구성",
       generationDescription:
         "내부는 문서별로 따로 생성하고, 여기서는 프리셋으로 한 번에 선택하거나 필요한 문서만 커스텀으로 고를 수 있습니다.",
@@ -726,6 +736,16 @@ const baseCopy = {
       saveCurrentConfig: "Save current setup",
       noTemplateSets: "No saved template sets yet. Save a document mix to reuse it for recurring ops or AI QA requests.",
       applyThisConfig: "Apply this setup",
+      advancedPresetsShow: "Show advanced presets",
+      advancedPresetsHide: "Hide advanced presets",
+      wizardBack: "Back",
+      wizardNext: "Next",
+      wizardStepLabel: "Step",
+      wizardSteps: [
+        { title: "Input source", description: "Prepare audio, PDF, direct notes, and the project baseline." },
+        { title: "Document setup", description: "Choose presets, doc mix, and reusable template sets." },
+        { title: "Detail context", description: "Review only the metadata fields that matter for the selected preset." },
+      ],
       generationTitle: "Generation setup",
       generationDescription:
         "Docs are generated individually behind the scenes. Here you can use presets or pick only the docs you need.",

@@ -1,3 +1,5 @@
+import type { CallDocPreset } from "@/lib/call-to-prd/document-config";
+
 export const CALL_INPUT_KINDS = [
   "meeting",
   "complaint",
@@ -49,6 +51,20 @@ export interface CallIntakeMetadataInput {
   currentWorkaround?: string | null;
   separateExternalDocs?: boolean;
 }
+
+export const INTAKE_FIELD_KEYS = [
+  "customerName",
+  "additionalContext",
+  "inputKind",
+  "severity",
+  "customerImpact",
+  "urgency",
+  "reproducibility",
+  "currentWorkaround",
+  "separateExternalDocs",
+] as const;
+
+export type IntakeFieldKey = (typeof INTAKE_FIELD_KEYS)[number];
 
 export const CALL_INPUT_KIND_LABELS: Record<CallInputKind, string> = {
   meeting: "회의 메모",
@@ -152,4 +168,22 @@ export function buildCallIntakeMetadataMarkdown(metadata: CallIntakeMetadata): s
     `- 현재 우회책: ${metadata.currentWorkaround ?? "없음 또는 미정"}`,
     `- 고객 공유 문서 정책: ${metadata.separateExternalDocs ? "내부 메모 제외" : "내부 메모 포함 가능"}`,
   ].join("\n");
+}
+
+export function getRequiredIntakeFields(preset: CallDocPreset): IntakeFieldKey[] {
+  switch (preset) {
+    case "quick":
+    case "customer":
+    case "core":
+      return ["customerName", "additionalContext"];
+    case "handoff":
+    case "release":
+      return ["inputKind", "severity", "urgency"];
+    case "voc":
+    case "change":
+    case "ai-review":
+    case "custom":
+    default:
+      return [...INTAKE_FIELD_KEYS];
+  }
 }
