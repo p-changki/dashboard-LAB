@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/error-response";
 import { appLaunchRequestSchema } from "@/lib/api/schemas";
 import { getZodErrorMessage, isZodError, parseJsonBody } from "@/lib/api/validation";
+import { getCommandEnvironment } from "@/lib/command-availability";
 
 const DEFAULT_TERMINAL_TARGET = "__dashboard_lab_default_terminal__";
 const MAC_APP_ROOTS = ["/Applications/", "/System/Applications/"];
@@ -130,6 +131,7 @@ function runDetached(
       detached: true,
       stdio: "ignore",
       windowsHide: options.windowsHide ?? false,
+      env: getCommandEnvironment(),
     });
 
     child.once("error", reject);
