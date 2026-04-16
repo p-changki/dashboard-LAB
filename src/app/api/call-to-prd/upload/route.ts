@@ -366,10 +366,7 @@ async function processCallAsync(
     const generationWarnings: string[] = [];
     const openAiAvailable = hasOpenAiApiFallback();
     const claudeAvailable = options.generationMode === "openai" ? false : await checkClaudeInstalled();
-    const codexAvailable =
-      options.generationMode === "claude" || options.generationMode === "openai"
-        ? false
-        : await checkCodexInstalled();
+    const codexAvailable = options.generationMode === "openai" ? false : await checkCodexInstalled();
     let claudeResult: PromiseSettledResult<string> | null = null;
     let codexResult: PromiseSettledResult<string> | null = null;
     let openAiResult: PromiseSettledResult<string> | null = null;
@@ -488,6 +485,71 @@ async function processCallAsync(
           ),
         });
         return;
+      }
+    }
+
+    const initialClaudeError =
+      claudeResult?.status === "rejected" ? getErrorMessage(claudeResult.reason, options.locale) : null;
+
+    if (initialClaudeError && isClaudeUsageLimitError(initialClaudeError)) {
+      if (effectiveGenerationMode === "claude") {
+        if (codexAvailable) {
+          effectiveGenerationMode = "codex";
+          generationWarnings.push(
+            formatKnownCallToPrdRuntimeMessage("Claude 사용량 제한으로 Codex 단일 생성으로 전환했습니다.", options.locale),
+          );
+          [codexResult] = await Promise.allSettled([runCodexPrd(prompt, { cwd: runnerCwd })]);
+        } else if (openAiAvailable) {
+          effectiveGenerationMode = "openai";
+          generationWarnings.push(
+            formatKnownCallToPrdRuntimeMessage("Claude 사용량 제한으로 OpenAI API 생성으로 전환했습니다.", options.locale),
+          );
+          [openAiResult] = await Promise.allSettled([
+            runClaudePrd(prompt, {
+              cwd: runnerCwd,
+              provider: "openai",
+              allowOpenAiFallback: false,
+            }),
+          ]);
+        }
+      } else if (effectiveGenerationMode === "dual") {
+        if (codexResult?.status === "fulfilled" && openAiAvailable) {
+          generationWarnings.push(
+            formatKnownCallToPrdRuntimeMessage("Claude 사용량 제한으로 OpenAI API + Codex 조합으로 생성했습니다.", options.locale),
+          );
+          [openAiResult] = await Promise.allSettled([
+            runClaudePrd(prompt, {
+              cwd: runnerCwd,
+              provider: "openai",
+              allowOpenAiFallback: false,
+            }),
+          ]);
+
+          if (openAiResult.status !== "fulfilled") {
+            openAiResult = null;
+            effectiveGenerationMode = "codex";
+            generationWarnings.push(
+              formatKnownCallToPrdRuntimeMessage("Claude 사용량 제한으로 Codex 단일 생성으로 전환했습니다.", options.locale),
+            );
+          }
+        } else if (codexResult?.status === "fulfilled") {
+          effectiveGenerationMode = "codex";
+          generationWarnings.push(
+            formatKnownCallToPrdRuntimeMessage("Claude 사용량 제한으로 Codex 단일 생성으로 전환했습니다.", options.locale),
+          );
+        } else if (openAiAvailable) {
+          effectiveGenerationMode = "openai";
+          generationWarnings.push(
+            formatKnownCallToPrdRuntimeMessage("Claude 사용량 제한으로 OpenAI API 생성으로 전환했습니다.", options.locale),
+          );
+          [openAiResult] = await Promise.allSettled([
+            runClaudePrd(prompt, {
+              cwd: runnerCwd,
+              provider: "openai",
+              allowOpenAiFallback: false,
+            }),
+          ]);
+        }
       }
     }
 
@@ -928,4 +990,21 @@ function buildGenerationFailureMessage(options: {
   ].filter((message): message is string => Boolean(message));
 
   return messages.join(" / ") || (locale === "en" ? "AI generation failed" : "AI 생성 실패");
+}
+
+function isClaudeUsageLimitError(message: string | null) {
+  if (!message) {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+  return [
+    "you've hit your limit",
+    "you have hit your limit",
+    "usage limit",
+    "rate limit",
+    "quota",
+    "resets 12am",
+    "resets at",
+  ].some((pattern) => normalized.includes(pattern));
 }

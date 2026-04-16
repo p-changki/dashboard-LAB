@@ -38,6 +38,10 @@ const warningMap = {
     ko: "Claude CLI가 없어 OpenAI API 생성으로 전환했습니다.",
     en: "Claude CLI is unavailable, so generation switched to the OpenAI API.",
   },
+  "Claude 사용량 제한으로 OpenAI API 생성으로 전환했습니다.": {
+    ko: "Claude 사용량 제한으로 OpenAI API 생성으로 전환했습니다.",
+    en: "Claude usage limit was reached, so generation switched to the OpenAI API.",
+  },
   "Codex CLI가 없어 OpenAI API 생성으로 전환했습니다.": {
     ko: "Codex CLI가 없어 OpenAI API 생성으로 전환했습니다.",
     en: "Codex CLI is unavailable, so generation switched to the OpenAI API.",
@@ -46,9 +50,17 @@ const warningMap = {
     ko: "Claude CLI가 없어 OpenAI API + Codex 조합으로 생성했습니다.",
     en: "Claude CLI is unavailable, so generation used the OpenAI API + Codex combination.",
   },
+  "Claude 사용량 제한으로 OpenAI API + Codex 조합으로 생성했습니다.": {
+    ko: "Claude 사용량 제한으로 OpenAI API + Codex 조합으로 생성했습니다.",
+    en: "Claude usage limit was reached, so generation used the OpenAI API + Codex combination.",
+  },
   "Claude CLI가 없어 Codex 단일 생성으로 전환했습니다.": {
     ko: "Claude CLI가 없어 Codex 단일 생성으로 전환했습니다.",
     en: "Claude CLI is unavailable, so generation switched to Codex only.",
+  },
+  "Claude 사용량 제한으로 Codex 단일 생성으로 전환했습니다.": {
+    ko: "Claude 사용량 제한으로 Codex 단일 생성으로 전환했습니다.",
+    en: "Claude usage limit was reached, so generation switched to Codex only.",
   },
   "Codex가 설치되어 있지 않아 Claude 단일 생성으로 전환했습니다.": {
     ko: "Codex가 설치되어 있지 않아 Claude 단일 생성으로 전환했습니다.",
