@@ -44,6 +44,7 @@ export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = 
   const copy = getCallToPrdCopy(locale);
   const [subTab, setSubTab] = useState<SubTab>("intake");
   const [intakeMode, setIntakeMode] = useState<IntakeMode>("quick");
+  const [intakeStep, setIntakeStep] = useState(0);
   const [mode, setMode] = useState<InputMode>("file");
   const [file, setFile] = useState<File | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -278,6 +279,8 @@ export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = 
     setSubTab,
     intakeMode,
     setIntakeMode,
+    intakeStep,
+    setIntakeStep,
     mode,
     setMode,
     file,

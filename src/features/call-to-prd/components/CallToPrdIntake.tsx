@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, type Dispatch, type SetStateAction } from "react";
 import { Phone } from "lucide-react";
 
 import { NoticeBanner } from "@/components/ui/NoticeBanner";
@@ -20,6 +20,8 @@ type InputMode = "file" | "text";
 export interface CallToPrdIntakeProps {
   isCoreMode: boolean;
   feedbackMessage: string;
+  stepIndex: number;
+  setStepIndex: Dispatch<SetStateAction<number>>;
   mode: InputMode;
   setMode: (mode: InputMode) => void;
   file: File | null;
@@ -87,7 +89,6 @@ export interface CallToPrdIntakeProps {
 export function CallToPrdIntake(props: CallToPrdIntakeProps) {
   const { locale } = useLocale();
   const copy = getCallToPrdCopy(locale);
-  const [stepIndex, setStepIndex] = useState(0);
   const inputReady = props.mode === "file" ? Boolean(props.file) : Boolean(props.directText.trim());
   const canSubmit = inputReady && Boolean(props.projectPath) && props.projectContextStatus === "ready";
   const requiredFields = useMemo(() => getRequiredIntakeFields(props.generationPreset), [props.generationPreset]);
@@ -111,12 +112,12 @@ export function CallToPrdIntake(props: CallToPrdIntakeProps) {
             key={step.title}
             type="button"
             onClick={() => {
-              if (index <= stepIndex || stepReadiness[index - 1]) {
-                setStepIndex(index);
+              if (index <= props.stepIndex || stepReadiness[index - 1]) {
+                props.setStepIndex(index);
               }
             }}
             className={`rounded-2xl border px-4 py-4 text-left transition-all ${
-              stepIndex === index ? "border-purple-500/30 bg-purple-950/20" : "border-border-base bg-bg-card"
+              props.stepIndex === index ? "border-purple-500/30 bg-purple-950/20" : "border-border-base bg-bg-card"
             }`}
           >
             <p className="text-[11px] uppercase tracking-[0.2em] text-purple-200/70">{index + 1} {copy.intake.wizardStepLabel}</p>
@@ -126,31 +127,31 @@ export function CallToPrdIntake(props: CallToPrdIntakeProps) {
         ))}
       </section>
 
-      {stepIndex === 0 ? <CallToPrdIntakeStepInput {...props} /> : null}
-      {stepIndex === 1 ? <CallToPrdIntakeStepDocs {...props} /> : null}
-      {stepIndex === 2 ? <CallToPrdIntakeStepContext {...props} requiredFields={requiredFields} /> : null}
+      {props.stepIndex === 0 ? <CallToPrdIntakeStepInput {...props} /> : null}
+      {props.stepIndex === 1 ? <CallToPrdIntakeStepDocs {...props} /> : null}
+      {props.stepIndex === 2 ? <CallToPrdIntakeStepContext {...props} requiredFields={requiredFields} /> : null}
 
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-purple-500/15 bg-purple-950/15 px-5 py-4">
         <div>
           <p className="text-sm font-medium text-white">
-            {stepIndex === 2 ? copy.intake.startGeneration : copy.intake.wizardSteps[stepIndex].title}
+            {props.stepIndex === 2 ? copy.intake.startGeneration : copy.intake.wizardSteps[props.stepIndex].title}
           </p>
           <p className="mt-1 text-xs leading-6 text-text-secondary">{submitStatusText}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setStepIndex((current) => Math.max(0, current - 1))}
-            disabled={stepIndex === 0}
+            onClick={() => props.setStepIndex((current) => Math.max(0, current - 1))}
+            disabled={props.stepIndex === 0}
             className="rounded-xl border border-border-base bg-bg-surface px-4 py-3 text-sm text-text-secondary transition hover:bg-bg-card-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             {copy.intake.wizardBack}
           </button>
-          {stepIndex < 2 ? (
+          {props.stepIndex < 2 ? (
             <button
               type="button"
-              onClick={() => setStepIndex((current) => Math.min(2, current + 1))}
-              disabled={!stepReadiness[stepIndex]}
+              onClick={() => props.setStepIndex((current) => Math.min(2, current + 1))}
+              disabled={!stepReadiness[props.stepIndex]}
               className="rounded-xl bg-purple-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {copy.intake.wizardNext}

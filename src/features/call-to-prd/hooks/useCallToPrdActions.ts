@@ -28,6 +28,8 @@ import {
   formatCallToPrdApiError,
   getCallToPrdCopy,
 } from "@/features/call-to-prd/copy";
+import { getRequiredIntakeFields } from "@/lib/call-to-prd/intake-config";
+import { buildGithubIssueDraft } from "@/lib/call-to-prd/github-issue-draft";
 
 import type { InputMode, IntakeMode, SubTab } from "../state";
 
@@ -85,6 +87,7 @@ type UseCallToPrdActionsParams = {
   projects: ProjectSummary[];
   setSubTab: (value: SubTab) => void;
   setIntakeMode: (value: IntakeMode) => void;
+  setIntakeStep: Dispatch<SetStateAction<number>>;
   setSelectedHistory: Dispatch<SetStateAction<CallRecord | null>>;
   setSelectedSaved: (saved: string | null) => void;
   setCurrent: Dispatch<SetStateAction<CallRecord | null>>;
@@ -157,6 +160,7 @@ export function useCallToPrdActions({
   projects,
   setSubTab,
   setIntakeMode,
+  setIntakeStep,
   setSelectedHistory,
   setSelectedSaved,
   setCurrent,
@@ -464,6 +468,8 @@ export function useCallToPrdActions({
 
   function applyTemplateSet(templateSet: CallDocTemplateSet) {
     setIntakeMode("pro");
+    setIntakeStep(getTemplateResumeStep(templateSet.generationPreset));
+    setSubTab("intake");
     setGenerationMode(templateSet.generationMode);
     setGenerationPreset(templateSet.generationPreset);
     setSelectedDocTypes(sortCallDocTypes(templateSet.selectedDocTypes));
@@ -578,6 +584,7 @@ export function useCallToPrdActions({
 
   function handleRetryRecord(record: CallRecord) {
     setIntakeMode(record.generationPreset === "quick" ? "quick" : "pro");
+    setIntakeStep(record.generationPreset === "quick" ? 0 : 2);
     setProjectName(record.projectName ?? "");
     setProjectPath(record.projectPath ?? "");
     setCustomerName(record.customerName ?? "");
@@ -610,6 +617,61 @@ export function useCallToPrdActions({
 
     setSubTab("intake");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function exportToObsidian() {
+    if (!displayRecord?.prdMarkdown) {
+      setFeedbackMessage(copy.hooks.obsidianExportFailed);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/call-to-prd/obsidian/export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-dashboard-locale": locale,
+        },
+        body: JSON.stringify({
+          title: displayRecord.projectName ?? displayRecord.fileName,
+          bundleId: displayRecord.savedEntryName,
+          projectName: displayRecord.projectName,
+          customerName: displayRecord.customerName,
+          createdAt: displayRecord.createdAt,
+          markdown: displayRecord.prdMarkdown,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        setFeedbackMessage(formatCallToPrdApiError(errorData?.error, locale, copy.hooks.obsidianExportFailed));
+        return;
+      }
+
+      const payload = await response.json() as { filePath?: string | null };
+      setFeedbackMessage(copy.hooks.obsidianExported(payload.filePath ?? null));
+    } catch {
+      setFeedbackMessage(copy.hooks.obsidianExportFailed);
+    }
+  }
+
+  async function copyGithubIssueDraft() {
+    if (!displayRecord?.prdMarkdown) {
+      setFeedbackMessage(copy.hooks.githubIssueCopyFailed);
+      return;
+    }
+
+    try {
+      const draft = buildGithubIssueDraft({
+        projectName: displayRecord.projectName,
+        customerName: displayRecord.customerName,
+        prdMarkdown: displayRecord.prdMarkdown,
+      });
+      await navigator.clipboard.writeText(draft);
+      setFeedbackMessage(copy.hooks.githubIssueCopied);
+    } catch {
+      setFeedbackMessage(copy.hooks.githubIssueCopyFailed);
+    }
   }
 
   function downloadCurrentMarkdown() {
@@ -648,6 +710,8 @@ export function useCallToPrdActions({
     handleDeleteHistoryRecord,
     handleRetryRecord,
     downloadCurrentMarkdown,
+    exportToObsidian,
+    copyGithubIssueDraft,
   };
 }
 
@@ -668,4 +732,8 @@ function updateRecordDocMarkdown(
       doc.type === docType ? { ...doc, markdown } : doc
     )),
   };
+}
+
+function getTemplateResumeStep(preset: CallDocPreset) {
+  return getRequiredIntakeFields(preset).length <= 2 ? 2 : 1;
 }

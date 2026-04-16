@@ -8,6 +8,7 @@ import { DocSelectionGuideModal } from "@/features/call-to-prd/components/DocSel
 import { CallToPrdHistory } from "@/features/call-to-prd/components/CallToPrdHistory";
 import { CallToPrdIntake } from "@/features/call-to-prd/components/CallToPrdIntake";
 import { CallToPrdQuickIntake } from "@/features/call-to-prd/components/CallToPrdQuickIntake";
+import { RecentTemplatesRow } from "@/features/call-to-prd/components/RecentTemplatesRow";
 import { CallToPrdViewer } from "@/features/call-to-prd/components/CallToPrdViewer";
 import { getCallToPrdCopy } from "@/features/call-to-prd/copy";
 import { useCallToPrdActions } from "@/features/call-to-prd/hooks/useCallToPrdActions";
@@ -69,6 +70,7 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
     projects: workspace.projects,
     setSubTab: workspace.setSubTab,
     setIntakeMode: workspace.setIntakeMode,
+    setIntakeStep: workspace.setIntakeStep,
     setSelectedHistory: workspace.setSelectedHistory,
     setSelectedSaved: workspace.setSelectedSaved,
     setCurrent: workspace.setCurrent,
@@ -174,30 +176,38 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
       </div>
 
       {workspace.subTab === "intake" ? (
-        <section className="rounded-3xl border border-border-base bg-white/[0.03] p-2">
-          <div className="grid gap-2 md:grid-cols-2">
-            {(["quick", "pro"] as const).map((mode) => {
-              const active = workspace.intakeMode === mode;
-              const modeCopy = copy.tab.intakeModes[mode];
+        <div className="space-y-5">
+          <RecentTemplatesRow
+            templateSets={workspace.templateSets}
+            onApply={actions.applyTemplateSet}
+            onDelete={actions.handleDeleteTemplateSet}
+          />
 
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => workspace.setIntakeMode(mode)}
-                  className={`rounded-[22px] border px-4 py-4 text-left transition-all ${
-                    active
-                      ? "border-cyan-400/25 bg-cyan-400/[0.08] text-white"
-                      : "border-border-base bg-black/10 text-text-secondary hover:bg-white/[0.04]"
-                  }`}
-                >
-                  <p className="text-sm font-semibold">{modeCopy.label}</p>
-                  <p className="mt-1 text-xs leading-6 opacity-80">{modeCopy.description}</p>
-                </button>
-              );
-            })}
-          </div>
-        </section>
+          <section className="rounded-3xl border border-border-base bg-white/[0.03] p-2">
+            <div className="grid gap-2 md:grid-cols-2">
+              {(["quick", "pro"] as const).map((mode) => {
+                const active = workspace.intakeMode === mode;
+                const modeCopy = copy.tab.intakeModes[mode];
+
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => workspace.setIntakeMode(mode)}
+                    className={`rounded-[22px] border px-4 py-4 text-left transition-all ${
+                      active
+                        ? "border-cyan-400/25 bg-cyan-400/[0.08] text-white"
+                        : "border-border-base bg-black/10 text-text-secondary hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">{modeCopy.label}</p>
+                    <p className="mt-1 text-xs leading-6 opacity-80">{modeCopy.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
       ) : null}
 
       {workspace.subTab === "intake" ? (
@@ -222,6 +232,8 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
           <CallToPrdIntake
             isCoreMode={workspace.isCoreMode}
             feedbackMessage={workspace.feedbackMessage}
+            stepIndex={workspace.intakeStep}
+            setStepIndex={workspace.setIntakeStep}
             mode={workspace.mode}
             setMode={workspace.setMode}
             file={workspace.file}
@@ -323,6 +335,8 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
           handleRetryRecord={actions.handleRetryRecord}
           handleGenerateNextAction={(actionType) => void actions.handleGenerateNextAction(actionType)}
           regenerateSection={(sectionId, hint) => actions.regenerateSection(sectionId, hint)}
+          exportToObsidian={() => actions.exportToObsidian()}
+          copyGithubIssueDraft={() => actions.copyGithubIssueDraft()}
           downloadCurrentMarkdown={actions.downloadCurrentMarkdown}
           downloadNextActionMarkdown={() => actions.downloadNextActionMarkdown(workspace.activeNextActionResult)}
         />

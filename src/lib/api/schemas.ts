@@ -544,6 +544,15 @@ export const callSectionRegenerateRequestSchema = z.object({
   hint: optionalTrimmedString,
 });
 
+export const callObsidianExportRequestSchema = z.object({
+  title: optionalTrimmedString,
+  bundleId: optionalTrimmedString,
+  projectName: nullableTrimmedString,
+  customerName: nullableTrimmedString,
+  createdAt: optionalTrimmedString,
+  markdown: nonEmptyString,
+});
+
 export const callHistoryDeleteSchema = z.object({
   id: nonEmptyString,
 });
