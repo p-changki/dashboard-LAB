@@ -39,8 +39,8 @@ const LEGACY_CALL_DOC_PRESET_ALIASES = {
   "ai-quality": "ai-review",
 } as const satisfies Record<string, Exclude<CallDocPreset, "custom">>;
 
-export const PRIMARY_PRESETS: CallDocPreset[] = ["quick", "customer", "handoff"];
-export const ADVANCED_PRESETS: CallDocPreset[] = ["core", "voc", "change", "ai-review", "release", "custom"];
+export const PRIMARY_PRESETS: CallDocPreset[] = ["quick", "voc", "handoff"];
+export const ADVANCED_PRESETS: CallDocPreset[] = ["customer", "core", "change", "ai-review", "release", "custom"];
 
 export interface CallDocDefinition {
   type: CallDocType;
