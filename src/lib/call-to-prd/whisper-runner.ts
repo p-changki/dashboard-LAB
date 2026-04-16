@@ -4,7 +4,7 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { checkCommandAvailable } from "@/lib/command-availability";
+import { checkCommandAvailable, getCommandEnvironment } from "@/lib/command-availability";
 import { getRuntimeConfig } from "@/lib/runtime/config";
 
 const execFileAsync = promisify(execFile);
@@ -52,7 +52,7 @@ export async function transcribeAudio(filePath: string): Promise<string> {
       "ko",
       "--output_format",
       "txt",
-    ], { timeout: TIMEOUT_MS });
+    ], { timeout: TIMEOUT_MS, env: getCommandEnvironment() });
   } else {
     const inputPath = await ensureWhisperCliInput(filePath);
     await execFileAsync("whisper-cli", [
@@ -65,7 +65,7 @@ export async function transcribeAudio(filePath: string): Promise<string> {
       "-of",
       outputBase,
       inputPath,
-    ], { timeout: TIMEOUT_MS });
+    ], { timeout: TIMEOUT_MS, env: getCommandEnvironment() });
   }
 
   const transcript = await readFile(outputPath, "utf-8");
@@ -133,7 +133,7 @@ async function ensureWhisperCliInput(filePath: string): Promise<string> {
     "-c:a",
     "pcm_s16le",
     convertedPath,
-  ], { timeout: TIMEOUT_MS });
+  ], { timeout: TIMEOUT_MS, env: getCommandEnvironment() });
 
   return convertedPath;
 }
