@@ -24,12 +24,16 @@ const DOCUMENT_GUIDES: Record<Exclude<CallDocType, "prd">, string> = {
 - ## 대응 방향 및 옵션
 - ## 바로 확인할 데이터 / 추가 정보
 - ## 성공 판단 기준
+- ## Mermaid 인과 다이어그램
 
 ## 작성 지침
 - 고객 불만, 회의 메모, 운영 이슈 중 무엇이 들어와도 사실과 해석을 분리
 - 이미 확인된 사실은 단정적으로, 가설은 반드시 "추정:"으로 표시
 - 해결책 제안 전에 문제가 무엇인지 먼저 선명하게 정의
-- 내부 팀이 읽고 바로 의사결정을 시작할 수 있는 수준으로 작성`,
+- 내부 팀이 읽고 바로 의사결정을 시작할 수 있는 수준으로 작성
+- "## Mermaid 인과 다이어그램" 섹션에는 반드시 \`\`\`mermaid fenced code block으로 \`flowchart LR\` 또는 \`graph LR\` 포함
+- 현상 → 영향 → 원인 가설 → 대응 방향 순서가 드러나게 연결
+- 확인 안 된 가설은 노드 라벨 뒤에 "(추정)" 접미사`,
   "open-questions": `## 필수 구성
 - ## 결정된 사항
 - ## 미확정 사항
@@ -73,13 +77,17 @@ const DOCUMENT_GUIDES: Record<Exclude<CallDocType, "prd">, string> = {
 - ## 기대 효과
 - ## 고객과 함께 확인할 사항
 - ## 다음 단계
+- ## Mermaid 고객 여정
 
 ## 작성 지침
 - 비개발자 고객이 읽는다고 가정하고 쉬운 표현으로 작성
 - 기술 용어가 필요하면 한 줄로 바로 풀어서 설명
 - API, DB, 인프라, 프롬프트 같은 내부 구현 세부사항은 꼭 필요한 경우만 간단히 언급
 - 톤은 "우리는 이렇게 이해했고, 이렇게 개발할 예정입니다"에 가깝게 정리
-- 확정된 범위와 추가 협의가 필요한 범위를 분리`,
+- 확정된 범위와 추가 협의가 필요한 범위를 분리
+- "## Mermaid 고객 여정" 섹션에는 반드시 \`\`\`mermaid fenced code block으로 \`journey\` 다이어그램 포함
+- 단계는 요청 인지 → 협의 → 구현 → 확인까지 최소 4단계 이상
+- 만족도는 1~5 정수로 표기하고, 확인 안 된 값은 본문 또는 라벨에 "추정:" 명시`,
   "task-breakdown": `## 필수 구성
 - ## 구현 전략 요약
 - ## 작업 분해
@@ -106,22 +114,30 @@ const DOCUMENT_GUIDES: Record<Exclude<CallDocType, "prd">, string> = {
 - ## 제거/보류되는 범위
 - ## 영향 받는 화면/도메인/API
 - ## 리스크 및 확인 필요 항목
+- ## Mermaid 변경 흐름
 
 ## 작성 지침
 - 기존 기준선 대비 무엇이 달라지는지 비교 중심으로 작성
 - "신규", "수정", "유지", "보류"를 명확히 구분
-- 기준선이 명확하지 않으면 "추정 기준선"으로 표시`,
+- 기준선이 명확하지 않으면 "추정 기준선"으로 표시
+- "## Mermaid 변경 흐름" 섹션에는 반드시 \`\`\`mermaid fenced code block으로 \`flowchart LR\` 포함
+- 기준선 → 변경 요청 → 영향 영역 → 최종 상태 순서가 드러나게 연결
+- 확인되지 않은 기준선은 노드 라벨 또는 다이어그램 아래에 "추정:"으로 표시`,
   "api-contract": `## 필수 구성
 - ## API 개요
 - ## 엔드포인트 제안
 - 각 엔드포인트별로 목적, 메서드, 경로, 요청, 응답, 에러 케이스
 - ## 인증/권한 고려사항
 - ## 성능/운영 고려사항
+- ## Mermaid 요청 흐름
 
 ## 작성 지침
 - PRD를 기준으로 필요한 엔드포인트를 제안
 - 확정되지 않은 리소스명이나 경로는 "추정:"으로 표시
-- JSON 예시는 fenced code block으로 작성`,
+- JSON 예시는 fenced code block으로 작성
+- "## Mermaid 요청 흐름" 섹션에는 반드시 \`\`\`mermaid fenced code block으로 \`sequenceDiagram\` 포함
+- 클라이언트, API, 저장소/외부서비스 중 실제 필요한 참여자만 사용
+- 실패 분기나 권한 검사가 있으면 다이어그램 주석 또는 별도 step으로 표현`,
   "data-schema": `## 필수 구성
 - ## 엔티티 개요
 - ## 핵심 필드 정의
@@ -180,11 +196,15 @@ const DOCUMENT_GUIDES: Record<Exclude<CallDocType, "prd">, string> = {
 - ## 장애 대응
 - ## 롤백 기준 및 절차
 - ## 배포 후 확인 항목
+- ## Mermaid 배포 흐름
 
 ## 작성 지침
 - 운영자가 바로 따라할 수 있는 순서 중심 문서
 - 인프라/권한/환경변수/로그 확인 포인트를 포함
-- 미정인 배포 방식은 "추정:"으로 명시`,
+- 미정인 배포 방식은 "추정:"으로 명시
+- "## Mermaid 배포 흐름" 섹션에는 반드시 \`\`\`mermaid fenced code block으로 \`flowchart LR\` 또는 \`gantt\` 포함
+- 준비 → 배포 → 모니터링 → 롤백 분기를 순서대로 표현
+- 조건 분기 노드는 짧게, 구체 설명은 본문 bullet로 보완`,
 };
 
 export async function generateSupportingDocument(options: SupportingDocumentOptions): Promise<GeneratedDoc> {
@@ -216,7 +236,14 @@ function buildSupportingDocumentPrompt(options: SupportingDocumentOptions): stri
 - 사실과 추정을 혼합하지 말고, 추정은 반드시 "추정:"으로 표기
 - 해결 방안을 쓰더라도 문제 정의가 먼저 읽히게 작성`
       : `- 장황한 배경 설명보다 실무자가 바로 쓸 수 있는 정보 위주로 작성`;
-  const diagramGuide = type === "user-flow" || type === "data-schema" || type === "task-breakdown"
+  const diagramGuide = type === "user-flow"
+    || type === "data-schema"
+    || type === "task-breakdown"
+    || type === "problem-statement"
+    || type === "client-brief"
+    || type === "change-request-diff"
+    || type === "api-contract"
+    || type === "release-runbook"
     ? `- Mermaid 다이어그램은 반드시 \`\`\`mermaid fenced code block\`\`\`만 사용
 - Mermaid 블록 바깥에 문법 설명용 pseudo code를 섞지 말 것
 - 다이어그램이 추정을 포함하면 텍스트 또는 노드 라벨에 "추정:" 또는 "(추정)"으로 표시`
