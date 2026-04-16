@@ -21,8 +21,9 @@ export async function runCodexPrd(prompt: string, options?: { cwd?: string }): P
       "codex",
       buildDashboardLabCodexExecArgs(prompt, { outputPath }),
       {
-      cwd: options?.cwd,
-      env: getCommandEnvironment({ TERM: "dumb" }),
+        cwd: options?.cwd,
+        env: getCommandEnvironment({ TERM: "dumb" }),
+        stdio: ["ignore", "pipe", "pipe"],
       },
     );
 
