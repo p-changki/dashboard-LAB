@@ -12,6 +12,7 @@ const execFileAsync = promisify(execFile);
 const TIMEOUT_MS = 10 * 60 * 1000; // 10분
 const WHISPER_CPP_MODEL_ENV_KEYS = ["WHISPER_MODEL_PATH", "WHISPER_CPP_MODEL_PATH", "WHISPER_CPP_MODEL"] as const;
 const WHISPER_CPP_SUPPORTED_EXTENSIONS = new Set([".flac", ".mp3", ".ogg", ".wav"]);
+const WHISPER_CPP_MODEL_FILE_NAMES = ["ggml-medium.bin", "ggml-small.bin", "ggml-base.bin"] as const;
 const WHISPER_INSTALL_MESSAGE =
   "whisper CLI가 설치되어 있지 않습니다. python3 -m pip install openai-whisper 또는 brew install whisper-cpp";
 const WHISPER_CPP_MODEL_MESSAGE =
@@ -152,13 +153,24 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 function getCommonModelPaths(): string[] {
-  const homeDir = process.env.HOME;
   const runtimeConfig = getRuntimeConfig();
-  const candidates = [
-    path.join(runtimeConfig.paths.modelsDir, "ggml-medium.bin"),
-    path.join(runtimeConfig.paths.modelsDir, "ggml-small.bin"),
-    path.join(runtimeConfig.paths.modelsDir, "ggml-base.bin"),
+  const homeDir = process.env.HOME || runtimeConfig.paths.homeDir;
+  const resourcesModelsDir = getElectronResourcesModelsDir();
+  const applicationSupportModelsDir = getApplicationSupportModelsDir(homeDir);
+  const workspaceModelsDir = path.join(runtimeConfig.paths.workspaceRoot, "models");
+  const modelDirs = [
+    runtimeConfig.paths.modelsDir,
+    resourcesModelsDir,
+    applicationSupportModelsDir,
+    workspaceModelsDir,
   ];
+  const candidates: string[] = [];
+
+  for (const dir of [...new Set(modelDirs.filter((value): value is string => Boolean(value)))]) {
+    for (const name of WHISPER_CPP_MODEL_FILE_NAMES) {
+      candidates.push(path.join(dir, name));
+    }
+  }
 
   if (homeDir) {
     candidates.push(
@@ -169,4 +181,22 @@ function getCommonModelPaths(): string[] {
   }
 
   return candidates;
+}
+
+function getElectronResourcesModelsDir() {
+  const envResourcesPath = process.env.ELECTRON_RESOURCES_PATH?.trim();
+  if (envResourcesPath) {
+    return path.join(path.resolve(envResourcesPath), "models");
+  }
+
+  const runtimeResourcesPath = (process as unknown as { resourcesPath?: string }).resourcesPath?.trim();
+  return runtimeResourcesPath ? path.join(path.resolve(runtimeResourcesPath), "models") : null;
+}
+
+function getApplicationSupportModelsDir(homeDir: string) {
+  if (process.platform !== "darwin") {
+    return null;
+  }
+
+  return path.join(homeDir, "Library", "Application Support", "dashboard-lab", "models");
 }

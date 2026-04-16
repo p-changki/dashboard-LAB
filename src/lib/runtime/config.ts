@@ -41,11 +41,21 @@ export function getRuntimeConfig(): DashboardLabRuntimeConfig {
     (settingsDataRoot ? path.join(settingsDataRoot, "dashboard-lab-docs") : null) ??
     path.join(documentsDir, "dashboard-lab-docs");
   const stateDir = path.join(dataDir, "state");
+  const electronResourcesModelsDir = getElectronResourcesModelsDir();
+  const applicationSupportModelsDir = getApplicationSupportModelsDir(homeDir);
+  const modelDirCandidates = uniquePaths(
+    electronResourcesModelsDir
+      ? [electronResourcesModelsDir, applicationSupportModelsDir, path.join(workspaceRoot, "models")]
+      : [path.join(workspaceRoot, "models"), applicationSupportModelsDir],
+  );
+  const defaultModelsDir =
+    pickFirstExistingDirectory(modelDirCandidates) ??
+    (electronResourcesModelsDir ?? path.join(workspaceRoot, "models"));
   const modelsDir =
     readEnvPath("DASHBOARD_LAB_MODELS_DIR") ??
     (process.env.DASHBOARD_LAB_DATA_ROOT
       ? path.join(dataDir, "models")
-      : path.join(workspaceRoot, "models"));
+      : defaultModelsDir);
   const configuredProjectsRoot =
     readEnvPath("DASHBOARD_LAB_PROJECTS_ROOT") ??
     settings.paths.projectsRoot;
@@ -101,6 +111,24 @@ function pickFirstExistingDirectory(candidates: string[]) {
 
 function uniquePaths(candidates: Array<string | null | undefined>) {
   return [...new Set(candidates.filter((value): value is string => Boolean(value)))];
+}
+
+function getElectronResourcesModelsDir() {
+  const envResourcesPath = readEnvPath("ELECTRON_RESOURCES_PATH");
+  if (envResourcesPath) {
+    return path.join(envResourcesPath, "models");
+  }
+
+  const runtimeResourcesPath = (process as unknown as { resourcesPath?: string }).resourcesPath?.trim();
+  return runtimeResourcesPath ? path.join(path.resolve(runtimeResourcesPath), "models") : null;
+}
+
+function getApplicationSupportModelsDir(homeDir: string) {
+  if (process.platform !== "darwin") {
+    return null;
+  }
+
+  return path.join(homeDir, "Library", "Application Support", "dashboard-lab", "models");
 }
 
 function readEnvPath(name: string) {
