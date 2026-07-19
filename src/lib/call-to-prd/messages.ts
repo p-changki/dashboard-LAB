@@ -316,6 +316,54 @@ export function formatCallToPrdPdfNoTextMessage(locale: AppLocale) {
   });
 }
 
+export function formatCallToPrdPdfAnalysisProgress(locale: AppLocale, current: number, total: number) {
+  return pickLocale(locale, {
+    ko: `PDF 분석 중... (${current}/${total} 파트)`,
+    en: `Analyzing PDF... (part ${current}/${total})`,
+  });
+}
+
+export type CallToPrdProjectContextIssue =
+  | "path-not-allowed"
+  | "path-missing"
+  | "path-not-directory"
+  | "no-reference-files";
+
+export function getCallToPrdProjectContextIssueMessage(
+  issue: CallToPrdProjectContextIssue,
+  locale: AppLocale,
+) {
+  switch (issue) {
+    case "path-not-allowed":
+      return pickLocale(locale, {
+        ko: "허용된 프로젝트 경로가 아닙니다. 설정된 projects root 또는 현재 workspace 안의 프로젝트만 선택해 주세요.",
+        en: "That project path is not allowed. Choose a project inside the configured projects root or the current workspace.",
+      });
+    case "path-missing":
+      return pickLocale(locale, {
+        ko: "선택한 프로젝트 경로를 찾을 수 없습니다.",
+        en: "The selected project path does not exist.",
+      });
+    case "path-not-directory":
+      return pickLocale(locale, {
+        ko: "선택한 프로젝트 경로가 폴더가 아닙니다.",
+        en: "The selected project path is not a folder.",
+      });
+    case "no-reference-files":
+      return pickLocale(locale, {
+        ko: "프로젝트 기준 파일을 찾지 못했습니다. README, docs/planning 문서, package.json, 핵심 src 엔트리포인트 중 하나 이상이 필요합니다.",
+        en: "No project reference files were found. At least one of README, docs/planning documents, package.json, or a main src entry point is required.",
+      });
+  }
+}
+
+export function formatCallToPrdProjectContextFailed(locale: AppLocale) {
+  return pickLocale(locale, {
+    ko: "프로젝트 컨텍스트를 준비하지 못했습니다.",
+    en: "Could not prepare the project context.",
+  });
+}
+
 export function formatCallToPrdMergeFailedMessage(detail: string, locale: AppLocale) {
   return pickLocale(locale, {
     ko: `PRD 머지 실패: ${detail}`,

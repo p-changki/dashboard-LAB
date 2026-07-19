@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
   try {
     const { projectPath } = parseSearchParams(request, callProjectContextQuerySchema);
-    const inspected = await inspectLocalProjectContext(projectPath);
+    const inspected = await inspectLocalProjectContext(projectPath, locale);
 
     const payload: CallProjectContextResponse = inspected.context
       ? {
