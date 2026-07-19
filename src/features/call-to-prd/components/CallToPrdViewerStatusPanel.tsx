@@ -2,6 +2,7 @@
 
 import { useLocale } from "@/components/layout/LocaleProvider";
 import { ErrorCard } from "@/components/ui/ErrorCard";
+import { NoticeBanner } from "@/components/ui/NoticeBanner";
 import type { CallRecord } from "@/lib/types/call-to-prd";
 import {
   Step,
@@ -14,19 +15,25 @@ import { formatCallToPrdProgressMessage, getCallToPrdCopy } from "@/features/cal
 interface CallToPrdViewerStatusPanelProps {
   current: CallRecord | null;
   hasSupportDocs: boolean;
+  pollingError?: string | null;
   onRetryRecord: (record: CallRecord) => void;
 }
 
 export function CallToPrdViewerStatusPanel({
   current,
   hasSupportDocs,
+  pollingError,
   onRetryRecord,
 }: CallToPrdViewerStatusPanelProps) {
   const { locale } = useLocale();
   const copy = getCallToPrdCopy(locale);
 
   if (!current) {
-    return null;
+    if (!pollingError) {
+      return null;
+    }
+
+    return <NoticeBanner tone="info" title={copy.viewer.noticeTitle} message={pollingError} />;
   }
 
   if (current.status === "failed") {

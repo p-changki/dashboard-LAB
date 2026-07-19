@@ -17,6 +17,7 @@ export interface CallToPrdViewerProps {
   current: CallRecord | null;
   displayRecord: CallRecord | null;
   hasSupportDocs: boolean;
+  pollingError?: string | null;
   displayDocs: GeneratedDoc[];
   activeDocType: CallDocType;
   setActiveDocType: (docType: CallDocType) => void;
@@ -57,6 +58,7 @@ export function CallToPrdViewer({
   current,
   displayRecord,
   hasSupportDocs,
+  pollingError,
   displayDocs,
   activeDocType,
   setActiveDocType,
@@ -108,6 +110,7 @@ export function CallToPrdViewer({
       <CallToPrdViewerStatusPanel
         current={current}
         hasSupportDocs={hasSupportDocs}
+        pollingError={pollingError}
         onRetryRecord={handleRetryRecord}
       />
 

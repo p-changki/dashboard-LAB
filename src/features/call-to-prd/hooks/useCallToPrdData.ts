@@ -17,6 +17,21 @@ import type {
 import type { CallToPrdProjectsResponse } from "../state";
 import { SAVED_PAGE_SIZE } from "../state";
 
+// Give a brief network interruption a chance to recover before declaring the
+// job failed — the server pipeline keeps running regardless of the client.
+const POLL_MAX_FAILURES = 3;
+const POLL_RETRY_DELAY_MS = 2_000;
+
+class PollError extends Error {
+  readonly recordMissing: boolean;
+
+  constructor(message: string, recordMissing: boolean) {
+    super(message);
+    this.name = "PollError";
+    this.recordMissing = recordMissing;
+  }
+}
+
 type UseCallToPrdDataParams = {
   projectPath: string;
   savedPage: number;
@@ -34,6 +49,8 @@ type UseCallToPrdDataParams = {
   setProjectContextError: (error: string) => void;
   setTemplateSets: (sets: CallDocTemplateSet[]) => void;
   setCurrent: (record: CallRecord | null) => void;
+  setFeedbackMessage: (message: string) => void;
+  setPollingError: (message: string | null) => void;
 };
 
 export function useCallToPrdData({
@@ -53,9 +70,12 @@ export function useCallToPrdData({
   setProjectContextError,
   setTemplateSets,
   setCurrent,
+  setFeedbackMessage,
+  setPollingError,
 }: UseCallToPrdDataParams) {
   const { locale } = useLocale();
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSuccessRecordRef = useRef<CallRecord | null>(null);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -146,26 +166,77 @@ export function useCallToPrdData({
 
   const startPolling = useCallback((id: string) => {
     stopPolling();
+    lastSuccessRecordRef.current = null;
+    setPollingError(null);
+
+    // A record that vanished server-side (in-memory store cleared by a restart)
+    // never comes back, so it is reported differently from a transient failure.
+    const missingRecordMessage =
+      locale === "en"
+        ? "The job record is gone, likely because the app restarted. Generate again with the same input."
+        : "앱이 재시작되면서 작업 기록이 사라졌습니다. 같은 입력으로 다시 생성해 주세요.";
+    const pollErrorMessage =
+      locale === "en"
+        ? "Could not reach the server, so progress updates stopped. Refresh to check whether the job finished."
+        : "서버와 통신이 끊겨 진행 상태 갱신이 중단되었습니다. 새로고침해 작업이 끝났는지 확인해 주세요.";
+
+    let consecutiveFailures = 0;
 
     const poll = async () => {
-      const res = await fetch(`/api/call-to-prd/status/${id}`, {
-        headers: { "x-dashboard-locale": locale },
-      });
-      const record: CallRecord = await res.json();
-      setCurrent(record);
+      try {
+        const res = await fetch(`/api/call-to-prd/status/${id}`, {
+          headers: { "x-dashboard-locale": locale },
+        });
 
-      if (record.status === "completed" || record.status === "failed") {
+        if (!res.ok) {
+          throw new PollError(`Status fetch failed: ${res.status}`, res.status === 404);
+        }
+
+        const record: CallRecord = await res.json();
+        consecutiveFailures = 0;
+        lastSuccessRecordRef.current = record;
+        setCurrent(record);
+
+        if (record.status === "completed" || record.status === "failed") {
+          stopPolling();
+          void fetchHistory();
+          void fetchSaved();
+          return;
+        }
+
+        pollingRef.current = setTimeout(poll, getPollingDelay(record.status));
+      } catch (err) {
+        const recordMissing = err instanceof PollError && err.recordMissing;
+        consecutiveFailures += 1;
+
+        // A transient blip must not mark a job that is still running as failed.
+        // A missing record is terminal, so it skips the retries.
+        if (!recordMissing && consecutiveFailures < POLL_MAX_FAILURES) {
+          pollingRef.current = setTimeout(poll, POLL_RETRY_DELAY_MS);
+          return;
+        }
+
         stopPolling();
-        fetchHistory();
-        fetchSaved();
-        return;
-      }
+        const message = recordMissing ? missingRecordMessage : pollErrorMessage;
 
-      pollingRef.current = setTimeout(poll, getPollingDelay(record.status));
+        if (lastSuccessRecordRef.current) {
+          setCurrent({
+            ...lastSuccessRecordRef.current,
+            status: "failed",
+            error: message,
+          });
+        } else {
+          // No record was ever received, so the viewer has nothing to fall back to.
+          // setPollingError persists; setFeedbackMessage covers the intake sub-tab.
+          setPollingError(message);
+          setFeedbackMessage(message);
+          void fetchHistory();
+        }
+      }
     };
 
     void poll();
-  }, [fetchHistory, fetchSaved, getPollingDelay, locale, setCurrent, stopPolling]);
+  }, [fetchHistory, fetchSaved, getPollingDelay, locale, setCurrent, setFeedbackMessage, setPollingError, stopPolling]);
 
   useEffect(() => {
     void fetchHistory();

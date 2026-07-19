@@ -82,6 +82,9 @@ export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = 
   const [savedTotalPages, setSavedTotalPages] = useState(0);
   const [selectedSaved, setSelectedSaved] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  // Terminal polling failure. Unlike feedbackMessage it is never auto-dismissed,
+  // because the viewer has nothing else to render once polling has stopped.
+  const [pollingError, setPollingError] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [promptDialog, setPromptDialog] = useState<PromptDialogState | null>(null);
   const [activeDocType, setActiveDocType] = useState<CallDocType>("prd");
@@ -356,6 +359,8 @@ export function useCallToPrdWorkspace(navigationMode: DashboardNavigationMode = 
     setSelectedSaved,
     feedbackMessage,
     setFeedbackMessage,
+    pollingError,
+    setPollingError,
     confirmDialog,
     setConfirmDialog,
     promptDialog,

@@ -14,8 +14,8 @@ export async function extractPdfText(filePath: string): Promise<PdfExtractResult
     const data = await parser.getText();
 
     return {
-      text: data.text.trim(),
-      pageCount: data.pages.length,
+      text: (data.text ?? "").trim(),
+      pageCount: data.pages?.length ?? 0,
     };
   } finally {
     await parser.destroy();

@@ -293,6 +293,36 @@ export function formatKnownCallToPrdRuntimeMessage(message: string, locale: AppL
   return message;
 }
 
+// Pipeline warnings carry an interpolated error detail, so they cannot round-trip
+// through formatKnownCallToPrdRuntimeMessage's exact-match table. Build them localized.
+export function formatCallToPrdPdfExtractFailedMessage(detail: string, locale: AppLocale) {
+  return pickLocale(locale, {
+    ko: `PDF 추출 실패: ${detail}`,
+    en: `PDF extraction failed: ${detail}`,
+  });
+}
+
+export function formatCallToPrdPdfAnalysisFailedMessage(detail: string, locale: AppLocale) {
+  return pickLocale(locale, {
+    ko: `PDF 분석 실패: ${detail}`,
+    en: `PDF analysis failed: ${detail}`,
+  });
+}
+
+export function formatCallToPrdPdfNoTextMessage(locale: AppLocale) {
+  return pickLocale(locale, {
+    ko: "PDF에서 텍스트를 찾지 못해 참고 자료 없이 생성했습니다. 스캔 이미지 PDF라면 텍스트 PDF로 다시 첨부해 주세요.",
+    en: "No text was found in the PDF, so it was generated without that reference. If it is a scanned image PDF, attach a text-based PDF instead.",
+  });
+}
+
+export function formatCallToPrdMergeFailedMessage(detail: string, locale: AppLocale) {
+  return pickLocale(locale, {
+    ko: `PRD 머지 실패: ${detail}`,
+    en: `PRD merge failed: ${detail}`,
+  });
+}
+
 function localizeDocLabel(label: string, locale: AppLocale) {
   const resolved = resolveDocTypeFromLabel(label);
   if (!resolved) {

@@ -30,6 +30,10 @@ import { generateSupportingDocument } from "@/lib/call-to-prd/supporting-documen
 import { buildCallWorkingContext } from "@/lib/call-to-prd/working-context";
 import { getWhisperSetupError, transcribeAudio } from "@/lib/call-to-prd/whisper-runner";
 import {
+  formatCallToPrdMergeFailedMessage,
+  formatCallToPrdPdfAnalysisFailedMessage,
+  formatCallToPrdPdfExtractFailedMessage,
+  formatCallToPrdPdfNoTextMessage,
   formatKnownCallToPrdRuntimeMessage,
   getCallToPrdApiError,
   getCallToPrdDirectInputLabel,
@@ -237,6 +241,9 @@ async function processCallAsync(
   let projectContext: string | null = null;
   let projectContextSources: string[] = [];
   const projectContextError: string | null = null;
+  const generationWarnings: string[] = [];
+  let currentPrdMarkdown: string | null = null;
+  let currentGeneratedDocs: GeneratedDoc[] = [];
 
   try {
     let transcript = directTranscript || "";
@@ -268,7 +275,11 @@ async function processCallAsync(
         pdfContent = extracted.text;
         updateStatus(id, "analyzing-pdf", { pdfContent });
 
-        if (pdfContent) {
+        if (!pdfContent) {
+          // The parser can succeed while yielding no text (scanned/image-only PDFs).
+          // Without this the PDF is dropped from the prompt with no user-visible trace.
+          generationWarnings.push(formatCallToPrdPdfNoTextMessage(options.locale));
+        } else {
           try {
             pdfAnalysis = await analyzePdf(
               pdfContent,
@@ -282,10 +293,16 @@ async function processCallAsync(
             );
           } catch (err) {
             console.error("PDF analysis failed:", err);
+            generationWarnings.push(
+              formatCallToPrdPdfAnalysisFailedMessage(getErrorMessage(err, options.locale), options.locale),
+            );
           }
         }
       } catch (err) {
         console.error("PDF extraction failed:", err);
+        generationWarnings.push(
+          formatCallToPrdPdfExtractFailedMessage(getErrorMessage(err, options.locale), options.locale),
+        );
       }
     }
 
@@ -346,6 +363,7 @@ async function processCallAsync(
       baselineEntryName,
       baselineTitle,
       generationMode: options.generationMode,
+      generationWarnings: [...generationWarnings],
     });
 
     const prompt = buildCallToPrdPrompt({
@@ -363,7 +381,6 @@ async function processCallAsync(
     });
 
     let effectiveGenerationMode: CallGenerationMode = options.generationMode;
-    const generationWarnings: string[] = [];
     const openAiAvailable = hasOpenAiApiFallback();
     const claudeAvailable = options.generationMode === "openai" ? false : await checkClaudeInstalled();
     const codexAvailable = options.generationMode === "openai" ? false : await checkCodexInstalled();
@@ -623,6 +640,9 @@ async function processCallAsync(
         diffReport = options.locale === "en"
           ? `(Merge failed: ${getErrorMessage(err, options.locale)} / using ${claudePrd ? "Claude" : "OpenAI API"} result)`
           : `(머지 실패: ${getErrorMessage(err, options.locale)} / ${claudePrd ? "Claude" : "OpenAI API"} 결과 사용)`;
+        generationWarnings.push(
+          formatCallToPrdMergeFailedMessage(getErrorMessage(err, options.locale), options.locale),
+        );
       }
     } else {
       finalPrd = formatPrdMarkdown(primaryPrd ?? codexPrd ?? "");
@@ -652,6 +672,8 @@ async function processCallAsync(
       prdMarkdown: finalPrd,
     });
 
+    currentPrdMarkdown = finalPrd;
+
     const generatedDocs: GeneratedDoc[] = [
       {
         type: "prd",
@@ -659,6 +681,8 @@ async function processCallAsync(
         markdown: finalPrd,
       },
     ];
+
+    currentGeneratedDocs = [...generatedDocs];
 
     savedEntryName = await persistGeneratedDocsSnapshot({
       id,
@@ -721,6 +745,8 @@ async function processCallAsync(
           generationWarnings: [...generationWarnings],
         });
 
+        let docSucceeded = true;
+
         try {
           const generatedDoc = await generateSupportingDocument({
             type: docType,
@@ -730,71 +756,46 @@ async function processCallAsync(
           });
 
           generatedDocs.push(generatedDoc);
-          savedEntryName = await persistGeneratedDocsSnapshot({
-            id,
-            savedEntryName,
-            projectName: effectiveProjectName,
-            projectPath: options.projectPath,
-            customerName: options.customerName,
-            projectContext,
-            projectContextSources,
-            projectContextError,
-            baselineEntryName,
-            baselineTitle,
-            callDate: options.callDate,
-            generationMode: effectiveGenerationMode,
-            generationPreset: options.generationPreset,
-            generatedDocs,
-            selectedDocTypes: options.selectedDocTypes,
-            intake: options.intake,
-            generationWarnings,
-            claudePrd,
-            codexPrd,
-            diffReport,
-          });
-          updateStatus(id, "generating-docs", {
-            savedEntryName,
-            generatedDocs: [...generatedDocs],
-            docGenerationProgress: formatKnownCallToPrdRuntimeMessage(
-              `${index + 1}/${supportingDocTypes.length} · ${docLabel} 완료`,
-              options.locale,
-            ),
-            generationWarnings: [...generationWarnings],
-          });
+          currentGeneratedDocs = [...generatedDocs];
         } catch (err) {
+          docSucceeded = false;
           generationWarnings.push(formatKnownCallToPrdRuntimeMessage(`${docLabel}: ${getErrorMessage(err, options.locale)}`, options.locale));
-          savedEntryName = await persistGeneratedDocsSnapshot({
-            id,
-            savedEntryName,
-            projectName: effectiveProjectName,
-            projectPath: options.projectPath,
-            customerName: options.customerName,
-            projectContext,
-            projectContextSources,
-            projectContextError,
-            baselineEntryName,
-            baselineTitle,
-            callDate: options.callDate,
-            generationMode: effectiveGenerationMode,
-            generationPreset: options.generationPreset,
-            generatedDocs,
-            selectedDocTypes: options.selectedDocTypes,
-            intake: options.intake,
-            generationWarnings,
-            claudePrd,
-            codexPrd,
-            diffReport,
-          });
-          updateStatus(id, "generating-docs", {
-            savedEntryName,
-            generatedDocs: [...generatedDocs],
-            docGenerationProgress: formatKnownCallToPrdRuntimeMessage(
-              `${index + 1}/${supportingDocTypes.length} · ${docLabel} 건너뜀`,
-              options.locale,
-            ),
-            generationWarnings: [...generationWarnings],
-          });
         }
+
+        // Snapshot persistence stays outside the try so a write failure reaches the outer
+        // catch as a pipeline failure instead of being reported as a doc generation error.
+        savedEntryName = await persistGeneratedDocsSnapshot({
+          id,
+          savedEntryName,
+          projectName: effectiveProjectName,
+          projectPath: options.projectPath,
+          customerName: options.customerName,
+          projectContext,
+          projectContextSources,
+          projectContextError,
+          baselineEntryName,
+          baselineTitle,
+          callDate: options.callDate,
+          generationMode: effectiveGenerationMode,
+          generationPreset: options.generationPreset,
+          generatedDocs,
+          selectedDocTypes: options.selectedDocTypes,
+          intake: options.intake,
+          generationWarnings,
+          claudePrd,
+          codexPrd,
+          diffReport,
+        });
+
+        updateStatus(id, "generating-docs", {
+          savedEntryName,
+          generatedDocs: [...generatedDocs],
+          docGenerationProgress: formatKnownCallToPrdRuntimeMessage(
+            `${index + 1}/${supportingDocTypes.length} · ${docLabel} ${docSucceeded ? "완료" : "건너뜀"}`,
+            options.locale,
+          ),
+          generationWarnings: [...generationWarnings],
+        });
       }
     }
 
@@ -851,6 +852,9 @@ async function processCallAsync(
       projectContext,
       projectContextSources,
       projectContextError,
+      prdMarkdown: currentPrdMarkdown,
+      generatedDocs: currentGeneratedDocs,
+      generationWarnings: [...generationWarnings],
       error: formatKnownCallToPrdRuntimeMessage(getErrorMessage(err, options.locale), options.locale),
     });
   }
@@ -902,7 +906,7 @@ async function persistGeneratedDocsSnapshot(options: {
     });
   } catch (error) {
     console.error("Failed to persist generated docs snapshot:", error);
-    return options.savedEntryName;
+    throw error;
   }
 }
 

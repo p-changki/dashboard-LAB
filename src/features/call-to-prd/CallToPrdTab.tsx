@@ -37,6 +37,8 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
     setProjectContextError: workspace.setProjectContextError,
     setTemplateSets: workspace.setTemplateSets,
     setCurrent: workspace.setCurrent,
+    setFeedbackMessage: workspace.setFeedbackMessage,
+    setPollingError: workspace.setPollingError,
   });
   const actions = useCallToPrdActions({
     mode: workspace.mode,
@@ -322,6 +324,7 @@ export function CallToPrdTab({ mode: navigationMode = "advanced" }: CallToPrdTab
           current={workspace.current}
           displayRecord={workspace.displayRecord}
           hasSupportDocs={workspace.hasSupportDocs}
+          pollingError={workspace.pollingError}
           displayDocs={workspace.displayDocs}
           activeDocType={workspace.activeDocType}
           setActiveDocType={workspace.setActiveDocType}
