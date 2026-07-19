@@ -568,6 +568,7 @@ const baseCopy = {
       workingDocs: "실무 문서 생성",
       completed: "완료",
       failedTitle: "문서 생성이 중단되었습니다",
+      noticeTitle: "진행 상태를 불러오지 못했습니다",
       docResultsTitle: "문서 결과",
       docResultsDescription: "PRD와 생성된 지원 문서를 문서별로 열고, 현재 본문은 필요할 때만 펼쳐서 볼 수 있습니다.",
       copyCurrentDoc: "현재 문서 복사",
@@ -819,6 +820,7 @@ const baseCopy = {
       workingDocs: "Generate working docs",
       completed: "Completed",
       failedTitle: "Document generation stopped",
+      noticeTitle: "Could not load progress",
       docResultsTitle: "Document results",
       docResultsDescription: "Browse the PRD and generated support docs by type, and expand the body only when needed.",
       copyCurrentDoc: "Copy current doc",
@@ -1284,6 +1286,20 @@ export function formatCallToPrdFailureMessage(error: string | null, locale: AppL
     return pickLocale(locale, {
       ko: `AI 생성 단계에서 중단되었습니다. ${error} 입력 내용은 유지되므로 프롬프트나 실행 환경을 확인한 뒤 다시 생성하면 됩니다.`,
       en: `The AI generation step stopped. ${error} Your input is still preserved, so review the prompt or runtime setup and try again.`,
+    });
+  }
+
+  // Filesystem write failures surface the raw Node error, which leaks an absolute
+  // path and is not localized. Report the cause without echoing the path.
+  if (/\b(EACCES|EPERM|EROFS|ENOSPC|EDQUOT|EMFILE)\b/.test(error)) {
+    const diskFull = /\b(ENOSPC|EDQUOT)\b/.test(error);
+    return pickLocale(locale, {
+      ko: diskFull
+        ? "저장 공간이 부족해 문서를 저장하지 못했습니다. 여유 공간을 확보한 뒤 다시 생성해 주세요. 생성된 문서는 화면에 남아 있으니 복사해 두면 안전합니다."
+        : "저장 폴더에 쓸 권한이 없어 문서를 저장하지 못했습니다. PRD 저장 경로의 권한을 확인한 뒤 다시 생성해 주세요. 생성된 문서는 화면에 남아 있으니 복사해 두면 안전합니다.",
+      en: diskFull
+        ? "Saving failed because the disk is full. Free up space and generate again. The generated documents are still on screen, so copy them out first."
+        : "Saving failed because the PRD save folder is not writable. Check its permissions and generate again. The generated documents are still on screen, so copy them out first.",
     });
   }
 
