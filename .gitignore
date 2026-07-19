@@ -45,6 +45,13 @@ yarn-error.log*
 /.playwright-cli/
 /tmp/
 
+# local design notes — working docs, not published.
+# The three files below predate this rule and stay tracked.
+/docs/design/*
+!/docs/design/design-system.md
+!/docs/design/redesign-roadmap.md
+!/docs/design/call-to-prd-phase10-quality-improvements.md
+
 # local AI assistant files
 /CLAUDE.md
 /AGENTS.md
