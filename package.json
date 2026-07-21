@@ -145,13 +145,13 @@
       "unrs-resolver"
     ],
     "overrides": {
-      "tar": ">=7.5.7",
-      "shell-quote": ">=1.8.4",
-      "brace-expansion": ">=1.1.13",
-      "picomatch": ">=2.3.2",
-      "tmp": ">=0.2.6",
-      "form-data": ">=4.0.6",
-      "@xmldom/xmldom": ">=0.8.12"
+      "tar": "^7.5.7",
+      "shell-quote": "^1.8.4",
+      "brace-expansion": "^5.0.4",
+      "picomatch": "^4.0.3",
+      "tmp": "^0.2.6",
+      "form-data": "^4.0.6",
+      "@xmldom/xmldom": "^0.8.12"
     }
   }
 }
