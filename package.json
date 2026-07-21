@@ -107,7 +107,9 @@
       "package.json",
       "next.config.ts",
       "postcss.config.mjs",
-      "tsconfig.json"
+      "tsconfig.json",
+      "!**/*.map",
+      "!.next/cache/**/*"
     ],
     "mac": {
       "icon": "build-resources/icon.icns",
