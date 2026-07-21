@@ -52,7 +52,7 @@
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.577.0",
     "mermaid": "^11.13.0",
-    "next": "15.3.8",
+    "next": "15.5.20",
     "node-html-parser": "^7.1.0",
     "node-pty": "1.2.0-beta.12",
     "pdf-parse": "^2.4.5",
@@ -79,7 +79,7 @@
     "electron": "^35.1.5",
     "electron-builder": "^25.1.8",
     "eslint": "^9",
-    "eslint-config-next": "15.3.0",
+    "eslint-config-next": "15.5.20",
     "eslint-plugin-react-hooks": "^5.2.0",
     "tailwindcss": "^4",
     "typescript": "^5"
