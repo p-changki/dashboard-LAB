@@ -43,7 +43,10 @@
     "desktop:dist:win": "node scripts/desktop-build.mjs dist:win",
     "desktop:dist:linux": "node scripts/desktop-build.mjs dist:linux",
     "lint": "eslint . --max-warnings=0",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@vitalets/google-translate-api": "^9.2.1",
@@ -75,6 +78,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "concurrently": "^9.2.1",
     "electron": "^35.1.5",
     "electron-builder": "^25.1.8",
@@ -82,7 +86,8 @@
     "eslint-config-next": "15.5.20",
     "eslint-plugin-react-hooks": "^5.2.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   },
   "build": {
     "appId": "lab.dashboard.desktop",
