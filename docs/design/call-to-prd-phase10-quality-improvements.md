@@ -487,3 +487,29 @@ Phase 10-4 (큰 파일 분리)
 - `inspectLocalProjectContext`의 `locale = "ko"` 기본값이 호출부 누락을 숨김 (현재 무인자 호출은 `summarizeLocalProject` 1곳, error 폐기하므로 영향 없음)
 
 **다음**: Phase 10-2 (데드코드/중복 제거) → Phase 10-4 (큰 파일 분리)
+
+---
+
+## 11. Phase 10-2 구현 기록 (완료)
+
+**범위 축소**: 근거 조사로 4개 태스크 중 2개(D2/D3, D6)의 "동작 변경 없음" 전제가 부정확함을 확인.
+
+| Task | 결과 | PR |
+|---|---|---|
+| **D1** doc-labels 통합 | `doc-labels.ts` 신설(`CALL_DOC_LABELS`), messages.ts/copy.ts 공유. 14개 레이블 값 바이트 동일 검증 | #7 (구 #5) |
+| **D5** `getCallGenerationModeDescription` export 제거 | 외부 사용 0, 파일 내부 함수로 강등 | #7 |
+| **D2/D3** 매니페스트 통합 | **설계 방향 정정**: `sections`는 write-only 죽은 데이터(regenerate만 쓰고 아무도 안 읽음, UI는 markdown에서 실시간 split). 통합이 아니라 제거. `updateBundleDocMarkdown` 도메인 함수로 이전 | #6 |
+| **D6** snapshot wrapper 인라인 | **비채택**: 2곳 호출이라 인라인 시 중복 증가 | — |
+
+## 12. Phase 10-4 구현 기록 (부분 완료)
+
+| Sub-PR | 결과 | PR |
+|---|---|---|
+| **10-4.2** copy.ts (1,339줄) | 도메인별 12개 파일 + 11줄 barrel. public export 23개 완전 일치 | #8 |
+| **10-4.4** saved-bundles.ts (826줄) | shared/read/write 3파일 + 19줄 barrel. public export 9개 일치. save→load→list→update 실행 검증 | #9 |
+| **10-4.3** useCallToPrdActions (739줄) | **스킵** — 이미 800줄 이하(위반 아님). hook 클로저 구조상 factory 리팩터는 위험 대비 이득 낮음 | — |
+| **10-4.1** upload/route.ts (1,012줄) | **안전한 부분만**: 순수 헬퍼(`pipeline/shared.ts`) + PDF 스테이지(`pipeline/run-pdf.ts`) 추출 → 877줄. AI 생성 블록(~230줄, 4모드 검증 필요)은 후속 | #10 |
+
+**후속 과제**: 10-4.1 AI 생성 블록 분리(upload/route.ts 완전 800 이하) — 4개 생성 모드 공유 상태 재구성, 별도 집중 작업 권장.
+
+**Phase 10 종합**: 10-1(안정성) → 10-3(i18n) → 10-2(중복 제거) → 10-4(파일 분리) 순으로 진행. 각 단계에서 설계 문서의 전제가 실제와 다른 지점(10-3 미번역 범위 과대, 10-2 D2/D3 방향 오류, 10-4.3 위반 아님)을 근거 조사로 정정.
