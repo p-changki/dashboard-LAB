@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/lib/locale";
 import { pickLocale } from "@/lib/locale";
 import type { CallDocPreset, CallDocType } from "@/lib/call-to-prd/document-config";
+import { getCallDocTypeLabel } from "@/lib/call-to-prd/doc-labels";
 import type {
   CallCustomerImpact,
   CallInputKind,
@@ -54,13 +55,13 @@ const reproducibilityLabels: Record<CallReproducibility, { ko: string; en: strin
   "not-reproduced": { ko: "아직 재현 안 됨", en: "Not reproduced yet" },
 };
 
+// Doc-type labels live in @/lib/call-to-prd/doc-labels (shared with the server);
+// docCopy only owns the UI-specific shortLabel and description.
 const docCopy: Record<CallDocType, {
-  label: { ko: string; en: string };
   shortLabel: { ko: string; en: string };
   description: { ko: string; en: string };
 }> = {
   prd: {
-    label: { ko: "PRD", en: "PRD" },
     shortLabel: { ko: "PRD", en: "PRD" },
     description: {
       ko: "기능 배경, 요구사항, 우선순위, 개발 계획을 정리한 기준 문서",
@@ -68,7 +69,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "problem-statement": {
-    label: { ko: "문제정의서", en: "Problem Statement" },
     shortLabel: { ko: "Problem", en: "Problem" },
     description: {
       ko: "고객 불만, 회의 이슈, 운영 문제를 현상·영향·원인 가설·대응 방향으로 정리",
@@ -76,7 +76,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "client-brief": {
-    label: { ko: "고객 전달용 기획안", en: "Client Brief" },
     shortLabel: { ko: "Client", en: "Client" },
     description: {
       ko: "비개발자도 이해할 수 있게 요청 배경, 작업 범위, 진행 방식, 다음 단계를 설명",
@@ -84,7 +83,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "open-questions": {
-    label: { ko: "미확정 사항", en: "Open Questions" },
     shortLabel: { ko: "미확정", en: "Open" },
     description: {
       ko: "확정되지 않은 항목, 현재 가정, 고객 확인이 필요한 질문을 정리",
@@ -92,7 +90,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "acceptance-criteria": {
-    label: { ko: "Acceptance Criteria", en: "Acceptance Criteria" },
     shortLabel: { ko: "AC", en: "AC" },
     description: {
       ko: "요구사항별 완료 기준과 검수 포인트를 정의",
@@ -100,7 +97,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "user-flow": {
-    label: { ko: "유저 플로우", en: "User Flow" },
     shortLabel: { ko: "Flow", en: "Flow" },
     description: {
       ko: "핵심 사용자 흐름, 예외 흐름, 상태 변화, 시각 다이어그램을 정리",
@@ -108,7 +104,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "task-breakdown": {
-    label: { ko: "개발 태스크 분해", en: "Task Breakdown" },
     shortLabel: { ko: "Tasks", en: "Tasks" },
     description: {
       ko: "PRD를 FE/BE/API/QA 단위 작업으로 쪼개고 선후관계를 정리",
@@ -116,7 +111,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "change-request-diff": {
-    label: { ko: "변경요청 Diff", en: "Change Request Diff" },
     shortLabel: { ko: "Diff", en: "Diff" },
     description: {
       ko: "현재 요청이 기존 기준 문서나 프로젝트 기준 정보 대비 무엇이 달라지는지 정리",
@@ -124,7 +118,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "api-contract": {
-    label: { ko: "API 계약서", en: "API Contract" },
     shortLabel: { ko: "API", en: "API" },
     description: {
       ko: "예상 API 엔드포인트, 요청/응답 형식, 에러 계약을 정리",
@@ -132,7 +125,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "data-schema": {
-    label: { ko: "데이터 스키마", en: "Data Schema" },
     shortLabel: { ko: "Schema", en: "Schema" },
     description: {
       ko: "핵심 엔티티, 상태값, 저장 구조, 필드 정의를 정리",
@@ -140,7 +132,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "prompt-spec": {
-    label: { ko: "Prompt Spec", en: "Prompt Spec" },
     shortLabel: { ko: "Prompt", en: "Prompt" },
     description: {
       ko: "AI 또는 규칙 기반 생성 로직의 입력, 출력, 가드레일을 정리",
@@ -148,7 +139,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "evaluation-plan": {
-    label: { ko: "평가 계획", en: "Evaluation Plan" },
     shortLabel: { ko: "Eval", en: "Eval" },
     description: {
       ko: "샘플셋, 평가 기준, 통과 기준, 회귀 검증 방법을 정리",
@@ -156,7 +146,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "qa-checklist": {
-    label: { ko: "QA 체크리스트", en: "QA Checklist" },
     shortLabel: { ko: "QA", en: "QA" },
     description: {
       ko: "출시 전 기능/예외/품질 점검 항목을 정리",
@@ -164,7 +153,6 @@ const docCopy: Record<CallDocType, {
     },
   },
   "release-runbook": {
-    label: { ko: "릴리즈 런북", en: "Release Runbook" },
     shortLabel: { ko: "Runbook", en: "Runbook" },
     description: {
       ko: "배포 순서, 모니터링, 장애 대응, 롤백 절차를 정리",
@@ -1208,7 +1196,7 @@ export function getCallReproducibilityLabel(value: CallReproducibility, locale: 
 }
 
 export function getCallDocLabel(docType: CallDocType, locale: AppLocale) {
-  return pickLocale(locale, docCopy[docType].label);
+  return getCallDocTypeLabel(docType, locale);
 }
 
 export function getCallDocShortLabel(docType: CallDocType, locale: AppLocale) {
@@ -1243,7 +1231,8 @@ export function getCallGenerationModeLabel(mode: CallGenerationMode, locale: App
   return pickLocale(locale, generationModeCopy[mode].label);
 }
 
-export function getCallGenerationModeDescription(mode: CallGenerationMode, locale: AppLocale) {
+// Internal: only getCallGenerationModeOptions consumes this.
+function getCallGenerationModeDescription(mode: CallGenerationMode, locale: AppLocale) {
   return pickLocale(locale, generationModeCopy[mode].description);
 }
 
