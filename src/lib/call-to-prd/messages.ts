@@ -1,4 +1,5 @@
 import type { CallDocType } from "@/lib/call-to-prd/document-config";
+import { CALL_DOC_LABELS } from "@/lib/call-to-prd/doc-labels";
 import type { AppLocale } from "@/lib/locale";
 import { pickLocale } from "@/lib/locale";
 
@@ -15,23 +16,6 @@ type CallToPrdErrorCode =
   | "DELETE_FAILED"
   | "NOT_FOUND"
   | "NEXT_ACTION_FAILED";
-
-const docLabels: Record<CallDocType, { ko: string; en: string }> = {
-  prd: { ko: "PRD", en: "PRD" },
-  "problem-statement": { ko: "문제정의서", en: "Problem Statement" },
-  "client-brief": { ko: "고객 전달용 기획안", en: "Client Brief" },
-  "open-questions": { ko: "미확정 사항", en: "Open Questions" },
-  "acceptance-criteria": { ko: "Acceptance Criteria", en: "Acceptance Criteria" },
-  "user-flow": { ko: "유저 플로우", en: "User Flow" },
-  "task-breakdown": { ko: "개발 태스크 분해", en: "Task Breakdown" },
-  "change-request-diff": { ko: "변경요청 Diff", en: "Change Request Diff" },
-  "api-contract": { ko: "API 계약서", en: "API Contract" },
-  "data-schema": { ko: "데이터 스키마", en: "Data Schema" },
-  "prompt-spec": { ko: "Prompt Spec", en: "Prompt Spec" },
-  "evaluation-plan": { ko: "평가 계획", en: "Evaluation Plan" },
-  "qa-checklist": { ko: "QA 체크리스트", en: "QA Checklist" },
-  "release-runbook": { ko: "릴리즈 런북", en: "Release Runbook" },
-};
 
 const warningMap = {
   "Claude CLI가 없어 OpenAI API 생성으로 전환했습니다.": {
@@ -73,7 +57,7 @@ const warningMap = {
 } as const;
 
 export function getCallToPrdDocLabel(docType: CallDocType, locale: AppLocale) {
-  return pickLocale(locale, docLabels[docType]);
+  return pickLocale(locale, CALL_DOC_LABELS[docType]);
 }
 
 export function getCallToPrdDirectInputLabel(locale: AppLocale) {
@@ -381,7 +365,7 @@ function localizeDocLabel(label: string, locale: AppLocale) {
 
 function resolveDocTypeFromLabel(label: string): CallDocType | null {
   const normalized = label.trim();
-  for (const [docType, labels] of Object.entries(docLabels) as Array<[CallDocType, { ko: string; en: string }]>) {
+  for (const [docType, labels] of Object.entries(CALL_DOC_LABELS) as Array<[CallDocType, { ko: string; en: string }]>) {
     if (normalized === labels.ko || normalized === labels.en) {
       return docType;
     }
