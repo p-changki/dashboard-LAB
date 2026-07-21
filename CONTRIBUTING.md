@@ -53,9 +53,24 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 
 4. Watch the release workflow; the Release appears only after all three
    platform builds succeed.
+5. Refresh the AUR package definition (see below) once the Release exists.
 
 If a build fails, do not move or force-push the tag — cut a new patch version
 instead.
+
+### Updating the AUR package
+
+`pkg/PKGBUILD` and `pkg/.SRCINFO` pin the released Linux tarball by version and
+checksum, so they can only be updated *after* the Release is published:
+
+```bash
+gh release download vX.Y.Z --pattern "SHA256SUMS.txt" --output /tmp/SHA256SUMS.txt
+grep tar.gz /tmp/SHA256SUMS.txt
+```
+
+Set the new version and that checksum in both files, then open a PR to `dev`.
+Keep the two files consistent — `pkgver`, `sha256sums`, `source`, and
+`noextract` all carry the version string.
 
 ## Pull Request Guidelines
 
