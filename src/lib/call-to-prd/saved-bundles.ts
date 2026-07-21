@@ -338,6 +338,52 @@ export async function loadSavedBundle(entryName: string): Promise<SavedCallBundl
   return null;
 }
 
+/**
+ * Overwrite a single document inside a saved bundle and refresh the manifest.
+ *
+ * Owns the manifest read/merge/write that previously lived inline in the
+ * section-regenerate route. Only the document body and the derived summary
+ * change; generatedDocs entries are left as-is (section lists are recomputed
+ * from markdown on read, so they are not persisted here).
+ *
+ * Returns the updated manifest, or null when the bundle or document is missing.
+ */
+export async function updateBundleDocMarkdown(
+  entryName: string,
+  docType: CallDocType,
+  markdown: string,
+): Promise<SavedBundleManifest | null> {
+  const manifest = await readBundleManifest(entryName);
+  if (!manifest) {
+    return null;
+  }
+
+  const targetDoc = manifest.generatedDocs.find((doc) => doc.type === docType);
+  if (!targetDoc) {
+    return null;
+  }
+
+  const bundlePath = path.join(getPrdSaveDir(), entryName);
+  await writeFile(path.join(bundlePath, targetDoc.fileName), markdown, "utf-8");
+
+  const previewDoc = manifest.generatedDocs.find((doc) => doc.type === "prd") ?? targetDoc;
+  const previewSource = await readFile(path.join(bundlePath, previewDoc.fileName), "utf-8").catch(() => markdown);
+
+  const nextManifest: SavedBundleManifest = {
+    ...manifest,
+    version: Math.max(manifest.version, 6) as SavedBundleManifest["version"],
+    summary: {
+      preview: getPreview(previewSource),
+      sizeBytes: await getDirectorySize(bundlePath),
+      docCount: manifest.generatedDocs.length,
+      docTypes: manifest.generatedDocs.map((doc) => doc.type),
+    },
+  };
+
+  await writeFile(path.join(bundlePath, "manifest.json"), JSON.stringify(nextManifest, null, 2), "utf-8");
+  return nextManifest;
+}
+
 export async function deleteSavedBundle(entryName: string): Promise<boolean> {
   if (!isSafeEntryName(entryName)) {
     return false;
