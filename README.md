@@ -62,6 +62,7 @@ The main value is giving local AI tooling a practical desktop workspace where pr
 - `Meeting Hub`: track teams, meetings, uploaded notes, action items, and GitHub follow-up work
 - `File Manager`: review cleanup suggestions for Desktop and Downloads
 - `System`: inspect local machine status, processes, runtime info, and app launch actions
+- `Terminal`: open a local terminal session in the browser over a node-pty WebSocket bridge
 - `Info Hub`: read daily refreshed news, trends, package updates, and security checks
 - `Signal Writer`: turn selected signals into drafts, trend boards, fact checks, and follow-up research
 - `Call to PRD`: turn notes, transcripts, or meeting context into PRDs and working docs
@@ -108,7 +109,7 @@ It is useful when you need fast, context-aware support writing without manually 
 Recommended for most users:
 
 1. Open [Releases](https://github.com/p-changki/dashboard-LAB/releases)
-2. Download the latest macOS build asset such as `dashboard-LAB-0.1.16-arm64.dmg` or `dashboard-LAB-0.1.16-arm64-mac.zip`
+2. Download the latest macOS build asset such as `dashboard-LAB-0.1.20-arm64.dmg` or `dashboard-LAB-0.1.20-arm64-mac.zip`
 3. Open the app package and run it
 
 If you are running from the source repository instead:
@@ -142,7 +143,7 @@ pnpm launch
 If you just want to try the app on macOS:
 
 1. Open [Releases](https://github.com/p-changki/dashboard-LAB/releases).
-2. Download a macOS build asset such as `dashboard-LAB-0.1.16-arm64.dmg`.
+2. Download a macOS build asset such as `dashboard-LAB-0.1.20-arm64.dmg`.
 3. Open the downloaded app package and launch it.
 
 If you downloaded the source code instead of a release build:
@@ -229,7 +230,7 @@ pnpm rebuild electron node-pty
 
 ```bash
 mkdir -p "$HOME/Library/Application Support/dashboard-lab/models"
-ln -sf "/Users/changkipark/Desktop/dashboard-LAB/models/ggml-base.bin" \
+ln -sf "/path/to/dashboard-LAB/models/ggml-base.bin" \
   "$HOME/Library/Application Support/dashboard-lab/models/ggml-base.bin"
 ```
 

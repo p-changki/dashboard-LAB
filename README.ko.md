@@ -62,6 +62,7 @@
 - `Meeting Hub`: 팀, 회의, 업로드한 메모, 액션 아이템, GitHub 후속 작업을 관리
 - `File Manager`: Desktop과 Downloads 정리 후보를 검토
 - `System`: 시스템 정보, 프로세스, 런타임 상태, 앱 실행 기능 확인
+- `Terminal`: 브라우저에서 node-pty WebSocket으로 로컬 터미널 세션을 엽니다
 - `Info Hub`: 매일 갱신되는 뉴스, 트렌드, 패키지 업데이트, 보안 체크 확인
 - `Signal Writer`: 선택한 시그널을 초안, 트렌드 보드, 팩트체크, 추가 조사로 확장
 - `Call to PRD`: 메모, 전사본, 회의 문맥을 PRD와 실무 문서로 변환
@@ -108,7 +109,7 @@
 대부분의 사용자는 이 경로를 권장합니다.
 
 1. [Releases](https://github.com/p-changki/dashboard-LAB/releases) 페이지를 엽니다.
-2. `dashboard-LAB-0.1.16-arm64.dmg` 또는 `dashboard-LAB-0.1.16-arm64-mac.zip` 같은 macOS 설치 파일을 내려받습니다.
+2. `dashboard-LAB-0.1.20-arm64.dmg` 또는 `dashboard-LAB-0.1.20-arm64-mac.zip` 같은 macOS 설치 파일을 내려받습니다.
 3. 내려받은 앱 패키지를 열어 실행합니다.
 
 소스 저장소 기준으로 실행하려면:
@@ -142,7 +143,7 @@ pnpm launch
 macOS에서 바로 써보려면:
 
 1. [Releases](https://github.com/p-changki/dashboard-LAB/releases) 페이지를 엽니다.
-2. `dashboard-LAB-0.1.16-arm64.dmg` 같은 macOS 설치 파일을 내려받습니다.
+2. `dashboard-LAB-0.1.20-arm64.dmg` 같은 macOS 설치 파일을 내려받습니다.
 3. 내려받은 앱 패키지를 열어 실행합니다.
 
 릴리즈 빌드가 아니라 소스 코드를 내려받은 경우:
