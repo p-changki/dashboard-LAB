@@ -22,6 +22,44 @@ interface WorkingContextOptions {
 
 const ELLIPSIS = "\n\n(요약 생략)";
 
+interface OriginalContextOptions {
+  projectContext?: string | null;
+  projectContextSources?: string[] | null;
+  additionalContext?: string | null;
+  baselineTitle?: string | null;
+  baselinePrd?: string | null;
+  intake: CallIntakeMetadata;
+  transcript: string;
+  pdfAnalysis?: string | null;
+}
+
+/**
+ * Full-fidelity context for the dual-PRD merge prompt.
+ *
+ * Distinct from buildCallWorkingContext, which compacts every section to keep
+ * follow-up prompts small — the merge step needs the untruncated original.
+ * Section titles are part of the AI prompt, so they stay Korean.
+ */
+export function buildOriginalCallContext(options: OriginalContextOptions): string {
+  const sourceList = formatSourceList(options.projectContextSources);
+
+  return [
+    options.projectContext ? "## 프로젝트 기준 정보\n" : "",
+    options.projectContext ?? "",
+    sourceList ? `\n## 프로젝트 기준 파일\n${sourceList}` : "",
+    options.additionalContext ? `\n## 추가 맥락\n${options.additionalContext}` : "",
+    options.baselinePrd
+      ? `\n## 기존 기준 문서${options.baselineTitle ? ` (${options.baselineTitle})` : ""}\n${options.baselinePrd}`
+      : "",
+    "## 입력 메타",
+    buildCallIntakeMetadataMarkdown(options.intake),
+    "",
+    "## 원문 입력 내용",
+    options.transcript,
+    options.pdfAnalysis ? `\n## PDF 분석\n${options.pdfAnalysis}` : "",
+  ].join("\n");
+}
+
 export function buildCallWorkingContext(options: WorkingContextOptions): string {
   const intake = normalizeCallIntakeMetadata(options.intake);
   const blocks = [

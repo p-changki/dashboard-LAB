@@ -13,7 +13,6 @@ import {
   type CallDocPreset,
 } from "@/lib/call-to-prd/document-config";
 import {
-  buildCallIntakeMetadataMarkdown,
   normalizeCallIntakeMetadata,
   type CallIntakeMetadata,
 } from "@/lib/call-to-prd/intake-config";
@@ -27,13 +26,15 @@ import { mergeDualPrd } from "@/lib/call-to-prd/prd-merger";
 import { checkClaudeInstalled, runClaudePrd } from "@/lib/call-to-prd/prd-runner";
 import { resolveChangeRequestBaseline, saveGeneratedDocsBundle } from "@/lib/call-to-prd/saved-bundles";
 import { generateSupportingDocument } from "@/lib/call-to-prd/supporting-documents";
-import { buildCallWorkingContext } from "@/lib/call-to-prd/working-context";
+import { buildCallWorkingContext, buildOriginalCallContext } from "@/lib/call-to-prd/working-context";
 import { getWhisperSetupError, transcribeAudio } from "@/lib/call-to-prd/whisper-runner";
 import {
   formatCallToPrdMergeFailedMessage,
   formatCallToPrdPdfAnalysisFailedMessage,
+  formatCallToPrdPdfAnalysisProgress,
   formatCallToPrdPdfExtractFailedMessage,
   formatCallToPrdPdfNoTextMessage,
+  formatCallToPrdProjectContextFailed,
   formatKnownCallToPrdRuntimeMessage,
   getCallToPrdApiError,
   getCallToPrdDirectInputLabel,
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: getCallToPrdApiError(locale, "PROJECT_REQUIRED") }, { status: 400 });
     }
 
-    const inspectedProjectContext = await inspectLocalProjectContext(projectPath);
+    const inspectedProjectContext = await inspectLocalProjectContext(projectPath, locale);
     if (!inspectedProjectContext.context) {
       return NextResponse.json(
         {
@@ -287,7 +288,7 @@ async function processCallAsync(
               ({ current, total }) => {
                 updateStatus(id, "analyzing-pdf", {
                   pdfContent,
-                  pdfAnalysis: `PDF 분석 중... (${current}/${total} 파트)`,
+                  pdfAnalysis: formatCallToPrdPdfAnalysisProgress(options.locale, current, total),
                 });
               },
             );
@@ -312,9 +313,9 @@ async function processCallAsync(
       projectContextSources = options.projectContextSnapshot.sources;
       runnerCwd = options.projectContextSnapshot.projectPath;
     } else if (options.projectPath) {
-      const inspected = await inspectLocalProjectContext(options.projectPath).catch(() => ({
+      const inspected = await inspectLocalProjectContext(options.projectPath, options.locale).catch(() => ({
         context: null,
-        error: "프로젝트 컨텍스트를 준비하지 못했습니다.",
+        error: formatCallToPrdProjectContextFailed(options.locale),
       }));
 
       if (!inspected.context) {
@@ -618,19 +619,16 @@ async function processCallAsync(
         generationWarnings: [...generationWarnings],
       });
       try {
-        const originalContext = [
-          projectContext ? "## 프로젝트 기준 정보\n" : "",
-          projectContext ?? "",
-          projectContextSources.length > 0 ? `\n## 프로젝트 기준 파일\n${projectContextSources.map((source) => `- ${source}`).join("\n")}` : "",
-          options.additionalContext ? `\n## 추가 맥락\n${options.additionalContext}` : "",
-          baselinePrd ? `\n## 기존 기준 문서${baselineTitle ? ` (${baselineTitle})` : ""}\n${baselinePrd}` : "",
-          "## 입력 메타",
-          buildCallIntakeMetadataMarkdown(options.intake),
-          "",
-          "## 원문 입력 내용",
+        const originalContext = buildOriginalCallContext({
+          projectContext,
+          projectContextSources,
+          additionalContext: options.additionalContext,
+          baselineTitle,
+          baselinePrd,
+          intake: options.intake,
           transcript,
-          pdfAnalysis ? `\n## PDF 분석\n${pdfAnalysis}` : "",
-        ].join("\n");
+          pdfAnalysis,
+        });
         const merged = await mergeDualPrd(primaryPrd, codexPrd, originalContext, { cwd: runnerCwd });
         finalPrd = formatPrdMarkdown(merged.mergedPrd);
         diffReport = merged.diffReport;

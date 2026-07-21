@@ -3,6 +3,11 @@ import path from "node:path";
 
 import type { ProjectContextSnapshot } from "@/lib/types/call-to-prd";
 import { getRuntimeConfig } from "@/lib/runtime/config";
+import {
+  getCallToPrdProjectContextIssueMessage,
+  type CallToPrdProjectContextIssue,
+} from "@/lib/call-to-prd/messages";
+import type { AppLocale } from "@/lib/locale";
 import { normalizeWhitespace, pathExists, readUtf8 } from "@/lib/parsers/shared";
 
 interface ProjectDocSummary {
@@ -15,11 +20,18 @@ interface ProjectContextInspectionResult {
   error: string | null;
 }
 
+// Cached across locales, so failures are stored as an issue code rather than a
+// localized message.
+interface CachedProjectContextResult {
+  context: ProjectContextSnapshot | null;
+  issue?: CallToPrdProjectContextIssue;
+}
+
 interface CachedProjectContextEntry {
   discoverySignature: string;
   sourceSignature: string;
   expiresAt: number;
-  result: ProjectContextInspectionResult;
+  result: CachedProjectContextResult;
 }
 
 const ROOT_MARKDOWN_CANDIDATES = ["README.md", "README.mdx", "readme.md", "CLAUDE.md"];
@@ -66,13 +78,17 @@ const MAX_SOURCE_EXCERPT_LENGTH = 280;
 const PROJECT_CONTEXT_CACHE_TTL_MS = 5 * 60 * 1000;
 const PROJECT_CONTEXT_CACHE_KEY_PREFIX = "call-to-prd:project-context:";
 
-export async function inspectLocalProjectContext(projectPath: string): Promise<ProjectContextInspectionResult> {
+export async function inspectLocalProjectContext(
+  projectPath: string,
+  // The returned error reaches the user verbatim, so it has to be localized here.
+  locale: AppLocale = "ko",
+): Promise<ProjectContextInspectionResult> {
   const normalizedPath = path.resolve(projectPath);
 
   if (!isAllowedProjectPath(normalizedPath)) {
     return {
       context: null,
-      error: "허용된 프로젝트 경로가 아닙니다. 설정된 projects root 또는 현재 workspace 안의 프로젝트만 선택해 주세요.",
+      error: getCallToPrdProjectContextIssueMessage("path-not-allowed", locale),
     };
   }
 
@@ -80,14 +96,14 @@ export async function inspectLocalProjectContext(projectPath: string): Promise<P
   if (!target) {
     return {
       context: null,
-      error: "선택한 프로젝트 경로를 찾을 수 없습니다.",
+      error: getCallToPrdProjectContextIssueMessage("path-missing", locale),
     };
   }
 
   if (!target.isDirectory()) {
     return {
       context: null,
-      error: "선택한 프로젝트 경로가 폴더가 아닙니다.",
+      error: getCallToPrdProjectContextIssueMessage("path-not-directory", locale),
     };
   }
 
@@ -95,7 +111,10 @@ export async function inspectLocalProjectContext(projectPath: string): Promise<P
   const discoverySignature = await buildProjectDiscoverySignature(normalizedPath, target.mtimeMs);
   const cached = await readCachedProjectContext(normalizedPath, discoverySignature);
   if (cached) {
-    return cached;
+    return {
+      context: cached.context,
+      error: cached.issue ? getCallToPrdProjectContextIssueMessage(cached.issue, locale) : null,
+    };
   }
 
   const [projectType, packageInfo, hasGit, rootMarkdownFiles, docFiles, configFiles, sourceFiles] = await Promise.all([
@@ -116,17 +135,18 @@ export async function inspectLocalProjectContext(projectPath: string): Promise<P
   ]);
 
   if (allSources.length === 0) {
-    const result = {
-      context: null,
-      error: "프로젝트 기준 파일을 찾지 못했습니다. README, docs/planning 문서, package.json, 핵심 src 엔트리포인트 중 하나 이상이 필요합니다.",
-    };
+    // The cache is shared across locales, so it stores the issue code and the
+    // message is resolved per request.
     writeCachedProjectContext(normalizedPath, {
       discoverySignature,
       sourceSignature: "",
       expiresAt: Date.now() + PROJECT_CONTEXT_CACHE_TTL_MS,
-      result,
+      result: { context: null, issue: "no-reference-files" },
     });
-    return result;
+    return {
+      context: null,
+      error: getCallToPrdProjectContextIssueMessage("no-reference-files", locale),
+    };
   }
 
   const result = {
@@ -154,7 +174,7 @@ export async function inspectLocalProjectContext(projectPath: string): Promise<P
     discoverySignature,
     sourceSignature,
     expiresAt: Date.now() + PROJECT_CONTEXT_CACHE_TTL_MS,
-    result,
+    result: { context: result.context },
   });
 
   return result;
