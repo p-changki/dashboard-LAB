@@ -16,8 +16,6 @@ import {
   normalizeCallIntakeMetadata,
   type CallIntakeMetadata,
 } from "@/lib/call-to-prd/intake-config";
-import { analyzePdf } from "@/lib/call-to-prd/pdf-analyzer";
-import { extractPdfText } from "@/lib/call-to-prd/pdf-extractor";
 import { formatPrdMarkdown } from "@/lib/call-to-prd/prd-markdown-formatter";
 import { buildCallToPrdPrompt } from "@/lib/call-to-prd/prd-prompt-builder";
 import { inspectLocalProjectContext } from "@/lib/call-to-prd/project-context";
@@ -30,10 +28,6 @@ import { buildCallWorkingContext, buildOriginalCallContext } from "@/lib/call-to
 import { getWhisperSetupError, transcribeAudio } from "@/lib/call-to-prd/whisper-runner";
 import {
   formatCallToPrdMergeFailedMessage,
-  formatCallToPrdPdfAnalysisFailedMessage,
-  formatCallToPrdPdfAnalysisProgress,
-  formatCallToPrdPdfExtractFailedMessage,
-  formatCallToPrdPdfNoTextMessage,
   formatCallToPrdProjectContextFailed,
   formatKnownCallToPrdRuntimeMessage,
   getCallToPrdApiError,
@@ -43,6 +37,15 @@ import {
 import { hasOpenAiApiFallback } from "@/lib/ai/openai-responses";
 import { readLocaleFromHeaders } from "@/lib/locale";
 import type { CallGenerationMode, GeneratedDoc, ProjectContextSnapshot } from "@/lib/types/call-to-prd";
+import {
+  buildFallbackDiffReport,
+  buildGenerationFailureMessage,
+  formatSize,
+  getErrorMessage,
+  isCallGenerationMode,
+  isClaudeUsageLimitError,
+} from "@/lib/call-to-prd/pipeline/shared";
+import { runPdfPipeline } from "@/lib/call-to-prd/pipeline/run-pdf";
 
 const ALLOWED_AUDIO = [".m4a", ".mp3", ".wav", ".webm"];
 const ALLOWED_PDF = [".pdf"];
@@ -266,46 +269,10 @@ async function processCallAsync(
       transcript = await transcribeAudio(filePath);
     }
 
-    let pdfContent: string | null = null;
-    let pdfAnalysis: string | null = null;
-
-    if (pdfPath) {
-      try {
-        updateStatus(id, "extracting-pdf");
-        const extracted = await extractPdfText(pdfPath);
-        pdfContent = extracted.text;
-        updateStatus(id, "analyzing-pdf", { pdfContent });
-
-        if (!pdfContent) {
-          // The parser can succeed while yielding no text (scanned/image-only PDFs).
-          // Without this the PDF is dropped from the prompt with no user-visible trace.
-          generationWarnings.push(formatCallToPrdPdfNoTextMessage(options.locale));
-        } else {
-          try {
-            pdfAnalysis = await analyzePdf(
-              pdfContent,
-              pdfFileName ?? "document.pdf",
-              ({ current, total }) => {
-                updateStatus(id, "analyzing-pdf", {
-                  pdfContent,
-                  pdfAnalysis: formatCallToPrdPdfAnalysisProgress(options.locale, current, total),
-                });
-              },
-            );
-          } catch (err) {
-            console.error("PDF analysis failed:", err);
-            generationWarnings.push(
-              formatCallToPrdPdfAnalysisFailedMessage(getErrorMessage(err, options.locale), options.locale),
-            );
-          }
-        }
-      } catch (err) {
-        console.error("PDF extraction failed:", err);
-        generationWarnings.push(
-          formatCallToPrdPdfExtractFailedMessage(getErrorMessage(err, options.locale), options.locale),
-        );
-      }
-    }
+    const pdfResult = await runPdfPipeline(id, pdfPath, pdfFileName, options.locale);
+    const pdfContent = pdfResult.pdfContent;
+    const pdfAnalysis = pdfResult.pdfAnalysis;
+    generationWarnings.push(...pdfResult.warnings);
 
     if (options.projectContextSnapshot) {
       effectiveProjectName = effectiveProjectName ?? options.projectContextSnapshot.projectName;
@@ -908,105 +875,3 @@ async function persistGeneratedDocsSnapshot(options: {
   }
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-}
-
-function buildFallbackDiffReport(options: {
-  locale: ReturnType<typeof readLocaleFromHeaders>;
-  generationMode: CallGenerationMode;
-  claudePrd: string | null;
-  codexPrd: string | null;
-  openAiPrd: string | null;
-  claudeError: string | null;
-  codexError: string | null;
-  openAiError: string | null;
-}): string | null {
-  const { generationMode, claudePrd, codexPrd, openAiPrd, claudeError, codexError, openAiError, locale } = options;
-
-  if (generationMode === "claude") {
-    return locale === "en" ? "(Claude single-generation mode)" : "(Claude 단일 생성 모드)";
-  }
-
-  if (generationMode === "codex") {
-    return locale === "en" ? "(Codex single-generation mode)" : "(Codex 단일 생성 모드)";
-  }
-
-  if (generationMode === "openai") {
-    return locale === "en" ? "(OpenAI API single-generation mode)" : "(OpenAI API 단일 생성 모드)";
-  }
-
-  if ((claudePrd || openAiPrd) && !codexPrd) {
-    if (codexError === "Codex 미설치") {
-      return locale === "en" ? "(Codex not installed)" : "(Codex 미설치)";
-    }
-    return formatKnownCallToPrdRuntimeMessage(`Codex 실패: ${codexError ?? getErrorMessage(null, locale)}`, locale);
-  }
-
-  if (!claudePrd && !openAiPrd && codexPrd) {
-    if (openAiError) {
-      return formatKnownCallToPrdRuntimeMessage(`OpenAI API 실패: ${openAiError}`, locale);
-    }
-
-    return formatKnownCallToPrdRuntimeMessage(`Claude 실패: ${claudeError ?? getErrorMessage(null, locale)}`, locale);
-  }
-
-  return null;
-}
-
-function getErrorMessage(error: unknown, locale: ReturnType<typeof readLocaleFromHeaders>): string {
-  return error instanceof Error ? error.message : (locale === "en" ? "Unknown error" : "알 수 없는 오류");
-}
-
-function isCallGenerationMode(value: string): value is CallGenerationMode {
-  return value === "claude" || value === "codex" || value === "dual" || value === "openai";
-}
-
-function buildGenerationFailureMessage(options: {
-  locale: ReturnType<typeof readLocaleFromHeaders>;
-  generationMode: CallGenerationMode;
-  claudeError: string | null;
-  codexError: string | null;
-  openAiError: string | null;
-}): string {
-  const { locale, generationMode, claudeError, codexError, openAiError } = options;
-
-  if (generationMode === "claude") {
-    return formatKnownCallToPrdRuntimeMessage(`Claude 실패: ${claudeError ?? getErrorMessage(null, locale)}`, locale);
-  }
-
-  if (generationMode === "codex") {
-    return formatKnownCallToPrdRuntimeMessage(`Codex 실패: ${codexError ?? getErrorMessage(null, locale)}`, locale);
-  }
-
-  if (generationMode === "openai") {
-    return formatKnownCallToPrdRuntimeMessage(`OpenAI API 실패: ${openAiError ?? getErrorMessage(null, locale)}`, locale);
-  }
-
-  const messages = [
-    claudeError ? formatKnownCallToPrdRuntimeMessage(`Claude 실패: ${claudeError}`, locale) : null,
-    openAiError ? formatKnownCallToPrdRuntimeMessage(`OpenAI API 실패: ${openAiError}`, locale) : null,
-    codexError ? formatKnownCallToPrdRuntimeMessage(`Codex 실패: ${codexError}`, locale) : null,
-  ].filter((message): message is string => Boolean(message));
-
-  return messages.join(" / ") || (locale === "en" ? "AI generation failed" : "AI 생성 실패");
-}
-
-function isClaudeUsageLimitError(message: string | null) {
-  if (!message) {
-    return false;
-  }
-
-  const normalized = message.toLowerCase();
-  return [
-    "you've hit your limit",
-    "you have hit your limit",
-    "usage limit",
-    "rate limit",
-    "quota",
-    "resets 12am",
-    "resets at",
-  ].some((pattern) => normalized.includes(pattern));
-}
